@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.projectmodal.mapper.ProjectModalMapper">
+	<select id="selectProjectModalList" resultType="ProjectModalVO">
+    SELECT
+      project_code,
+      project_name
+    FROM projects
+    ORDER BY project_code
+  </select>
+</mapper>

@@ -10,26 +10,38 @@ import lombok.Data;
 public class IssueVO {
 	private Long issueCode;
 	private Long projectCode;
-	private Long statusCode;
+	private Long statusCode; // status pk
+	
+	private String statusId; // OB1~5
 
 	private String title;
-	private String description; 
-
-	private String priority;
+	private String description;
+	
+	private String priority; 
 
 	private Long assigneeCode;
+	private String assigneeName;
 	private Long createdByCode;
+	private String creatorName;
 	
 	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
 	private LocalDateTime createdAt;
+	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
 	private LocalDateTime dueAt;
+	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
 	private LocalDateTime startedAt;
+	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
 	private LocalDateTime resolvedAt;
+	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
 	private LocalDateTime updatedAt;
 
 	private Integer progress; 
 	private Integer position;     
 
 	private Long fileCode;
-
+	
+	private String projectName;
+	
+	private String statusName; // 신규...
+	private String priorityName;
 }

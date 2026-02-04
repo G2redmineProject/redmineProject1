@@ -1,9 +1,138 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yedam.app.issue.mapper.IssueMapper">
+<!-- 전체 조회 -->
 <select id="selectAll" resultType="IssueVO">
-	select *
-	from issues
-	order by 1
+  SELECT
+    i.issue_code,
+    i.project_code,
+    i.status_code,
+    i.title,
+    i.description,
+    i.priority,
+    i.assignee_code,
+    i.created_by_code,
+    i.created_at,
+    i.due_at,
+    i.started_at,
+    i.resolved_at,
+    i.updated_at,
+    i.progress,
+    i.position,
+    i.file_code,
+
+    p.project_name,
+
+    cs.code_name AS status_name,
+    cp.code_name AS priority_name,
+    
+    ua.name AS assignee_name,
+    uc.name AS creator_name
+
+  FROM issues i
+  LEFT JOIN projects p
+    ON p.project_code = i.project_code
+
+  JOIN status s
+    ON s.status_code = i.status_code
+
+  LEFT JOIN common_code cs
+    ON cs.code_id = s.code_id
+    AND cs.group_code = 'OB'
+
+  LEFT JOIN common_code cp
+    ON cp.code_id = i.priority
+    AND cp.group_code = 'OA'
+    
+    LEFT JOIN users ua
+    ON ua.user_code = i.assignee_code
+    
+	LEFT JOIN users uc 
+	ON uc.user_code = i.created_by_code
+
+  ORDER BY i.issue_code
 </select>
+
+<!-- 등록 -->
+ <insert id="insertIssue" parameterType="com.yedam.app.issue.service.IssueVO">
+  <selectKey keyProperty="issueCode" resultType="long" order="BEFORE">
+    SELECT NVL(MAX(issue_code), 0) + 1
+    FROM issues
+  </selectKey>
+
+  INSERT INTO issues
+  <trim prefix="(" suffix=")" suffixOverrides=",">
+    issue_code,
+    project_code,
+    status_code,
+    title,
+    created_by_code,
+    created_at,
+
+    <if test="description != null and description != ''">
+      description,
+    </if>
+
+    <if test="priority != null and priority != ''">
+      priority,
+    </if>
+
+    <if test="assigneeCode != null">
+      assignee_code,
+    </if>
+
+    <if test="dueAt != null">
+      due_at,
+    </if>
+
+    <if test="progress != null">
+      progress,
+    </if>
+  </trim>
+  VALUES
+  <trim prefix="(" suffix=")" suffixOverrides=",">
+    #{issueCode},
+    #{projectCode},
+
+    (SELECT s.status_code
+       FROM status s
+      WHERE s.project_code = #{projectCode}
+        AND s.code_id = #{statusId}),
+
+    #{title},
+    1,
+    SYSTIMESTAMP,
+
+    <if test="description != null and description != ''">
+      #{description},
+    </if>
+
+    <if test="priority != null and priority != ''">
+      #{priority},
+    </if>
+
+    <if test="assigneeCode != null">
+      #{assigneeCode},
+    </if>
+
+    <if test="dueAt != null">
+      #{dueAt, jdbcType=TIMESTAMP},
+    </if>
+
+    <if test="progress != null">
+      #{progress},
+    </if>
+  </trim>
+</insert>
+ 
+ 
+ <!-- 삭제 -->
+ <delete id="deleteIssues">
+  DELETE FROM issues
+  WHERE issue_code IN
+  <foreach collection="issueCodes" item="id" open="(" separator="," close=")">
+    #{id}
+  </foreach>
+</delete>
+ 
 </mapper>

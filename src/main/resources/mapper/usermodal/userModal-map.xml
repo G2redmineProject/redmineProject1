@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.usermodal.mapper.UserModalMapper">
+	<select id="selectUserModalList" resultType="UserModalVO">
+    SELECT
+      u.user_code AS userCode,
+      u.name AS userName
+    FROM users u
+    WHERE u.is_lock != 1
+    ORDER BY u.name
+  </select>
+</mapper>

@@ -1,0 +1,181 @@
+/* =========================================================
+   Issue List - /static/css/issue/issue-list.css
+   ========================================================= */
+
+.page-title {
+  margin: 0 0 12px;
+  font-weight: 700;
+  font-size: 22px;
+  color: #111827;
+}
+
+/* 카드 */
+.card.mb-4 {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+/* 카드 헤더(회색 톤) */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+
+.card-body {
+  padding: 0;
+  overflow-x: auto;
+}
+
+/* 검색 영역(회색 톤) */
+.issue-filters {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px 10px;
+  background: #f9fafb;
+}
+
+.issue-filters + .card {
+  margin-top: 10px;
+}
+
+.issue-filters .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111827;
+}
+
+.issue-filters .input-group .btn {
+  white-space: nowrap;
+}
+
+/* 등록일/마감기한 넓이 */
+.issue-filters input[type="date"] {
+  min-width: 210px;
+}
+
+/* 테이블 */
+#issueTable {
+  width: 100%;
+  white-space: nowrap;
+
+  /* 카드바디 패딩을 0으로 쓸 때도 자연스럽게 보이게 */
+  margin: 0;
+}
+
+/* 테이블 헤더(회색 통일) */
+#issueTable thead th {
+  font-size: 14px;
+  font-weight: 700;
+  vertical-align: middle;
+
+  background-color: rgb(224, 229, 243); /* table-light보다 회색감 */
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 바디 */
+#issueTable tbody td {
+  font-size: 14px;
+  vertical-align: middle;
+  color: #111827;
+  border-color: #eeeeee;
+}
+
+/* hover (회색) */
+#issueTable.table-hover > tbody > tr:hover > * {
+  background-color: #ffffff;
+}
+
+/* 현재 테이블 컬럼 순서 기준 폭
+   1: 체크박스
+   2: 프로젝트명
+   3: 일감명
+   4: 상태
+   5: 우선순위
+   6: 담당자
+   7: 등록자
+   8: 생성일
+   9: 마감기한
+*/
+#issueTable th:nth-child(1),
+#issueTable td:nth-child(1) { width: 48px; }
+
+#issueTable th:nth-child(2),
+#issueTable td:nth-child(2) { min-width: 160px; }
+
+#issueTable th:nth-child(3),
+#issueTable td:nth-child(3) { min-width: 260px; }
+
+#issueTable th:nth-child(4),
+#issueTable td:nth-child(4) { width: 120px; }
+
+#issueTable th:nth-child(5),
+#issueTable td:nth-child(5) { width: 120px; }
+
+#issueTable th:nth-child(6),
+#issueTable td:nth-child(6) { width: 140px; }
+
+#issueTable th:nth-child(7),
+#issueTable td:nth-child(7) { width: 140px; }
+
+#issueTable th:nth-child(8),
+#issueTable td:nth-child(8) { width: 140px; }
+
+#issueTable th:nth-child(9),
+#issueTable td:nth-child(9) { width: 140px; }
+
+/* 일감명 줄임표 */
+#issueTable td:nth-child(3) {
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 체크박스 정렬 */
+#issueTable .form-check-input {
+  margin: 0;
+}
+
+/* 페이지네이션(회색 톤으로) */
+.pagination .page-link {
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.pagination .page-link:hover {
+  background-color: #f3f4f6;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}
+
+.x-page-title {
+  margin: 14px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.x-page-title .page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.2px;
+}
+
+.x-page-title .page-title-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
