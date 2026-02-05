@@ -1,6 +1,13 @@
 html, body {
   height: 100%;
-  overflow: hidden;
+  overflow: auto;
+}
+
+/* gantt 전체 */
+#gantt,
+.gantt_container,
+.gantt_container * {
+  font-size: 16px;
 }
 
 /* 타이틀 */
@@ -26,16 +33,16 @@ html, body {
 
 /* SB Admin 레이아웃 */
 #layoutSidenav_content {
-  height: calc(100vh - 56px); /* header */
+  min-height: calc(100vh - 56px); /* header */
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
 }
 
 #layoutSidenav_content main {
   flex: 1;
   display: block;
-  overflow: auto;
+  overflow: visible;
 }
 
 #layoutSidenav_content main > .container-fluid {
@@ -51,22 +58,51 @@ html, body {
 /* ===================== */
 
 .gantt-page {
-  height: 100%;
+  min-height: 100%;
   display: flex;
   flex-direction: column;
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 /* 🔥 핵심 */
 .gantt-wrapper {
   flex: 1;          /* 남은 공간 전부 차지 */
   min-height: 600px;
+  height: 800px; /* 고정 높이 추가 (필요시 조정) */
 }
 
 #e7eGantt {
   width: 100%;
   height: 100%;
+}
+
+/* 프로그램 */
+.gantt_task_line.gantt_project {
+  background-color: #A2A2A2  !important; /* 회색 */
+  border-color: #A2A2A2  !important;
+}
+
+/* 우선순위 - 긴급 */
+.gantt_task_line.priority-now {
+  background-color: #D97B7B  !important; /* 빨강 */
+  border-color: #D97B7B  !important;
+}
+
+/* 우선순위 - 높음 */
+.gantt_task_line.priority-high {
+  background-color: #FFB266 !important; /* 주황 */
+  border-color: #FFB266 !important;
+}
+
+/* 우선순위 - 보통 */
+.gantt_task_line.priority-medium {
+  background-color: #5AB2FF !important; /* 파랑 */
+  border-color: #5AB2FF !important;
+}
+
+/* 우선순위 - 낮음 */
+.gantt_task_line.priority-low {
+  background-color: #69B87C !important; /* 초록 */
+  border-color: #69B87C !important;
 }
 
 
