@@ -1,26 +1,49 @@
 package com.yedam.app.login.service.impl;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import org.springframework.mail.MailException;
+import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
 import com.yedam.app.login.mapper.FindPwMapper;
 import com.yedam.app.login.service.FindPwService;
-import com.yedam.app.login.service.FindPwVO;
+import com.yedam.app.login.service.UserVO;
 
 import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
 public class FindPwServiceImpl implements FindPwService {
+	
+	private static final Logger log = LoggerFactory.getLogger(FindPwServiceImpl.class);
 
 	private final FindPwMapper findPwMapper;
 	private final JavaMailSender mailSender;
-	
-	@Override
-	public FindPwVO FindPwInfo(FindPwVO findPwVO) {
-		return findPwMapper.selectFindPwInfo(findPwVO);
-	}
-	
-	
 
+	@Override
+	public UserVO FindPwInfo(UserVO userVO) {
+		return findPwMapper.selectFindPwInfo(userVO);
+	}
+
+	// 인증메일 발송
+	public void sendOtpMail(String toEmail, String otp) {
+		try {
+			SimpleMailMessage msg = new SimpleMailMessage();
+			msg.setTo(toEmail);
+			msg.setFrom("tjdcksgur.1@daum.net");
+			
+			msg.setSubject("[Together] 비밀번호 재설정 인증번호");
+			msg.setText("인증번호: " + otp + "\n10분 이내에 입력해주세요.");
+
+			mailSender.send(msg);
+			log.info("OTP mail sent. to={}, otp={}", toEmail, otp);
+		} catch (MailException e) {
+			log.error("OTP mail send failed. to={}", toEmail, e);
+			throw e;
+		}
+
+	}
 }
