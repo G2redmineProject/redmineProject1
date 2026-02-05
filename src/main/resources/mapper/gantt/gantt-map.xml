@@ -2,23 +2,29 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yedam.app.gantt.mapper.GanttMapper">
 	<!-- 전체조회 -->
-	<select id="selectGanttList" resultType="map">
+	<select id="selectGanttList" resultType="GanttVO">
 		SELECT issue_code
 			   , project_name
 			   , title
 			   , priority
-			   , status
+			   , priority_code
+			   , issue_status
 			   , progress
-			   , started_at
+			   , created_at
+			   , started_at    
+			   , due_at
 			   , resolved_at
+			   , assignee_code
 			   , assignee_name
 			   , duration
 			   , project_code
 			   , created_on
+			   , completed_on
+			   , project_status
 		FROM gantt_view
 		<where>
 		    <!-- 일감 상태 -->
-		    <if test="status != null and status != ''">
+		    <if test="issueStatus != null and issueStatus != ''">
 		        AND status = #{status}
 		    </if>
 		
