@@ -6,7 +6,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.yedam.app.login.service.LoginService;
-import com.yedam.app.login.service.LoginVO;
+import com.yedam.app.login.service.UserVO;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -26,13 +26,13 @@ public class LoginController {
 	
 	// 처리
 	@PostMapping("/login")
-	public String login(LoginVO loginVO
+	public String login(UserVO userVO
 						,HttpSession session
 						,RedirectAttributes ra) {
 		
 		
 		// 로그인 조회
-		LoginVO user = loginService.findLoginInfo(loginVO);
+		UserVO user = loginService.findLoginInfo(userVO);
 		
 		if (user == null) {
 			// 로그인 실패
@@ -43,7 +43,7 @@ public class LoginController {
 		// 로그인 성공 세션저장
 		session.setAttribute("user", user);
 		
-		return "redirect:/";
+		return "redirect:/empList";
 	}
 	
 	// 로그아웃

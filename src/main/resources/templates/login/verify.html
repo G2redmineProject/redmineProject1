@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org/"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+<head>
+<meta charset="UTF-8">
+<th:block th:replace="~{common/configs/default_configs :: BootStrap}"></th:block>
+<title>FindPw</title>
+</head>
+<body class="sb-nav-fixed d-flex flex-column min-vh-100">
+	<div id="layoutAuthentication_content" class="flex-grow-1">
+		<main class="d-flex align-items-center justify-content-center h-100">
+			<div class="container">
+				<div class="row justify-content-center">
+					<div class="col-lg-5">
+						<div class="card shadow-lg border-0 rounded-lg">
+							<div class="card-header">
+								<h3 class="text-center font-weight-light my-4">메일인증</h3>
+							</div>
+							<div class="card-body">
+								<form th:action="@{/findPw/verify}" method="post">
+									<div class="form-floating mb-3">
+										<input class="form-control" id="inputOtp" name="inputOtp"
+											type="text" inputmode="numeric" pattern="[0-9]*"
+											maxlength="6" placeholder="인증번호"
+											oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+										<label for="inputOtp">인증번호6자리</label>
+									</div>
+									<div class="text-center mt-2">
+										<small id="expiresTimer" class="text-muted"></small>
+									</div>
+									<div
+										class="d-flex align-items-center justify-content-center mt-4 mb-0">
+										<button type="submit" class="btn btn-primary">확인</button>
+									</div>
+								</form>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</main>
+	</div>
+
+	<!-- 인증 실패 모달 -->
+	<div class="modal fade" id="verifyFailModal" tabindex="-1"
+		aria-labelledby="verifyFailModalLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+
+				<div class="modal-header">
+					<h5 class="modal-title" id="verifyFailModalLabel">인증 실패</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"
+						aria-label="Close"></button>
+				</div>
+
+				<div class="modal-body text-center">
+					<p th:text="${verifyErrorMsg}">인증번호가 틀렸습니다.</p>
+				</div>
+
+				<div class="modal-footer">
+					<button type="button" class="btn btn-primary"
+						data-bs-dismiss="modal">확인</button>
+				</div>
+
+			</div>
+		</div>
+	</div>
+
+	<footer class="py-4 bg-light mt-auto"
+		th:insert="~{common/fragments/default_footer :: DefaultFooter}"></footer>
+	<th:block
+		th:replace="~{common/configs/default_configs :: BottomScript}"></th:block>
+
+	<script th:inline="javascript">
+		// 모델에서 만료시간 가져오기
+		const expiresAt = /*[[${expiresAt}]]*/ null; // 타임리프에서 먼저 읽고 js로 변환
+
+		// 만료 시 이동할 URL context-path 고려해서 thymeleaf로 생성
+		const redirectUrl = /*[[@{/findPw}]]*/ "/findPw";
+
+		// 분,초 항상 두자리 보여주기 함수
+		function pad2(n) {
+			return String(n).padStart(2, '0');
+		}
+
+		// 남은 시간을 mm:ss 로 변환
+		function formatLeft(ms) {
+			// 밀리초 → 초 소수점 버림 음수 방지 
+			const totalSec = Math.max(0, Math.floor(ms / 1000));
+			// 분: 60으로 나누고 소수점 버림
+			const min = Math.floor(totalSec / 60); 
+			// 초: 60으로 나눈 나머지
+			const sec = totalSec % 60;
+			// 분(2자리):초(2자리) 형태로 만듬
+			return `${pad2(min)}:${pad2(sec)}`;
+		}
+		
+		// DOM이 다 로드된 뒤
+		document.addEventListener("DOMContentLoaded", function () {
+			// 타이머 표시할 요소 가져오기
+			const timerEl = document.getElementById("expiresTimer");
+			
+			// 만료시간이 안 내려왔거나 타이머 영역이 없으면 종료
+			if (!expiresAt || !timerEl) return;
+			
+			const tick = () => {
+				// 남은시간 = 만료시각 - 현재시각
+				const left = expiresAt - Date.now();
+				
+				// 만료되었으면
+				if(left <= 0) {
+					timerEl.textContent = "인증 시간이 만료되었습니다";
+					// 글자 강조
+					timerEl.classList.remove("text-muted");
+					timerEl.classList.add("text-danger");
+					
+					// 타이머 중지
+					clearInterval(intervalId);
+					
+					// 1.5초 보여주고 비밀번호 찾기 페이지로 이동
+			        setTimeout(() => {
+			          window.location.replace(redirectUrl); // 뒤로가기로 이 페이지 못 오게
+			        }, 1500);
+					
+					return;
+				}
+				
+				// 만료시간 표시
+				timerEl.textContent = `${formatLeft(left)}`;
+			};
+			
+			// tick 실행
+			tick();
+			// 이후 매 1초
+			const intervalId = setInterval(tick, 1000);
+		});
+	</script>
+
+	<script th:if="${verifyErrorMsg != null}">
+		document.addEventListener("DOMContentLoaded", function() {
+			const modal = new bootstrap.Modal(document
+					.getElementById('verifyFailModal'));
+			modal.show();
+		});
+	</script>
+
+</body>
+</html>

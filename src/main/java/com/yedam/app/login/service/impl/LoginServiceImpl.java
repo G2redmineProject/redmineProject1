@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.yedam.app.login.mapper.LoginMapper;
 import com.yedam.app.login.service.LoginService;
-import com.yedam.app.login.service.LoginVO;
+import com.yedam.app.login.service.UserVO;
 
 import lombok.RequiredArgsConstructor;
 
@@ -18,9 +18,9 @@ public class LoginServiceImpl implements LoginService {
 	
 	// 사원번호, 비밀번호 조회
 	@Override
-	public LoginVO findLoginInfo(LoginVO loginVO) {
+	public UserVO findLoginInfo(UserVO userVO) {
 		
-		LoginVO user = loginMapper.selectLoginInfo(loginVO);
+		UserVO user = loginMapper.selectLoginInfo(userVO);
 		if (user == null) return null;
 		
 		System.out.println("employeeNo=" + user.getEmployeeNo());
@@ -29,7 +29,7 @@ public class LoginServiceImpl implements LoginService {
 		// 입력 비번: loginVO.getPassword()
 	    // DB 해시: user.getPasswordHash()
 										// 입력 비번				// DB 해시
-		if (!passwordEncoder.matches(loginVO.getPassword(), user.getPasswordHash())) {
+		if (!passwordEncoder.matches(userVO.getPassword(), user.getPasswordHash())) {
 			return null;
 		}
 		
