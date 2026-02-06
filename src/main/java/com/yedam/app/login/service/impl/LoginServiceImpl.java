@@ -23,9 +23,6 @@ public class LoginServiceImpl implements LoginService {
 		UserVO user = loginMapper.selectLoginInfo(userVO);
 		if (user == null) return null;
 		
-		System.out.println("employeeNo=" + user.getEmployeeNo());
-		System.out.println("passwordHash=" + user.getPasswordHash());
-		
 		// 입력 비번: loginVO.getPassword()
 	    // DB 해시: user.getPasswordHash()
 										// 입력 비번				// DB 해시
