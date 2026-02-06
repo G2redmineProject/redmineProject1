@@ -9,6 +9,9 @@ import com.yedam.app.issue.service.IssueVO;
 public interface IssueMapper {
 	// 전체조회
 	public List<IssueVO> selectAll();
+	// 프로젝트별 조회
+	public List<IssueVO> selectAllByProject(@Param("projectCode") Long projectCode);
+
 	// 단건조회
 	public IssueVO selectIssue(IssueVO issue);
 	// 등록

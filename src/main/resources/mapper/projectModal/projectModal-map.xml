@@ -6,6 +6,7 @@
       project_code,
       project_name
     FROM projects
+    WHERE status = 'OD1'
     ORDER BY project_code
   </select>
 </mapper>

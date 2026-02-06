@@ -1,7 +1,9 @@
 document.addEventListener("DOMContentLoaded", () => {
   const issueCode = new URLSearchParams(location.search).get("issueCode");
 
-  document.getElementById("btnBack")?.addEventListener("click", () => history.back());
+  document
+    .getElementById("btnBack")
+    ?.addEventListener("click", () => (location.href = `/issueList`));
 
   document.getElementById("btnEdit")?.addEventListener("click", () => {
     if (!issueCode) return alert("issueCode 없음");

@@ -28,7 +28,7 @@ public class AttachmentServiceImpl implements AttachmentService {
 
   @Transactional
   @Override
-  public Long saveSingleFile(String tableCode, Long userCode, MultipartFile uploadFile) {
+  public Long saveSingleFile(String tableCode, Integer userCode, MultipartFile uploadFile) {
     if (uploadFile == null || uploadFile.isEmpty()) return null;
 
     AttachmentVO vo = new AttachmentVO();
