@@ -3,7 +3,9 @@
 <mapper namespace="com.yedam.app.gantt.mapper.GanttMapper">
 	<!-- 전체조회 -->
 	<select id="selectGanttList" resultType="GanttVO">
-		SELECT issue_code
+		SELECT type_name
+		       , par_issue_code
+		       , issue_code
 			   , project_name
 			   , title
 			   , priority
@@ -21,6 +23,8 @@
 			   , created_on
 			   , completed_on
 			   , project_status
+			   , type_level
+			   , parent_type
 		FROM gantt_view
 		ORDER BY issue_code
 	</select>
