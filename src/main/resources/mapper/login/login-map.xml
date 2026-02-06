@@ -2,12 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yedam.app.login.mapper.LoginMapper">
 	<select id="selectLoginInfo" resultType="UserVO">
-        select  user_code
-                ,employee_no
-                ,password_hash
-                ,name
-        from users
-        where employee_no = #{employeeNo}
-        and is_lock = '0'
-    </select>
+		select  user_code
+				,employee_no
+				,password_hash
+				,name
+				,is_lock
+		from users
+		where employee_no = #{employeeNo}
+	</select>
+	
+	<update id="updateLastLoginAt" parameterType="int">
+		update users
+			set last_login_at = sysdate
+		where user_code = #{userCode}
+	</update>
 </mapper>
