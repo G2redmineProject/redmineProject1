@@ -20,28 +20,24 @@ input, select, textarea, button { font-size: 16px; }
 .issue-desc,
 .issue-history { margin-top: 16px; }
 
-/* Title */
 .x-page-title {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 18px 10px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 14px;
+  margin: 14px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.page-title {
+.x-page-title .page-title {
   margin: 0;
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
-  color: var(--text);
+  color: #111827;
   letter-spacing: -0.2px;
 }
 
-.page-title-sub {
-  margin: 0;
-  font-size: 13px;
-  color: var(--muted);
+.x-page-title .page-title-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
 }
 
 /* Summary */

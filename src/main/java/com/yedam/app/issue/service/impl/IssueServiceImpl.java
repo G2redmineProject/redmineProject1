@@ -67,7 +67,7 @@ public class IssueServiceImpl implements IssueService {
 
 	@Override
 	@Transactional
-	public Map<String, Object> modifyIssueInfo(IssueVO issue, MultipartFile uploadFile, Long userCode) {
+	public Map<String, Object> modifyIssueInfo(IssueVO issue, MultipartFile uploadFile, Integer userCode) {
 	    Map<String, Object> result = new java.util.HashMap<>();
 
 	    if (issue == null || issue.getIssueCode() == null) {
@@ -108,7 +108,7 @@ public class IssueServiceImpl implements IssueService {
 
 	@Transactional
 	  @Override
-	  public void attachFileToIssue(Long issueCode, Long userCode, MultipartFile uploadFile) {
+	  public void attachFileToIssue(Long issueCode, Integer userCode, MultipartFile uploadFile) {
 	    if (uploadFile == null || uploadFile.isEmpty()) return;
 
 	    // 공용 첨부 저장(attachments + attachments_detail) -> fileCode 반환
@@ -120,4 +120,8 @@ public class IssueServiceImpl implements IssueService {
 	    }
 	  }
 
+	@Override
+	public List<IssueVO> findAllByProject(Long projectCode) {
+	  return issueMapper.selectAllByProject(projectCode);
+	}
 }

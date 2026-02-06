@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.authority.mapper.AuthorityMapper">
+<select id="selectAuthority" resultType="AuthorityVO">
+  SELECT
+    ra.category,
+    ra.rd_rol AS rdRol,
+    ra.wr_rol AS wrRol,
+    ra.mo_rol AS moRol,
+    ra.del_rol AS delRol
+  FROM project_role_user pru
+  JOIN role_authority ra
+    ON ra.role_code = pru.role_code
+  WHERE pru.project_code = #{projectCode}
+    AND pru.user_code = #{userCode}
+    AND ra.category = #{category}
+</select>
+</mapper>

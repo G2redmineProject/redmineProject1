@@ -21,7 +21,7 @@ public class IssueVO {
 
 	private Long assigneeCode;
 	private String assigneeName;
-	private Long createdByCode;
+	private Integer createdByCode;
 	private String creatorName;
 	
 	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
@@ -36,7 +36,9 @@ public class IssueVO {
 	private LocalDateTime updatedAt;
 
 	private Integer progress; 
-	private Integer position;     
+	private Integer position; 
+	private Integer parIssueCode;
+	private String parIssueTitle;
 
 	private Long fileCode;
 	private String originalName;

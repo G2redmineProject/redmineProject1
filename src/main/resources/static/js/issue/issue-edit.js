@@ -25,7 +25,25 @@
   const btnBack = $("#btnBack");
   const btnReset = $("#btnReset");
 
-  // 담당자 모달
+  // --- 상위일감(Parent issue) ---
+  const issueCodeEl = $("#issueCode");
+  const projectCodeEl = $("#projectCode");
+
+  const parIssueText = $("#parIssueText");
+  const parIssueCode = $("#parIssueCode");
+  const btnOpenParIssueModal = $("#btnOpenParIssueModal");
+  const btnClearParIssue = $("#btnClearParIssue");
+
+  const parIssueModalEl = $("#parIssueSelectModal");
+  const parIssueModal = parIssueModalEl
+    ? new bootstrap.Modal(parIssueModalEl)
+    : null;
+  const parIssueSearchEl = $("#parIssueModalSearch");
+  const parIssueTbody = $("#parIssueModalList");
+
+  const toDT = (d) => (d ? `${d}T00:00` : "");
+
+  // --- 담당자 모달 ---
   const assigneeModalEl = $("#assigneeSelectModal");
   const assigneeModal = assigneeModalEl
     ? new bootstrap.Modal(assigneeModalEl)
@@ -37,8 +55,7 @@
   const assigneeSearchEl = $("#assigneeModalSearch");
 
   let userCache = [];
-
-  const toDT = (d) => (d ? `${d}T00:00` : "");
+  const parentIssueCacheByProject = new Map();
 
   const initial = {
     title: titleInp?.value || "",
@@ -50,6 +67,9 @@
     resolved: resolvedView?.value || "",
     assigneeName: assigneeText?.value || "",
     assigneeCode: assigneeCode?.value || "",
+    parIssueText: parIssueText?.value || "",
+    parIssueCode: parIssueCode?.value || "",
+    parIssueNameEnabled: parIssueCode?.getAttribute("name") === "parIssueCode",
   };
 
   const syncHiddenDates = () => {
@@ -57,7 +77,6 @@
     if (dueAt && dueView) dueAt.value = toDT(dueView.value);
     if (startedAt && startedView) startedAt.value = toDT(startedView.value);
 
-    // 완료 상태일 때만 완료일 저장
     if (resolvedAt && resolvedView) {
       resolvedAt.value =
         statusSel?.value === "OB5" ? toDT(resolvedView.value) : "";
@@ -70,7 +89,6 @@
     const isDone = statusSel?.value === "OB5";
     resolvedView.disabled = !isDone;
 
-    // 완료가 아니면 완료일 값 자체를 비움(저장 방지 + UI 일관성)
     if (!isDone) resolvedView.value = "";
     if (!isDone && resolvedAt) resolvedAt.value = "";
   };
@@ -139,11 +157,9 @@
     progressInp.value = String(v);
   };
 
-  // 상태 변경: 여기서는 "완료일 필수"를 막지 않는다(저장 시에만 검증)
   const onStatusChange = () => {
     const s = statusSel?.value || "";
 
-    // 신규 외 상태는 시작일이 없으면 선택을 되돌림(이건 즉시 막는 게 UX상 명확)
     if (s && s !== "OB1" && !startedView?.value) {
       alert("신규가 아닌 상태로 변경하려면 시작일을 먼저 등록해야 합니다.");
       statusSel.value = "OB1";
@@ -154,7 +170,9 @@
     syncHiddenDates();
   };
 
+  // -------------------------
   // 담당자 모달
+  // -------------------------
   const ensureUserCache = async () => {
     if (userCache.length) return true;
     const res = await fetch("/api/users/modal", {
@@ -204,27 +222,143 @@
     assigneeModal.show();
   };
 
+  // -------------------------
+  // 상위일감 모달(테이블)
+  // -------------------------
+  const fetchJson = async (url, failMsg) => {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      alert(failMsg);
+      return null;
+    }
+    return res.json();
+  };
+
+  const ensureParentIssues = async (projectCode) => {
+    if (!projectCode) return false;
+    if (parentIssueCacheByProject.has(projectCode)) return true;
+
+    const data = await fetchJson(
+      `/api/issues/parents?projectCode=${encodeURIComponent(projectCode)}`,
+      "상위일감 목록을 불러오지 못했습니다.",
+    );
+    if (!data) return false;
+
+    // 서버 응답: { issueCode, title, name }
+    const list = data.map((i) => ({
+      issueCode: Number(i.issueCode),
+      title: i.title ?? "",
+      assignee: (i.name ?? "미지정").trim(),
+    }));
+
+    parentIssueCacheByProject.set(projectCode, list);
+    return true;
+  };
+
+  const renderParIssueTable = (items) => {
+    if (!parIssueTbody) return;
+    parIssueTbody.innerHTML = "";
+
+    if (!items.length) {
+      const tr = document.createElement("tr");
+      const td = document.createElement("td");
+      td.colSpan = 2;
+      td.className = "text-muted";
+      td.textContent = "결과가 없습니다.";
+      tr.appendChild(td);
+      parIssueTbody.appendChild(tr);
+      return;
+    }
+
+    items.forEach((it) => {
+      const tr = document.createElement("tr");
+      tr.style.cursor = "pointer";
+
+      const tdTitle = document.createElement("td");
+      tdTitle.textContent = it.title;
+
+      const tdAssignee = document.createElement("td");
+      tdAssignee.textContent = it.assignee;
+
+      tr.appendChild(tdTitle);
+      tr.appendChild(tdAssignee);
+
+      tr.addEventListener("click", () => {
+        const selfId = Number(issueCodeEl?.value);
+        if (!Number.isNaN(selfId) && it.issueCode === selfId) {
+          alert("자기 자신을 상위일감으로 선택할 수 없습니다.");
+          return;
+        }
+
+        // 선택 시 name 복구해서 서버로 전송되게 함
+        if (parIssueCode) parIssueCode.setAttribute("name", "parIssueCode");
+
+        parIssueText.value = it.title;
+        parIssueCode.value = String(it.issueCode);
+
+        if (parIssueSearchEl) parIssueSearchEl.value = "";
+        parIssueModal?.hide();
+      });
+
+      parIssueTbody.appendChild(tr);
+    });
+  };
+
+  const filterParIssue = (items, q) => {
+    const qq = (q || "").trim().toLowerCase();
+    if (!qq) return items;
+    return items.filter((it) => (it.title || "").toLowerCase().includes(qq));
+  };
+
+  const openParIssueModal = async () => {
+    if (!parIssueModal) return;
+
+    const projectCode = projectCodeEl?.value;
+    if (!projectCode) {
+      alert("프로젝트 정보가 없습니다.");
+      return;
+    }
+
+    const ok = await ensureParentIssues(projectCode);
+    if (!ok) return;
+
+    const list = parentIssueCacheByProject.get(projectCode) || [];
+    parIssueSearchEl.value = "";
+    renderParIssueTable(list);
+
+    parIssueModal.show();
+  };
+
+  const clearParIssue = () => {
+    if (!parIssueText || !parIssueCode) return;
+
+    parIssueText.value = "";
+    parIssueCode.value = "";
+
+    // 해제 시 name 제거 => 서버에 파라미터가 안 가서 parIssueCode = null
+    parIssueCode.removeAttribute("name");
+  };
+
+  // -------------------------
+  // 검증
+  // -------------------------
   const validateBeforeSubmit = () => {
     const s = statusSel?.value || "";
 
-    // 신규 외에는 시작일 필수
     if (s && s !== "OB1" && !startedView?.value) {
       alert("신규가 아닌 상태로 저장하려면 시작일을 입력해야 합니다.");
       startedView?.focus();
       return false;
     }
 
-    // 완료는 저장 시 완료일 필수
     if (s === "OB5" && !resolvedView?.value) {
       alert("완료로 저장하려면 완료일을 입력해야 합니다.");
       resolvedView?.focus();
       return false;
     }
 
-    // 완료로 저장할 때는 첨부파일 필수
     if (s === "OB5") {
-      const hasFile =
-        uploadFileInp && uploadFileInp.files && uploadFileInp.files.length > 0;
+      const hasFile = uploadFileInp?.files?.length > 0;
       if (!hasFile) {
         alert("완료로 저장하려면 첨부파일을 등록해야 합니다.");
         uploadFileInp?.focus();
@@ -232,7 +366,6 @@
       }
     }
 
-    // 완료가 아니면 완료일 저장 금지
     if (s !== "OB5") {
       if (resolvedView) resolvedView.value = "";
       if (resolvedAt) resolvedAt.value = "";
@@ -244,8 +377,11 @@
     return true;
   };
 
+  // -------------------------
   // bind
+  // -------------------------
   statusSel?.addEventListener("change", onStatusChange);
+
   progressInp?.addEventListener("input", () => {
     clampProgress();
     syncHiddenDates();
@@ -254,7 +390,6 @@
   dueView?.addEventListener("change", syncHiddenDates);
 
   startedView?.addEventListener("change", () => {
-    // 신규 아닌 상태에서 시작일 비우면 신규로
     if (statusSel?.value && statusSel.value !== "OB1" && !startedView.value) {
       alert("신규가 아닌 상태에서는 시작일을 비울 수 없습니다.");
       statusSel.value = "OB1";
@@ -265,6 +400,7 @@
   resolvedView?.addEventListener("change", syncHiddenDates);
 
   btnOpenAssigneeModal?.addEventListener("click", openAssigneeModal);
+
   assigneeSearchEl?.addEventListener("input", async () => {
     const ok = await ensureUserCache();
     if (!ok) return;
@@ -274,6 +410,21 @@
         ? userCache.filter((u) => u.label.toLowerCase().includes(q))
         : userCache,
     );
+  });
+
+  btnOpenParIssueModal?.addEventListener("click", openParIssueModal);
+  btnClearParIssue?.addEventListener("click", clearParIssue);
+
+  parIssueSearchEl?.addEventListener("input", async () => {
+    const projectCode = projectCodeEl?.value;
+    if (!projectCode) return;
+
+    const ok = await ensureParentIssues(projectCode);
+    if (!ok) return;
+
+    const list = parentIssueCacheByProject.get(projectCode) || [];
+    const q = parIssueSearchEl.value || "";
+    renderParIssueTable(filterParIssue(list, q));
   });
 
   btnBack?.addEventListener("click", () => history.back());
@@ -292,7 +443,18 @@
     if (assigneeText) assigneeText.value = initial.assigneeName;
     if (assigneeCode) assigneeCode.value = initial.assigneeCode;
 
+    if (parIssueText) parIssueText.value = initial.parIssueText;
+    if (parIssueCode) parIssueCode.value = initial.parIssueCode;
+
+    // 초기 상태가 상위일감 있었다면 name 유지, 없었다면 제거
+    if (parIssueCode) {
+      if (initial.parIssueNameEnabled && initial.parIssueCode)
+        parIssueCode.setAttribute("name", "parIssueCode");
+      else parIssueCode.removeAttribute("name");
+    }
+
     onStatusChange();
+    syncHiddenDates();
   });
 
   form?.addEventListener("submit", (e) => {
@@ -303,4 +465,9 @@
   setProgressByStatus();
   toggleResolvedByStatus();
   syncHiddenDates();
+  // 초기 상위일감 값이 비어있으면 name 제거
+  if (parIssueCode) {
+    const hasValue = String(parIssueCode.value || "").trim().length > 0;
+    if (!hasValue) parIssueCode.removeAttribute("name");
+  }
 })();

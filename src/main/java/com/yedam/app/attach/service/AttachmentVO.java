@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 public class AttachmentVO {
 	private Long fileCode;
-	private Long userCode;
+	private Integer userCode;
 	private String tableCode;
 
 	@DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
