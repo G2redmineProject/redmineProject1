@@ -77,3 +77,20 @@ a, a:hover, a:visited, a:active {
     pointer-events: none;
     opacity: 0.5;
 }
+thead th{
+	text-align : center;
+}
+/* project.css에 추가 */
+.progress {
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* 진척률 라벨 스타일 */
+.small {
+    font-size: 0.875rem;
+    font-weight: 500;
+}

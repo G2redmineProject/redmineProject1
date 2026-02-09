@@ -325,3 +325,9 @@
 	// 초기 렌더링 수행
 	renderPage();
 })();
+
+
+
+function projectProgress(){
+	
+}

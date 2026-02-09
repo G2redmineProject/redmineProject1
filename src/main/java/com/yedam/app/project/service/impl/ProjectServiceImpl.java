@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 
 import com.yedam.app.project.mapper.ProjectMapper;
 import com.yedam.app.project.service.GroupVO;
+import com.yedam.app.project.service.ProjectPrVO;
 import com.yedam.app.project.service.ProjectService;
 import com.yedam.app.project.service.ProjectVO;
 import com.yedam.app.project.service.RoleVO;
@@ -39,4 +40,10 @@ public class ProjectServiceImpl implements ProjectService {
 		return projectMapper.groupAll();
 	}
 
+	@Override
+	public List<ProjectPrVO> progFindAll() {
+		return projectMapper.projPrAll();
+	}
+	
+	
 }

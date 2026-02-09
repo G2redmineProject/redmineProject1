@@ -89,13 +89,13 @@
 							<tr>
 
 								<th style="width: 50px;">번호</th>
-								<th style="width: 30px;">프로젝트명</th>
-								<th style="width: 40px;">등록일</th>
-								<th>관리자</th>
-								<th style="width: 130px;">관리자번호</th>
+								<th style="width: 100px;">프로젝트명</th>
+								<th style="width: 80px;">등록일</th>
+								<th style="width: 50px;">관리자</th>
+								<th style="width: 100px;">관리자번호</th>
 								<th>관리자메일</th>
-								<th style="width: 100px;">진행 상태</th>
-								<th style="width: 180px;">진척률</th>
+								<th style="width: 80px;">진행 상태</th>
+								<th style="width: 200px;">진척률</th>
 								<th style="width: 80px;">종료</th>
 								<th style="width: 80px;">삭제</th>
 							</tr>
@@ -103,7 +103,6 @@
 
 						<tbody id="projectTbody">
 							<tr class="projectRow" th:each="pro, status : ${list}">
-
 								<td>[[ ${status.index+1} ]]</td>
 								<td>[[ ${pro.projectName} ]]</td>
 								<td>[[ ${#dates.format(pro.createdOn, 'yyyy-MM-dd')} ]]</td>
@@ -111,29 +110,51 @@
 								<td>[[ ${pro.phone} ]]</td>
 								<td>[[ ${pro.email} ]]</td>
 								<td>[[ ${pro.codeName} ]]</td>
-								<td><div class="progress-container"
-										style="position: relative;">
-										<div class="progress"
-											style="height: 25px; background-color: gray;">
-											<div class="progress-bar" role="progressbar"
-												style="width: 70%; background-color: yellow; opacity: 0.2px; position: absolute; height: 100%; z-index: 1;">
-												<span class="ms-auto me-2 text-dark"
-													style="font-size: 0.8rem;">70%</span>
+								<td>
+									<!-- 진척률이 있는 경우 -->
+									<div th:if="${progMap.containsKey(pro.projectCode)}"
+										class="text-start">
+										<label class="small">예상 진척률:
+											[[${progMap.get(pro.projectCode).planProg}]]%</label>
+										<div class="progress mb-2" role="progressbar"
+											th:attr="aria-valuenow=${progMap.get(pro.projectCode).planProg}"
+											aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
+											<div class="progress-bar progress-bar-striped bg-secondary"
+												th:style="'width: ' + ${progMap.get(pro.projectCode).planProg} + '%'"
+												th:text="${progMap.get(pro.projectCode).planProg} + '%'">
 											</div>
+										</div>
 
+										<label class="small">실제 진척률:
+											[[${progMap.get(pro.projectCode).actualProg}]]%</label>
+										<div class="progress" role="progressbar"
+											th:attr="aria-valuenow=${progMap.get(pro.projectCode).actualProg}"
+											aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
+											<!-- 진척률에 따른 동적 색상 적용 -->
 											<div
 												class="progress-bar progress-bar-striped progress-bar-animated"
-												role="progressbar"
-												style="width: 40%; background-color: red; z-index: 2;">
-												40%</div>
+												th:classappend="${progMap.get(pro.projectCode).actualProg >= progMap.get(pro.projectCode).planProg} ? 'bg-primary' : 
+										(${progMap.get(pro.projectCode).planProg - progMap.get(pro.projectCode).actualProg <= 10} ? 'bg-warning' : 'bg-danger')"
+												th:style="'width: ' + ${progMap.get(pro.projectCode).actualProg} + '%'"
+												th:text="${progMap.get(pro.projectCode).actualProg} + '%'">
+											</div>
 										</div>
-									</div></td>
-								<td><button class="btn btn-success">
+									</div> <!-- 진척률이 없는 경우 -->
+									<div th:unless="${progMap.containsKey(pro.projectCode)}"
+										class="text-center text-muted">
+										<i class="fas fa-info-circle me-1"></i> 프로젝트 개발이 진행 전입니다.
+									</div>
+								</td>
+								<td>
+									<button class="btn btn-success btn-sm">
 										<i class="fa-regular fa-face-meh"></i> 종료
-									</button></td>
-								<td><button class="btn btn-danger">
+									</button>
+								</td>
+								<td>
+									<button class="btn btn-danger btn-sm">
 										<i class="fa-solid fa-face-dizzy"></i> 삭제
-									</button></td>
+									</button>
+								</td>
 							</tr>
 						</tbody>
 					</table>

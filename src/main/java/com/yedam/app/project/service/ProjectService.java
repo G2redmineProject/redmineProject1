@@ -11,4 +11,5 @@ public interface ProjectService {
 
 	public List<GroupVO> groupFindAll();
 
+	public List<ProjectPrVO> progFindAll();
 }
