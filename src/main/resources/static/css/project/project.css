@@ -98,3 +98,9 @@ tbody td:not(:nth-child(2)) {
     font-size: 0.875rem;
     font-weight: 500;
 }
+
+/* 등록 페이지 구성원/그룹 테이블 정렬 */
+#projectTbody{
+	text-align:center;
+	
+}

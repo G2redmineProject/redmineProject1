@@ -102,7 +102,7 @@
 						</thead>
 
 						<tbody id="projectTbody">
-							<tr class="projectRow" th:each="pro, status : ${list}">
+							<tr class="projectRow" th:each="pro, status : ${list}" th:data-project-code="${pro.projectCode}">
 								<td>[[ ${status.index+1} ]]</td>
 								<td>[[ ${pro.projectName} ]]</td>
 								<td>[[ ${#dates.format(pro.createdOn, 'yyyy-MM-dd')} ]]</td>
@@ -146,12 +146,16 @@
 									</div>
 								</td>
 								<td>
-									<button class="btn btn-success btn-sm">
+									<!-- 종료 버튼: 관리자이거나 수정 권한이 있을 때만 활성화 -->
+									<button class="btn btn-success btn-sm"
+										th:disabled="${auth.admin != 1 and auth.moRol != 'Y'}">
 										<i class="fa-regular fa-face-meh"></i> 종료
 									</button>
 								</td>
 								<td>
-									<button class="btn btn-danger btn-sm">
+									<!-- 삭제 버튼: 관리자이거나 삭제 권한이 있을 때만 활성화 -->
+									<button class="btn btn-danger btn-sm"
+										th:disabled="${auth.admin != 1 and auth.delRol != 'Y'}">
 										<i class="fa-solid fa-face-dizzy"></i> 삭제
 									</button>
 								</td>
