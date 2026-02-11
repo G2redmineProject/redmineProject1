@@ -117,7 +117,7 @@ public class LoginController {
 			return "redirect:/firstLogin";
 		}
 		
-		return "redirect:/empList";
+		return "redirect:/G2main";
 	}
 	
 	@GetMapping("/firstLogin")
@@ -128,9 +128,9 @@ public class LoginController {
 		// 세션정보가 없는 접근이면 막기
 		if(user == null) return "redirect:/login";
 		
-		// 첫 로그인이 아니면 막기
+		// 첫 로그인이 아니면 메인으로
 		if(!user.getFirstLoginYn().equals("Y")) {
-			return "redirect:/empList";
+			return "redirect:/G2main";
 		}
 		
 		return "login/firstLogin";
@@ -179,7 +179,7 @@ public class LoginController {
 		sessionUser.setPhone(userVO.getPhone());
 		session.setAttribute("user", sessionUser);
 		
-		return "redirect:/empList";
+		return "redirect:/G2main";
 	}
 	
 	// 로그아웃

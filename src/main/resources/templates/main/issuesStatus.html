@@ -1,0 +1,88 @@
+<!doctype html>
+<html
+  xmlns:th="https://www.thymeleaf.org/"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{common/layouts/default_layout}"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>일감현황</title>
+    <link rel="stylesheet" th:href="@{/css/main/issuesStatus.css}" />
+  </head>
+
+  <body>
+    <div layout:fragment="Content">
+
+      <!-- 타이틀 영역 -->
+      <div class="x-page-title">
+        <h3 class="page-title" th:text="${isAdmin} ? '담당자별 일감현황' : '내 일감현황'">담당자별 일감현황</h3>
+        <div class="page-title-sub">
+          <span th:text="${isAdmin} ? '프로젝트 담당자별 일감을 확인할 수 있습니다.' : '해당 프로젝트에서 내 일감을 확인할 수 있습니다.'">
+            프로젝트 담당자별 일감을 확인할 수 있습니다.
+          </span>
+          <span class="ms-2 text-muted small">
+            (프로젝트 코드: <span th:text="${projectCode}">0</span>)
+          </span>
+        </div>
+      </div>
+
+      <!-- 카드 -->
+      <div class="card mb-4">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <div>
+            <i class="fas fa-table me-1"></i>
+            <span th:text="${isAdmin} ? '담당자별 일감현황' : '내 일감현황'">담당자별 일감현황</span>
+          </div>
+
+          <div class="text-muted small">
+            <span th:if="${isAdmin}">프로젝트 전체 기준</span>
+            <span th:unless="${isAdmin}">본인 기준</span>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle text-center" id="issStaTable">
+              <thead class="table-light">
+                <tr>
+                  <th style="min-width:160px;" th:text="${isAdmin} ? '담당자' : '이름'">담당자</th>
+                  <th>신규</th>
+                  <th>진행</th>
+                  <th>해결</th>
+                  <th>반려</th>
+                  <th>완료</th>
+                  <th style="width: 90px;">합계</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr th:each="l : ${AssIssStaList}">
+                  <td class="text-start" th:text="${l.userName}">홍길동</td>
+                  <td th:text="${l.newIss}">0</td>
+                  <td th:text="${l.progress}">0</td>
+                  <td th:text="${l.solution}">0</td>
+                  <td th:text="${l.returnIss}">0</td>
+                  <td th:text="${l.completion}">0</td>
+                  <td class="fw-bold"
+                      th:text="${l.newIss + l.progress + l.solution + l.returnIss + l.completion}">0</td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(AssIssStaList)}">
+                  <td colspan="7" class="text-muted py-3">표시할 데이터가 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!--  뒤로가기 버튼 -->
+      <div class="d-flex justify-content-end">
+        <a class="btn btn-secondary" th:href="@{/G2main}">
+          <i class="fas fa-arrow-left me-1"></i>메인으로
+        </a>
+      </div>
+
+    </div>
+  </body>
+</html>

@@ -1,0 +1,76 @@
+/* =========================================================
+   issuesStatus - /static/css/main/issuesStatus.css
+   ========================================================= */
+
+.x-page-title {
+  margin: 14px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.x-page-title .page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.2px;
+}
+
+.x-page-title .page-title-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 카드 */
+.card.mb-4 {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+/* 카드 헤더(회색 톤) */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.card-body {
+  padding: 0;
+  overflow-x: auto;
+}
+
+/* 테이블 */
+#issStaTable {
+  width: 100%;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* 테이블 헤더(회색 통일) */
+#issStaTable thead th {
+  font-size: 14px;
+  font-weight: 700;
+  vertical-align: middle;
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 바디 */
+#issStaTable tbody td {
+  font-size: 14px;
+  vertical-align: middle;
+  color: #111827;
+  border-color: #eeeeee;
+}
+
+/* hover */
+#issStaTable.table-hover > tbody > tr:hover > * {
+  background-color: #ffffff;
+}

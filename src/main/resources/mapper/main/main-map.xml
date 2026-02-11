@@ -4,37 +4,210 @@
 	<!-- 유저가 속한 프로젝트 상태 정보 가져오기 -->
 	<select id="selectCodeNameCnt" resultType="MainProjectStatusVO">
 		select code_name
-			  ,count(*) AS codeNameCnt
+			   ,count(*) AS codeNameCnt
 		from vw_user_auth
+		
 		where user_code = #{userCode}
+		and code_name != '삭제'
+		
 		group by code_name
 	</select>
 
 	<!-- 유저의 프로젝트별 일감 현황 -->
 	<select id="selectProIssSta" resultType="ProIssStaVO">
-		SELECT p.project_code, AS projectCode
-			   p.project_name, AS projectName
-			   SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END) AS newIss,
-			   SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END) AS progress,
-			   SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS solution,
-			   SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS returnIss,
-			   SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS Completion
-		FROM project_role_user pru
-		JOIN projects p
-		ON p.project_code = pru.project_code
+		SELECT
+			p.project_code AS
+			projectCode,
+			p.project_name AS projectName,
+			SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END) AS newIss,
+			SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END) AS progress,
+			SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS solution,
+			SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS returnIss,
+			SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS completion
+		FROM projects p
 		
+		JOIN (
+			SELECT pru.project_code
+			FROM project_role_user pru
+		
+			WHERE pru.user_code = #{userCode}
+
+			UNION
+
+			SELECT gpr.project_code
+			FROM "GROUP_MEMBER" gm
+		
+			JOIN "GR_PRO_ROLE" gpr
+			ON gpr.gr_code = gm.gr_code
+		
+			WHERE gm.user_code = #{userCode}
+		) up
+		ON up.project_code = p.project_code
+
 		LEFT JOIN issues i
 		ON i.project_code = p.project_code
-		
+
 		LEFT JOIN status s
 		ON s.status_code = i.status_code
-		WHERE pru.user_code = #{userCode}
-		
-		GROUP BY
-		p.project_code,
-		p.project_name
-		
+
+		WHERE
+		p.status = 'OD1'
+
+		GROUP BY p.project_code, p.project_name
 		ORDER BY
-		p.project_code;
+		p.project_code
+	</select>
+
+	<!-- 본인이 관리자인 프로젝트 -->
+	<select id="selectAdminProByUserCode" resultType="Integer">
+		SELECT DISTINCT
+		project_code
+		FROM (
+		-- 1) 직접 매핑으로 admin
+		SELECT pru.project_code
+		FROM project_role_user pru
+
+		JOIN role r
+		ON r.role_code = pru.role_code
+
+		WHERE pru.user_code = #{userCode}
+		AND r.admin_ck = 'Y'
+
+		UNION
+
+		-- 2) 그룹 매핑으로 admin
+		SELECT gpr.project_code
+		FROM "GROUP_MEMBER" gm
+
+		JOIN "GR_PRO_ROLE" gpr
+		ON gpr.gr_code = gm.gr_code
+
+		JOIN role r
+		ON r.role_code = gpr.role_code
+
+		WHERE gm.user_code = #{userCode}
+		AND r.admin_ck = 'Y'
+		)
+	</select>
+
+	<!-- 프로젝트 관리자 여부 확인 -->
+	<select id="selectIsAdminInProject" resultType="Integer">
+		SELECT COUNT(*)
+		FROM (
+			-- 1) 직접 매핑 admin
+			SELECT 1
+			FROM project_role_user pru
+			
+			JOIN role r
+			ON r.role_code = pru.role_code
+			
+			WHERE pru.user_code = #{userCode}
+			AND pru.project_code = #{projectCode}
+			AND r.admin_ck = 'Y'
+
+			UNION ALL
+
+			-- 2) 그룹 매핑 admin
+			SELECT 1
+			FROM "GROUP_MEMBER" gm
+			
+			JOIN "GR_PRO_ROLE" gpr
+			ON gpr.gr_code = gm.gr_code
+			
+			JOIN role r
+			ON r.role_code = gpr.role_code
+			
+			WHERE gm.user_code = #{userCode}
+			AND gpr.project_code = #{projectCode}
+			AND r.admin_ck = 'Y'
+		)
+	</select>
+
+	<!-- 프로젝트 내부 담당자별 일감 현황 -->
+	<select id="selectAssIssSta" resultType="AssigneeIssStaVO">
+		SELECT u.user_code AS
+		userCode,
+		u.name AS userName,
+		SUM(CASE WHEN s.code_id = 'OB1' THEN 1
+		ELSE 0 END) AS newIss,
+		SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0
+		END) AS progress,
+		SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS
+		solution,
+		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS
+		returnIss,
+		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS
+		completion
+		FROM issues i
+
+		JOIN status s
+		ON s.status_code = i.status_code
+
+		JOIN users u
+		ON u.user_code = i.assignee_code
+
+		WHERE i.project_code =
+		#{projectCode}
+
+		GROUP BY u.user_code, u.name
+		ORDER BY u.name
+	</select>
+
+	<!-- 프로젝트 내부 본인 일감현황 -->
+	<select id="selectMyAssIssSta" resultType="AssigneeIssStaVO">
+		SELECT u.user_code AS
+		userCode,
+		u.name AS userName,
+		SUM(CASE WHEN s.code_id = 'OB1' THEN 1
+		ELSE 0 END) AS newIss,
+		SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0
+		END) AS progress,
+		SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS
+		solution,
+		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS
+		returnIss,
+		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS
+		completion
+		FROM issues i
+		JOIN status s ON s.status_code = i.status_code
+		JOIN users u ON u.user_code = i.assignee_code
+
+		WHERE i.project_code =
+		#{projectCode}
+		AND i.assignee_code = #{userCode}
+
+		GROUP BY u.user_code,
+		u.name
+	</select>
+	
+	<!-- 내가 속한 진행중 프로젝트들의 전체 현재 진척도(가중 평균) -->
+	<select id="selectTodayProgressRate" resultType="Integer">
+		SELECT
+    		ROUND(SUM(v.plan * v.actual_prog) / NULLIF(SUM(v.plan), 0), 0) 
+    			AS total_actual_prog
+		FROM VW_PROJECT_PROGRESS v
+		
+		JOIN projects p
+  		ON p.project_code = v.project_code
+  		
+		WHERE p.status = 'OD1'
+  		AND v.project_code IN (
+      		-- 1) 유저가 프로젝트에 직접 매핑된 경우
+      		SELECT pru.project_code
+      		FROM PROJECT_ROLE_USER pru
+      		
+      		WHERE pru.user_code = #{userCode}
+
+      		UNION
+
+      		-- ✅ 2) 유저가 그룹에 속해있고, 그 그룹이 프로젝트에 역할로 연결된 경우
+      		SELECT gpr.project_code
+      		FROM GROUP_MEMBER gm
+      		
+      		JOIN GR_PRO_ROLE gpr
+        	ON gpr.gr_code = gm.gr_code
+        	
+      		WHERE gm.user_code = #{userCode}
+  		)
 	</select>
 </mapper>
