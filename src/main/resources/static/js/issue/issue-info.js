@@ -14,7 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const canDelete = (btnDelete?.dataset?.canDelete || "false") === "true";
 
   btnBack?.addEventListener("click", () => {
-    location.href = `/issueList`;
+    if (!document.referrer) return (location.href = "/issueList");
+    if (document.referrer.includes("/issueEdit")) return history.go(-2);
+    history.back();
   });
 
   btnEdit?.addEventListener("click", () => {

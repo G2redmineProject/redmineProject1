@@ -171,7 +171,6 @@
   const setCanCreate = (canWrite) => {
     if (!btnSubmit) return;
     btnSubmit.dataset.canCreate = canWrite ? "true" : "false";
-    // disabled 처리 안 함 (요구사항)
   };
 
   const refreshCanCreate = async (projCode) => {
