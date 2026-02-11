@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.auth.mapper.UriAccessMapper">
+
+    <!-- 전체 URI 정보 조회 -->
+    <select id="selectAllUriAccessInfo" resultType="UriAccessInfoVO">
+        SELECT uri,
+               category,
+               type
+        FROM URI_ACCESS_INFO
+    </select>
+    
+    <!-- 특정 URI 조회 -->
+    <select id="selectUriAccessInfo" resultType="UriAccessInfoVO">
+        SELECT uri,
+               category,
+               type
+        FROM URI_ACCESS_INFO
+        WHERE uri = #{uri}
+    </select>
+    
+    
+
+</mapper>

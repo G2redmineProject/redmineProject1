@@ -32,34 +32,34 @@ public class ProjectController {
 	private final ProjectService projectService;
 
 	@GetMapping("projects")
-    public String projectList(HttpSession session, Model model) {
-        UserVO user = (UserVO) session.getAttribute("user");
+	public String projectList(HttpSession session, Model model) {
+		UserVO user = (UserVO) session.getAttribute("user");
 
-        if (user == null) {
-            return "redirect:/login";
-        }
-        Integer userCode = user.getUserCode();
+		if (user == null) {
+			return "redirect:/login";
+		}
+		Integer userCode = user.getUserCode();
 
-        // 1. 사용자 권한 조회
-        UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
+		// 1. 사용자 권한 조회
+		UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
 
-        // 2. 필터링된 프로젝트 목록 조회
-        List<ProjectVO> projects = projectService.findAll(userCode, auth.getAdmin());
+		// 2. 필터링된 프로젝트 목록 조회
+		List<ProjectVO> projects = projectService.findAll(userCode, auth.getAdmin());
 
-        // 3. 진척률 조회
-        List<ProjectPrVO> progVO = projectService.progFindAll();
-        Map<Integer, ProjectPrVO> progMap = new HashMap<>();
-        for (ProjectPrVO prog : progVO) {
-            progMap.put(prog.getProjectCode(), prog);
-        }
+		// 3. 진척률 조회
+		List<ProjectPrVO> progVO = projectService.progFindAll();
+		Map<Integer, ProjectPrVO> progMap = new HashMap<>();
+		for (ProjectPrVO prog : progVO) {
+			progMap.put(prog.getProjectCode(), prog);
+		}
 
-        model.addAttribute("list", projects);
-        model.addAttribute("progMap", progMap);
-        model.addAttribute("auth", auth);
-        model.addAttribute("userCode", userCode); // userCode 추가
+		model.addAttribute("list", projects);
+		model.addAttribute("progMap", progMap);
+		model.addAttribute("auth", auth);
+		model.addAttribute("userCode", userCode); // userCode 추가
 
-        return "project/projects";
-    }
+		return "project/projects";
+	}
 
 	@GetMapping("projectadd")
 	public String projectAdd(Model model) {
@@ -96,87 +96,92 @@ public class ProjectController {
 	}
 
 	// 종료 처리
-    @PostMapping("api/projects/{projectCode}/terminate")
-    @ResponseBody
-    public Map<String, Object> terminateProject(@PathVariable Integer projectCode, HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        UserVO user = (UserVO) session.getAttribute("user");
-        if (user == null) {
-            response.put("success", false);
-            response.put("message", "로그인이 필요합니다.");
-            return response;
-        }
-        
-        Integer userCode = user.getUserCode();
+	@PostMapping("api/projects/{projectCode}/modify")
+	@ResponseBody
+	public Map<String, Object> terminateProject(@PathVariable Integer projectCode, HttpSession session) {
+		Map<String, Object> response = new HashMap<>();
 
-        try {
-            UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
+		UserVO user = (UserVO) session.getAttribute("user");
+		if (user == null) {
+			response.put("success", false);
+			response.put("message", "로그인이 필요합니다.");
+			return response;
+		}
 
-            // 권한 체크: 관리자이거나 수정 권한이 있어야 함
-            if (auth.getAdmin() != 1 && !"Y".equals(auth.getMoRol())) {
-                response.put("success", false);
-                response.put("message", "프로젝트 종료 권한이 없습니다.");
-                return response;
-            }
+		Integer userCode = user.getUserCode();
 
-            int result = projectService.updateProjectStatus(projectCode, "OD3");
-            
-            if (result > 0) {
-                response.put("success", true);
-                response.put("message", "프로젝트가 종료되었습니다.");
-            } else {
-                response.put("success", false);
-                response.put("message", "프로젝트 종료에 실패했습니다.");
-            }
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "종료 처리 중 오류가 발생했습니다: " + e.getMessage());
-        }
+		try {
+			UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
 
-        return response;
-    }
+			// 권한 체크: 관리자이거나 수정 권한이 있어야 함
+			if (auth.getAdmin() != 1 && !"Y".equals(auth.getMoRol())) {
+				response.put("success", false);
+				response.put("message", "프로젝트 종료 권한이 없습니다.");
+				return response;
+			}
 
-    // 삭제 처리
-    @PostMapping("api/projects/{projectCode}/delete")
-    @ResponseBody
-    public Map<String, Object> deleteProject(@PathVariable Integer projectCode, HttpSession session) {
-        Map<String, Object> response = new HashMap<>();
-        
-        UserVO user = (UserVO) session.getAttribute("user");
-        if (user == null) {
-            response.put("success", false);
-            response.put("message", "로그인이 필요합니다.");
-            return response;
-        }
-        
-        Integer userCode = user.getUserCode();
+			int result = projectService.updateProjectStatus(projectCode, "OD3");
 
-        try {
-            UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
+			if (result > 0) {
+				response.put("success", true);
+				response.put("message", "프로젝트가 종료되었습니다.");
+			} else {
+				response.put("success", false);
+				response.put("message", "프로젝트 종료에 실패했습니다.");
+			}
+		} catch (Exception e) {
+			response.put("success", false);
+			response.put("message", "종료 처리 중 오류가 발생했습니다: " + e.getMessage());
+		}
 
-            // 권한 체크: 관리자이거나 삭제 권한이 있어야 함
-            if (auth.getAdmin() != 1 && !"Y".equals(auth.getDelRol())) {
-                response.put("success", false);
-                response.put("message", "프로젝트 삭제 권한이 없습니다.");
-                return response;
-            }
+		return response;
+	}
 
-            int result = projectService.updateProjectStatus(projectCode, "OD2");
-            
-            if (result > 0) {
-                response.put("success", true);
-                response.put("message", "프로젝트가 삭제되었습니다.");
-            } else {
-                response.put("success", false);
-                response.put("message", "프로젝트 삭제에 실패했습니다.");
-            }
-        } catch (Exception e) {
-            response.put("success", false);
-            response.put("message", "삭제 처리 중 오류가 발생했습니다: " + e.getMessage());
-        }
+	@GetMapping("/test-delete")
+	public String testDeletePage() {
+		return "test-delete";
+	}
 
-        return response;
-    }
+	// 삭제 처리
+	@PostMapping("api/projects/{projectCode}/delete")
+	@ResponseBody
+	public Map<String, Object> deleteProject(@PathVariable Integer projectCode, HttpSession session) {
+		Map<String, Object> response = new HashMap<>();
+
+		UserVO user = (UserVO) session.getAttribute("user");
+		if (user == null) {
+			response.put("success", false);
+			response.put("message", "로그인이 필요합니다.");
+			return response;
+		}
+
+		Integer userCode = user.getUserCode();
+
+		try {
+			UserProjectAuthVO auth = projectService.getUserProjectAuth(userCode, "프로젝트");
+
+			// 권한 체크: 관리자이거나 삭제 권한이 있어야 함
+			if (auth.getAdmin() != 1 && !"Y".equals(auth.getDelRol())) {
+				response.put("success", false);
+				response.put("message", "프로젝트 삭제 권한이 없습니다.");
+				return response;
+			}
+
+			int result = projectService.updateProjectStatus(projectCode, "OD2");
+
+			if (result > 0) {
+				response.put("success", true);
+				response.put("message", "프로젝트가 삭제되었습니다.");
+			} else {
+				response.put("success", false);
+				response.put("message", "프로젝트 삭제에 실패했습니다.");
+			}
+		} catch (Exception e) {
+			response.put("success", false);
+			response.put("message", "삭제 처리 중 오류가 발생했습니다: " + e.getMessage());
+		}
+
+		return response;
+	}
 
 }

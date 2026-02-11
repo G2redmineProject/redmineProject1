@@ -288,7 +288,7 @@
 			if (!confirm(`"${projectName}" 프로젝트를 종료 처리하시겠습니까?`)) return;
 
 			try {
-				const response = await fetch(`/api/projects/${projectCode}/terminate`, {
+				const response = await fetch(`/api/projects/${projectCode}/modify`, {
 					method: 'POST',
 					headers: {
 						'Content-Type': 'application/json'

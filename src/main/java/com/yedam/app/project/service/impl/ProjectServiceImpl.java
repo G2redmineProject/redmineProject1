@@ -144,4 +144,11 @@ public class ProjectServiceImpl implements ProjectService {
         params.put("status", status);
         return projectMapper.updateProjectStatus(params);
     }
+
+	@Override
+	public List<UserProjectAuthVO> getUserProjectAuthAll(Integer userCode) {
+		Map<String, Object> params = new HashMap<>();
+        params.put("userCode", userCode);
+        return projectMapper.selectUserProjectAuthAll(params);
+	}
 }

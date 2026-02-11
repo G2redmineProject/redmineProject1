@@ -38,18 +38,23 @@
             -- OD3(종료)는 관리자만 조회 가능
             AND (p.status != 'OD3' OR p.user_code = #{userCode})
   
-        ORDER BY p.project_code DESC
+        ORDER BY CASE WHEN p.status = 'OD3' THEN 2 ELSE 1 END ASC, p.project_code DESC
     </select>
 
 	
-	<!-- 역할 목록 -->
+	<!-- 역할 목록 조회 (삭제되지 않은 것만) -->
 	<select id="roleAll" resultType="RoleVO">
-		SELECT
-		role_code
-		,role_name
-		,explanation
-		FROM role
+	    SELECT
+	        role_code,
+	        role_name,
+	        explanation,
+	        admin_ck
+	    FROM role
+	    WHERE role_name NOT LIKE '%[-delete]'
+	    ORDER BY role_code
 	</select>
+	
+	
 	
 	<!-- 유저 리스트 -->
 	<select id="userAll" resultType="PruserVO">
@@ -164,29 +169,48 @@
 	
 	
 
-	<!-- 사용자 권한 조회 - 간단 버전 -->
+	<!-- 사용자 권한 조회 -->
 	<select id="selectUserProjectAuth" resultType="UserProjectAuthVO">
 	    SELECT 
-	        u.user_code,
-	        u.name,
-	        u.employee_no,
-	        u.phone,
-	        u.email,
-	        COALESCE(MAX(CASE WHEN r.role_code = 1 THEN 1 ELSE 0 END), 0) AS admin,
-	        MIN(r.role_code) AS role_code,
-	        MIN(r.role_name) AS role_name,
-	        #{category} AS category,
-	        COALESCE(MAX(ra.rd_rol), 'N') AS rd_rol,
-	        COALESCE(MAX(ra.wr_rol), 'N') AS wr_rol,
-	        COALESCE(MAX(ra.mo_rol), 'N') AS mo_rol,
-	        COALESCE(MAX(ra.del_rol), 'N') AS del_rol
-	    FROM users u
-	    LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
-	    LEFT JOIN role r ON pru.role_code = r.role_code
-	    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
-	        AND ra.category = #{category}
-	    WHERE u.user_code = #{userCode}
-	    GROUP BY u.user_code, u.name, u.employee_no, u.phone, u.email
+		    user_code,
+		    name,
+		    MAX(admin) AS admin,
+		    #{category} AS category,
+		    MAX(rd_rol) AS rd_rol,
+		    MAX(wr_rol) AS wr_rol,
+		    MAX(mo_rol) AS mo_rol,
+		    MAX(del_rol) AS del_rol
+		FROM (
+		    -- 1. 사용자에게 직접 부여된 개별 권한
+		    SELECT 
+		        u.user_code,
+		        u.name,
+		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+		    FROM users u
+		    LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
+		    LEFT JOIN role r ON pru.role_code = r.role_code
+		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+		        AND ra.category = #{category}
+		    WHERE u.user_code = #{userCode}
+		
+		    UNION
+		
+		    -- 2. 그룹을 통해 부여된 권한
+		    SELECT 
+		        u.user_code,
+		        u.name,
+		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+		    FROM users u
+		    JOIN group_member gm ON u.user_code = gm.user_code
+		    JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
+		    JOIN role r ON gpr.role_code = r.role_code
+		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+		        AND ra.category = #{category}
+		    WHERE u.user_code = #{userCode}
+		) combined_auth
+		GROUP BY user_code, name
 	</select>
 
     <!-- 프로젝트 상태 변경 -->
@@ -195,4 +219,50 @@
         SET status = #{status}
         WHERE project_code = #{projectCode}
     </update>
+    
+    <select id="selectUserProjectAuthAll" resultType="UserProjectAuthVO">
+	    SELECT 
+		    user_code,
+		    name,
+		    category,  -- 카테고리별로 그룹화
+		    MAX(admin) AS admin,
+		    MAX(rd_rol) AS rd_rol,
+		    MAX(wr_rol) AS wr_rol,
+		    MAX(mo_rol) AS mo_rol,
+		    MAX(del_rol) AS del_rol
+		FROM (
+		    -- 1. 사용자 개별 권한 (카테고리 포함)
+		    SELECT 
+		        u.user_code,
+		        u.name,
+		        ra.category,
+		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+		    FROM users u
+		    LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
+		    LEFT JOIN role r ON pru.role_code = r.role_code
+		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+		    WHERE u.user_code =  #{userCode} AND ra.category IS NOT NULL
+		
+		    UNION ALL
+		
+		    -- 2. 그룹 소속 권한 (카테고리 포함)
+		    SELECT 
+		        u.user_code,
+		        u.name,
+		        ra.category,
+		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+		    FROM users u
+		    JOIN group_member gm ON u.user_code = gm.user_code
+		    JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
+		    JOIN role r ON gpr.role_code = r.role_code
+		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+		    WHERE u.user_code = #{userCode} AND ra.category IS NOT NULL
+		) combined_auth
+		GROUP BY user_code, name, category
+		ORDER BY category ASC
+    </select>
+    
+    
 </mapper>

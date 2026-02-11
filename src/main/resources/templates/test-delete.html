@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+<meta charset="UTF-8">
+<title>삭제 테스트</title>
+</head>
+<body>
+	<h1>프로젝트 삭제 권한 테스트</h1>
+
+	<h2>현재 사용자 정보</h2>
+	<p>
+		이름: <span th:text="${session.user.name}">사용자명</span>
+	</p>
+
+	<h2>권한 정보</h2>
+	<div th:each="auth : ${session.userAuth}">
+		<div th:if="${auth.category == '프로젝트'}">
+			<p>
+				카테고리: <span th:text="${auth.category}"></span>
+			</p>
+			<p>
+				삭제 권한: <span th:text="${auth.delRol}"></span>
+			</p>
+		</div>
+	</div>
+
+	<h2>삭제 테스트</h2>
+	<form action="/api/projects/1/delete" method="post">
+		<button type="submit">프로젝트 1번 삭제 (POST 요청)</button>
+	</form>
+
+	<hr>
+	<a href="/projects">목록으로 돌아가기</a>
+	<script type="text/javascript">
+    fetch('/api/projects/1/delete', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        console.log('Status:', response.status);
+        console.log('Redirected:', response.redirected);
+        console.log('URL:', response.url);
+        
+        if (response.redirected && response.url.includes('accessDenied')) {
+            console.log('❌ 권한 없음 - 접근 거부됨');
+        } else {
+            console.log('✅ 권한 있음 - 삭제 처리됨');
+        }
+    })
+    .catch(error => {
+        console.error('에러:', error);
+    });
+    </script>
+</body>
+</html>

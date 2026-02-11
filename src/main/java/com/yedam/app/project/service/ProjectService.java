@@ -23,10 +23,12 @@ public interface ProjectService {
 	public int projectGroupAdd(ProjectAddGroupVO projectAddGroupVO); // 프로젝트 그룹 매퍼 등록
 	
 	// 프로젝트 등록 통합 메서드 추가
-    int registerProject(ProjectRequestDTO requestDTO);
+	public int registerProject(ProjectRequestDTO requestDTO);
 
     // 권한조회
-    UserProjectAuthVO getUserProjectAuth(Integer userCode, String category);
+	public UserProjectAuthVO getUserProjectAuth(Integer userCode, String category);
+	
+	public List<UserProjectAuthVO> getUserProjectAuthAll(Integer userCode);
     // 프로젝트 상태 변경
-    int updateProjectStatus(Integer projectCode, String status);
+	public int updateProjectStatus(Integer projectCode, String status);
 }
