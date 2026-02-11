@@ -23,14 +23,9 @@ public class KanbanServiceImpl implements KanbanService {
   private final KanbanMapper kanbanMapper;
 
   @Override
-  public Map<String, List<IssueVO>> getBoardColumnsByProject(Long projectCode) {
-    List<IssueVO> list = kanbanMapper.selectKanbanIssuesByProject(projectCode);
-    return groupByStatus(list);
-  }
-
-  @Override
-  public Map<String, List<IssueVO>> getBoardColumnsByUser(Long loginUserCode) {
-    List<IssueVO> list = kanbanMapper.selectKanbanIssuesByUser(loginUserCode);
+  public Map<String, List<IssueVO>> getBoardColumns(Integer userCode, Long projectCode, String viewScope) {
+    String scope = (viewScope == null || viewScope.isBlank()) ? "ME" : viewScope;
+    List<IssueVO> list = kanbanMapper.selectKanbanIssuesByScope(userCode, scope, projectCode);
     return groupByStatus(list);
   }
 
@@ -54,42 +49,38 @@ public class KanbanServiceImpl implements KanbanService {
 
   @Transactional
   @Override
-  public void moveCard(Long loginUserCode, KanbanMoveRequest req) {
-    if (req == null || req.getIssueCode() == null || req.getToStatusId() == null) {
+  public void moveCard(Integer userCode, KanbanMoveRequest req) {
+    if (req == null || req.getProjectCode() == null || req.getIssueCode() == null || req.getToStatusCode() == null) {
       throw new IllegalArgumentException("invalid request");
     }
 
-    // TODO: 서버 권한 체크 강력 추천
-    // move는 프로젝트 권한이 다를 수 있어서
-    // issueCode로 projectCode 조회 후 canWrite 검사하는 방식이 안전함
-
     boolean hasOrders = req.getToOrder() != null && !req.getToOrder().isEmpty();
+    int tmpPos = (req.getToIndex() == null ? 9999 : req.getToIndex() + 1);
 
-    if (hasOrders) {
-      int tmpPos = (req.getToIndex() == null ? 9999 : req.getToIndex() + 1);
+    // 상태 + 임시 position 먼저 반영
+    kanbanMapper.updateIssueStatusAndPosition(
+    	    req.getProjectCode(),
+    	    req.getIssueCode(),
+    	    req.getFromStatusCode(),
+    	    req.getToStatusCode(),
+    	    tmpPos
+    	);
 
-      // 상태를 먼저 바꿔두고
-      kanbanMapper.updateIssueStatusAndPosition(req.getIssueCode(), req.getToStatusId(), tmpPos);
+    if (!hasOrders) return;
 
-      // from/to 컬럼을 1..N으로 재정렬 저장
-      List<IssuePosUpdate> updates = new ArrayList<>();
+    // from/to 컬럼을 1..N으로 재정렬 저장
+    List<IssuePosUpdate> updates = new ArrayList<>();
 
-      for (int i = 0; i < req.getToOrder().size(); i++) {
-        updates.add(new IssuePosUpdate(req.getToOrder().get(i), i + 1));
-      }
-
-      if (req.getFromOrder() != null && !req.getFromOrder().isEmpty()) {
-        for (int i = 0; i < req.getFromOrder().size(); i++) {
-          updates.add(new IssuePosUpdate(req.getFromOrder().get(i), i + 1));
-        }
-      }
-
-      kanbanMapper.batchUpdatePositions(updates);
-      return;
+    for (int i = 0; i < req.getToOrder().size(); i++) {
+      updates.add(new IssuePosUpdate(req.getToOrder().get(i), i + 1));
     }
 
-    // toIndex만 오는 간단 버전(최소 동작)
-    int pos = (req.getToIndex() == null ? 9999 : (req.getToIndex() + 1));
-    kanbanMapper.updateIssueStatusAndPosition(req.getIssueCode(), req.getToStatusId(), pos);
+    if (req.getFromOrder() != null && !req.getFromOrder().isEmpty()) {
+      for (int i = 0; i < req.getFromOrder().size(); i++) {
+        updates.add(new IssuePosUpdate(req.getFromOrder().get(i), i + 1));
+      }
+    }
+
+    kanbanMapper.batchUpdatePositions(updates);
   }
 }

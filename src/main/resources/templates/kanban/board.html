@@ -9,196 +9,644 @@
     <meta charset="UTF-8" />
     <title>칸반 보드</title>
 
-    <link rel="stylesheet" th:href="@{/css/issue/issue-board.css}" />
+    <link rel="stylesheet" th:href="@{/css/kanban/kanban-board.css}" />
 
-    <!-- SortableJS (CDN) -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
-    <script defer th:src="@{/js/issue/kanban-board.js}"></script>
+    <script defer th:src="@{/js/kanban/kanban-board.js}"></script>
   </head>
 
   <body>
     <div class="x-page-title">
-      <h3 class="page-title">칸반 보드</h3>
-      <div class="page-title-sub">프로젝트별 일감을 칸반으로 관리할 수 있습니다.</div>
-    </div>
-
-    <div class="card mb-3">
-      <div class="card-body d-flex align-items-center justify-content-between gap-2 flex-wrap">
-        <div class="d-flex align-items-center gap-2 flex-wrap">
-          <div class="fw-bold">프로젝트</div>
-
-          <!-- 프로젝트 이름 표시 -->
-          <div class="text-muted" th:text="${projectName}">프로젝트명</div>
-
-          <!-- projectCode는 JS가 읽도록 data로 박아둠 -->
-          <div
-            id="kanbanBoard"
-            class="d-none"
-            th:attr="data-project-code=${projectCode}, data-can-write=${canWrite}"
-          ></div>
-        </div>
-
-        <div class="d-flex align-items-center gap-2">
-          <a class="btn btn-outline-secondary btn-sm" th:href="@{/issueList}">
-            목록으로
-          </a>
-          <a class="btn btn-primary btn-sm" th:href="@{/issueInsert}">
-            일감 등록
-          </a>
-        </div>
+      <h3 class="page-title">나의 일정</h3>
+      <div class="page-title-sub">
+        프로젝트별 일감을 칸반으로 관리할 수 있습니다.
       </div>
     </div>
 
-    <!-- Kanban Layout -->
-    <div class="kanban-wrap" id="kanbanWrap">
-      <!-- 컬럼 템플릿: OB1 -->
-      <section class="kan-col">
-        <header class="kan-col-header">
-          <div class="kan-col-title">신규</div>
-          <div class="kan-col-count" data-count-for="OB1">0</div>
-        </header>
+    <!-- board meta -->
+    <div
+      id="kanbanBoard"
+      class="d-none"
+      th:attr="
+        data-user-code=${userCode}
+      "
+    ></div>
 
-        <div class="kan-col-body" data-status="OB1">
-          <!-- 서버 렌더링: OB1 리스트 -->
-          <div
-            class="kan-card"
-            th:each="it : ${ob1List}"
-            th:attr="data-issue-code=${it.issueCode}"
-          >
-            <div class="kan-card-title" th:text="${it.title}">제목</div>
-
-            <div class="kan-card-meta">
-              <span class="badge text-bg-light" th:text="${it.priority}">우선순위</span>
-              <span class="text-muted" th:text="${it.assigneeName}">담당자</span>
-            </div>
-
-            <div class="kan-card-sub text-muted">
-              <span th:text="${it.creatorName}">등록자</span>
-              <span> · </span>
-              <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd')}">2026-02-10</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- OB2 -->
-      <section class="kan-col">
-        <header class="kan-col-header">
-          <div class="kan-col-title">진행</div>
-          <div class="kan-col-count" data-count-for="OB2">0</div>
-        </header>
-
-        <div class="kan-col-body" data-status="OB2">
-          <div
-            class="kan-card"
-            th:each="it : ${ob2List}"
-            th:attr="data-issue-code=${it.issueCode}"
-          >
-            <div class="kan-card-title" th:text="${it.title}">제목</div>
-            <div class="kan-card-meta">
-              <span class="badge text-bg-light" th:text="${it.priority}">우선순위</span>
-              <span class="text-muted" th:text="${it.assigneeName}">담당자</span>
-            </div>
-            <div class="kan-card-sub text-muted">
-              <span th:text="${it.creatorName}">등록자</span>
-              <span> · </span>
-              <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd')}">2026-02-10</span>
+    <form id="issueFilterForm" th:action="@{/kanbanboard}" method="get">
+      <div class="issue-filters mb-3 mt-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-3">
+            <label class="form-label">프로젝트</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterProjectText"
+                class="form-control"
+                placeholder="프로젝트 선택"
+                readonly
+                th:value="${projectName}"
+              />
+              <input
+                type="hidden"
+                id="filterProjectValue"
+                name="projectCode"
+                th:value="${projectCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenProjectModal"
+              >
+                선택
+              </button>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- OB3 -->
-      <section class="kan-col">
-        <header class="kan-col-header">
-          <div class="kan-col-title">해결</div>
-          <div class="kan-col-count" data-count-for="OB3">0</div>
-        </header>
+          <div class="col-12 col-md-3">
+            <label class="form-label">일감명</label>
+            <input
+              type="text"
+              id="filterTitle"
+              name="title"
+              class="form-control"
+              placeholder="일감명 입력"
+              th:value="${param.title}"
+            />
+          </div>
 
-        <div class="kan-col-body" data-status="OB3">
-          <div
-            class="kan-card"
-            th:each="it : ${ob3List}"
-            th:attr="data-issue-code=${it.issueCode}"
-          >
-            <div class="kan-card-title" th:text="${it.title}">제목</div>
-            <div class="kan-card-meta">
-              <span class="badge text-bg-light" th:text="${it.priority}">우선순위</span>
-              <span class="text-muted" th:text="${it.assigneeName}">담당자</span>
-            </div>
-            <div class="kan-card-sub text-muted">
-              <span th:text="${it.creatorName}">등록자</span>
-              <span> · </span>
-              <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd')}">2026-02-10</span>
+          <div class="col-12 col-md-3">
+            <label class="form-label">유형</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterTypeText"
+                class="form-control"
+                placeholder="유형 선택"
+                readonly
+                th:value="${typeLabel}"
+              />
+              <input
+                type="hidden"
+                id="filterTypeValue"
+                name="typeCode"
+                th:value="${param.typeCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenTypeModal"
+              >
+                선택
+              </button>
             </div>
           </div>
-        </div>
-      </section>
 
-      <!-- OB4 -->
-      <section class="kan-col">
-        <header class="kan-col-header">
-          <div class="kan-col-title">반려</div>
-          <div class="kan-col-count" data-count-for="OB4">0</div>
-        </header>
-
-        <div class="kan-col-body" data-status="OB4">
-          <div
-            class="kan-card"
-            th:each="it : ${ob4List}"
-            th:attr="data-issue-code=${it.issueCode}"
-          >
-            <div class="kan-card-title" th:text="${it.title}">제목</div>
-            <div class="kan-card-meta">
-              <span class="badge text-bg-light" th:text="${it.priority}">우선순위</span>
-              <span class="text-muted" th:text="${it.assigneeName}">담당자</span>
-            </div>
-            <div class="kan-card-sub text-muted">
-              <span th:text="${it.creatorName}">등록자</span>
-              <span> · </span>
-              <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd')}">2026-02-10</span>
-            </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label">우선순위</label>
+            <select id="filterPriority" name="priority" class="form-select">
+              <option
+                value=""
+                th:selected="${param.priority == null or param.priority == ''}"
+              >
+                전체
+              </option>
+              <option value="OA1" th:selected="${param.priority == 'OA1'}">
+                긴급
+              </option>
+              <option value="OA2" th:selected="${param.priority == 'OA2'}">
+                높음
+              </option>
+              <option value="OA3" th:selected="${param.priority == 'OA3'}">
+                보통
+              </option>
+              <option value="OA4" th:selected="${param.priority == 'OA4'}">
+                낮음
+              </option>
+            </select>
           </div>
         </div>
-      </section>
 
-      <!-- OB5 -->
-      <section class="kan-col">
-        <header class="kan-col-header">
-          <div class="kan-col-title">완료</div>
-          <div class="kan-col-count" data-count-for="OB5">0</div>
-        </header>
-
-        <div class="kan-col-body" data-status="OB5">
-          <div
-            class="kan-card"
-            th:each="it : ${ob5List}"
-            th:attr="data-issue-code=${it.issueCode}"
-          >
-            <div class="kan-card-title" th:text="${it.title}">제목</div>
-            <div class="kan-card-meta">
-              <span class="badge text-bg-light" th:text="${it.priority}">우선순위</span>
-              <span class="text-muted" th:text="${it.assigneeName}">담당자</span>
-            </div>
-            <div class="kan-card-sub text-muted">
-              <span th:text="${it.creatorName}">등록자</span>
-              <span> · </span>
-              <span th:text="${#temporals.format(it.createdAt,'yyyy-MM-dd')}">2026-02-10</span>
+        <div class="row g-2 align-items-end mt-1">
+          <div class="col-12 col-md-3">
+            <label class="form-label">담당자</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterAssigneeText"
+                class="form-control"
+                placeholder="담당자 선택"
+                readonly
+                th:value="${assigneeName}"
+              />
+              <input
+                type="hidden"
+                id="filterAssigneeValue"
+                name="assigneeCode"
+                th:value="${param.assigneeCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenAssigneeModal"
+              >
+                선택
+              </button>
             </div>
           </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label">등록자</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterCreatorText"
+                class="form-control"
+                placeholder="등록자 선택"
+                readonly
+                th:value="${creatorName}"
+              />
+              <input
+                type="hidden"
+                id="filterCreatorValue"
+                name="createdByCode"
+                th:value="${param.createdByCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenCreatorModal"
+              >
+                선택
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label">등록일</label>
+            <input
+              type="date"
+              id="filterCreatedAt"
+              name="createdAt"
+              class="form-control"
+              th:value="${param.createdAt}"
+            />
+          </div>
+
+          <div class="col-12 col-md-3">
+            <label class="form-label">마감기한</label>
+            <input
+              type="date"
+              id="filterDueAt"
+              name="dueAt"
+              class="form-control"
+              th:value="${param.dueAt}"
+            />
+          </div>
         </div>
-      </section>
+
+        <div
+          class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2"
+        >
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-success" id="btnIssueCreate">
+              <i class="fas fa-plus me-1"></i>일감등록
+            </button>
+          </div>
+
+          <!-- 라디오 3개 -->
+          <div class="kb-scope d-flex align-items-center gap-3">
+            <div class="form-check form-check-inline m-0">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="viewScope"
+                id="scopeMe"
+                value="ME"
+                th:checked="${param.viewScope == null or param.viewScope == '' or param.viewScope == 'ME'}"
+              />
+              <label class="form-check-label" for="scopeMe">담당</label>
+            </div>
+
+            <div class="form-check form-check-inline m-0">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="viewScope"
+                id="scopeMinePlusCreated"
+                value="ME_PLUS_CREATED"
+                th:checked="${param.viewScope == 'ME_PLUS_CREATED'}"
+              />
+              <label class="form-check-label" for="scopeMinePlusCreated">
+                담당+등록
+              </label>
+            </div>
+
+            <div class="form-check form-check-inline m-0">
+              <input
+                class="form-check-input"
+                type="radio"
+                name="viewScope"
+                id="scopeAll"
+                value="ALL"
+                th:checked="${param.viewScope == 'ALL'}"
+              />
+              <label class="form-check-label" for="scopeAll">모든 일감</label>
+            </div>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="btnResetFilters"
+            >
+              <i class="fas fa-redo me-1"></i>초기화
+            </button>
+
+            <button type="button" class="btn btn-primary" id="btnApplyFilters">
+              <i class="fa-solid fa-magnifying-glass"></i>조회
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div class="kb-board">
+      <div class="kanban-wrap" id="kanbanWrap">
+        <!-- OB1 -->
+        <section class="kan-col">
+          <header class="kan-col-header bg-primary-subtle">
+            <div class="kan-col-title">신규</div>
+            <div class="kan-col-count" data-count-for="OB1">0</div>
+          </header>
+
+          <div class="kan-col-body" data-status="OB1">
+            <div
+              class="kan-card"
+              th:each="it : ${ob1List}"
+              th:attr="
+      data-issue-code=${it.issueCode},
+      data-project-code=${it.projectCode},
+      data-project-name=${it.projectName},
+      data-title=${it.title},
+      data-type-code=${it.typeCode},
+      data-type-name=${it.typeName},
+      data-priority=${it.priority},
+      data-priority-name=${it.priorityName},
+      data-assignee-code=${it.assigneeCode},
+      data-creator-code=${it.createdByCode},
+      data-created=${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''},
+      data-due=${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}
+    "
+            >
+              <div class="kan-card-project" th:text="${it.projectName}">
+                프로젝트명
+              </div>
+              <div class="kan-card-title" th:text="${it.title}">일감명</div>
+
+              <div class="kan-card-meta">
+                <span class="badge text-bg-light" th:text="${it.typeName}"
+                  >유형</span
+                >
+                <span
+                  class="badge kb-priority"
+                  th:classappend="
+                    ${it.priority} == 'OA1' ? ' kb-priority--oa1' :
+                    (${it.priority} == 'OA2' ? ' kb-priority--oa2' :
+                    (${it.priority} == 'OA3' ? ' kb-priority--oa3' :
+                    (${it.priority} == 'OA4' ? ' kb-priority--oa4' : '')))"
+                  th:text="${it.priorityName}"
+                  >우선순위</span
+                >
+                <span class="text-muted" th:text="${it.assigneeName}"
+                  >담당자</span
+                >
+              </div>
+
+              <div class="kan-card-sub text-muted">
+                <span th:text="${it.creatorName}">등록자</span>
+                <span class="sep">·</span>
+                <span>등록</span>
+                <span
+                  th:text="${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+                <span class="sep">·</span>
+                <span>마감</span>
+                <span
+                  class="kb-due"
+                  th:text="${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OB2 -->
+        <section class="kan-col">
+          <header class="kan-col-header bg-primary bg-opacity-75">
+            <div class="kan-col-title">진행</div>
+            <div class="kan-col-count" data-count-for="OB2">0</div>
+          </header>
+
+          <div class="kan-col-body" data-status="OB2">
+            <div
+              class="kan-card"
+              th:each="it : ${ob2List}"
+              th:attr="
+        data-issue-code=${it.issueCode},
+        data-project-code=${it.projectCode},
+        data-project-name=${it.projectName},
+        data-title=${it.title},
+        data-type-code=${it.typeCode},
+        data-type-name=${it.typeName},
+        data-priority=${it.priority},
+        data-priority-name=${it.priorityName},
+        data-assignee-code=${it.assigneeCode},
+        data-creator-code=${it.createdByCode},
+        data-created=${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''},
+        data-due=${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}
+      "
+            >
+              <div class="kan-card-project" th:text="${it.projectName}">
+                프로젝트명
+              </div>
+              <div class="kan-card-title" th:text="${it.title}">일감명</div>
+
+              <div class="kan-card-meta">
+                <span class="badge text-bg-light" th:text="${it.typeName}"
+                  >유형</span
+                >
+
+                <span
+                  class="badge kb-priority"
+                  th:classappend="
+            ${it.priority} == 'OA1' ? ' kb-priority--oa1' :
+            (${it.priority} == 'OA2' ? ' kb-priority--oa2' :
+            (${it.priority} == 'OA3' ? ' kb-priority--oa3' :
+            (${it.priority} == 'OA4' ? ' kb-priority--oa4' : '')))"
+                  th:text="${it.priorityName}"
+                  >우선순위</span
+                >
+
+                <span class="text-muted" th:text="${it.assigneeName}"
+                  >담당자</span
+                >
+              </div>
+
+              <div class="kan-card-sub text-muted">
+                <span th:text="${it.creatorName}">등록자</span>
+                <span class="sep">·</span>
+                <span>등록</span>
+                <span
+                  th:text="${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+                <span class="sep">·</span>
+                <span>마감</span>
+                <span
+                  class="kb-due"
+                  th:text="${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OB3 -->
+        <section class="kan-col">
+          <header class="kan-col-header bg-warning bg-opacity-75">
+            <div class="kan-col-title">해결</div>
+            <div class="kan-col-count" data-count-for="OB3">0</div>
+          </header>
+
+          <div class="kan-col-body" data-status="OB3">
+            <div
+              class="kan-card"
+              th:each="it : ${ob3List}"
+              th:attr="
+        data-issue-code=${it.issueCode},
+        data-project-code=${it.projectCode},
+        data-project-name=${it.projectName},
+        data-title=${it.title},
+        data-type-code=${it.typeCode},
+        data-type-name=${it.typeName},
+        data-priority=${it.priority},
+        data-priority-name=${it.priorityName},
+        data-assignee-code=${it.assigneeCode},
+        data-creator-code=${it.createdByCode},
+        data-created=${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''},
+        data-due=${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}
+      "
+            >
+              <div class="kan-card-project" th:text="${it.projectName}">
+                프로젝트명
+              </div>
+              <div class="kan-card-title" th:text="${it.title}">일감명</div>
+
+              <div class="kan-card-meta">
+                <span class="badge text-bg-light" th:text="${it.typeName}"
+                  >유형</span
+                >
+
+                <span
+                  class="badge kb-priority"
+                  th:classappend="
+            ${it.priority} == 'OA1' ? ' kb-priority--oa1' :
+            (${it.priority} == 'OA2' ? ' kb-priority--oa2' :
+            (${it.priority} == 'OA3' ? ' kb-priority--oa3' :
+            (${it.priority} == 'OA4' ? ' kb-priority--oa4' : '')))"
+                  th:text="${it.priorityName}"
+                  >우선순위</span
+                >
+
+                <span class="text-muted" th:text="${it.assigneeName}"
+                  >담당자</span
+                >
+              </div>
+
+              <div class="kan-card-sub text-muted">
+                <span th:text="${it.creatorName}">등록자</span>
+                <span class="sep">·</span>
+                <span>등록</span>
+                <span
+                  th:text="${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+                <span class="sep">·</span>
+                <span>마감</span>
+                <span
+                  class="kb-due"
+                  th:text="${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OB4 -->
+        <section class="kan-col">
+          <header class="kan-col-header bg-danger bg-opacity-75">
+            <div class="kan-col-title">반려</div>
+            <div class="kan-col-count" data-count-for="OB4">0</div>
+          </header>
+
+          <div class="kan-col-body" data-status="OB4">
+            <div
+              class="kan-card"
+              th:each="it : ${ob4List}"
+              th:attr="
+        data-issue-code=${it.issueCode},
+        data-project-code=${it.projectCode},
+        data-project-name=${it.projectName},
+        data-title=${it.title},
+        data-type-code=${it.typeCode},
+        data-type-name=${it.typeName},
+        data-priority=${it.priority},
+        data-priority-name=${it.priorityName},
+        data-assignee-code=${it.assigneeCode},
+        data-creator-code=${it.createdByCode},
+        data-created=${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''},
+        data-due=${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}
+      "
+            >
+              <div class="kan-card-project" th:text="${it.projectName}">
+                프로젝트명
+              </div>
+              <div class="kan-card-title" th:text="${it.title}">일감명</div>
+
+              <div class="kan-card-meta">
+                <span class="badge text-bg-light" th:text="${it.typeName}"
+                  >유형</span
+                >
+
+                <span
+                  class="badge kb-priority"
+                  th:classappend="
+            ${it.priority} == 'OA1' ? ' kb-priority--oa1' :
+            (${it.priority} == 'OA2' ? ' kb-priority--oa2' :
+            (${it.priority} == 'OA3' ? ' kb-priority--oa3' :
+            (${it.priority} == 'OA4' ? ' kb-priority--oa4' : '')))"
+                  th:text="${it.priorityName}"
+                  >우선순위</span
+                >
+
+                <span class="text-muted" th:text="${it.assigneeName}"
+                  >담당자</span
+                >
+              </div>
+
+              <div class="kan-card-sub text-muted">
+                <span th:text="${it.creatorName}">등록자</span>
+                <span class="sep">·</span>
+                <span>등록</span>
+                <span
+                  th:text="${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+                <span class="sep">·</span>
+                <span>마감</span>
+                <span
+                  class="kb-due"
+                  th:text="${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OB5 -->
+        <section class="kan-col">
+          <header class="kan-col-header bg-success bg-opacity-75">
+            <div class="kan-col-title">완료</div>
+            <div class="kan-col-count" data-count-for="OB5">0</div>
+          </header>
+
+          <div class="kan-col-body" data-status="OB5">
+            <div
+              class="kan-card"
+              th:each="it : ${ob5List}"
+              th:attr="
+        data-issue-code=${it.issueCode},
+        data-project-code=${it.projectCode},
+        data-project-name=${it.projectName},
+        data-title=${it.title},
+        data-type-code=${it.typeCode},
+        data-type-name=${it.typeName},
+        data-priority=${it.priority},
+        data-priority-name=${it.priorityName},
+        data-assignee-code=${it.assigneeCode},
+        data-creator-code=${it.createdByCode},
+        data-created=${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''},
+        data-due=${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}
+      "
+            >
+              <div class="kan-card-project" th:text="${it.projectName}">
+                프로젝트명
+              </div>
+              <div class="kan-card-title" th:text="${it.title}">일감명</div>
+
+              <div class="kan-card-meta">
+                <span class="badge text-bg-light" th:text="${it.typeName}"
+                  >유형</span
+                >
+
+                <span
+                  class="badge kb-priority"
+                  th:classappend="
+            ${it.priority} == 'OA1' ? ' kb-priority--oa1' :
+            (${it.priority} == 'OA2' ? ' kb-priority--oa2' :
+            (${it.priority} == 'OA3' ? ' kb-priority--oa3' :
+            (${it.priority} == 'OA4' ? ' kb-priority--oa4' : '')))"
+                  th:text="${it.priorityName}"
+                  >우선순위</span
+                >
+
+                <span class="text-muted" th:text="${it.assigneeName}"
+                  >담당자</span
+                >
+              </div>
+
+              <div class="kan-card-sub text-muted">
+                <span th:text="${it.creatorName}">등록자</span>
+                <span class="sep">·</span>
+                <span>등록</span>
+                <span
+                  th:text="${it.createdAt != null ? #temporals.format(it.createdAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+                <span class="sep">·</span>
+                <span>마감</span>
+                <span
+                  class="kb-due"
+                  th:text="${it.dueAt != null ? #temporals.format(it.dueAt,'yyyy-MM-dd') : ''}"
+                  >2026-02-10</span
+                >
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </div>
 
-    <!-- 토스트(공통) -->
+    <!-- 토스트 -->
     <div
       id="commonToast"
       class="toast align-items-center text-bg-dark border-0"
       role="alert"
       aria-live="assertive"
       aria-atomic="true"
-      style="position: fixed; right: 16px; bottom: 16px; z-index: 1080; display: none;"
+      style="
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1080;
+        display: none;
+      "
     >
       <div class="d-flex">
         <div class="toast-body" id="commonToastBody"></div>
@@ -208,6 +656,137 @@
           data-bs-dismiss="toast"
           aria-label="Close"
         ></button>
+      </div>
+    </div>
+
+    <!-- ===== 모달들 ===== -->
+    <div
+      class="modal fade"
+      id="projectSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">프로젝트 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="projectModalSearch"
+              class="form-control mb-2"
+              placeholder="프로젝트명 검색"
+            />
+            <div class="list-group" id="projectModalList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="typeSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">유형 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="typeModalSearch"
+              class="form-control mb-2"
+              placeholder="유형명 검색"
+            />
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th style="width: 45%">상위유형</th>
+                    <th style="width: 55%">유형</th>
+                  </tr>
+                </thead>
+                <tbody id="typeModalTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="assigneeSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">담당자 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="assigneeModalSearch"
+              class="form-control mb-2"
+              placeholder="담당자명 검색"
+            />
+            <div class="list-group" id="assigneeModalList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="creatorSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">등록자 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="creatorModalSearch"
+              class="form-control mb-2"
+              placeholder="등록자명 검색"
+            />
+            <div class="list-group" id="creatorModalList"></div>
+          </div>
+        </div>
       </div>
     </div>
   </body>

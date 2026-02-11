@@ -7,8 +7,9 @@ import com.yedam.app.issue.service.IssueVO;
 import com.yedam.app.kanban.web.dto.KanbanMoveRequest;
 
 public interface KanbanService {
-	 Map<String, List<IssueVO>> getBoardColumnsByProject(Long projectCode);
-	  Map<String, List<IssueVO>> getBoardColumnsByUser(Long loginUserCode);
 
-	  void moveCard(Long loginUserCode, KanbanMoveRequest req);
+  // scope + projectCode(optional)
+  Map<String, List<IssueVO>> getBoardColumns(Integer userCode, Long projectCode, String viewScope);
+
+  void moveCard(Integer userCode, KanbanMoveRequest req);
 }

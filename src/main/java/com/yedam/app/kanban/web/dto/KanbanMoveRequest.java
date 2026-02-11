@@ -10,12 +10,13 @@ public class KanbanMoveRequest {
 
   private Long issueCode;
 
-  private String fromStatusId;
-  private String toStatusId;
+  // status는 "코드" 기준으로 통일(OB1~OB5)
+  private String fromStatusCode;
+  private String toStatusCode;
 
   private Integer toIndex;
 
-  // 권장: 드롭 후 컬럼의 전체 순서(정렬 정확 저장용)
+  // 드롭 후 컬럼의 전체 순서(정렬 정확 저장용)
   private List<Long> fromOrder;
   private List<Long> toOrder;
 }

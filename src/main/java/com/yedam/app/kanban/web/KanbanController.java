@@ -1,6 +1,5 @@
 package com.yedam.app.kanban.web;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -12,6 +11,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
+import com.yedam.app.authority.AuthorityVO;
+import com.yedam.app.authority.service.AuthorityService;
 import com.yedam.app.issue.service.IssueVO;
 import com.yedam.app.kanban.service.KanbanService;
 import com.yedam.app.kanban.web.dto.KanbanMoveRequest;
@@ -25,34 +26,26 @@ import lombok.RequiredArgsConstructor;
 public class KanbanController {
 
   private final KanbanService kanbanService;
+  private final AuthorityService authorityService; // move API에서만 사용
 
-  // 화면
   @GetMapping("/kanbanboard")
   public String kanbanboard(
       @RequestParam(value = "projectCode", required = false) Long projectCode,
+      @RequestParam(value = "viewScope", required = false) String viewScope,
       HttpSession session,
       Model model
   ) {
     UserVO user = (UserVO) session.getAttribute("user");
-    if (user == null || user.getUserCode() == null) {
-      return "redirect:/login";
-    }
+    if (user == null || user.getUserCode() == null) return "redirect:/login";
 
-    Long loginUserCode = user.getUserCode().longValue();
+    Integer userCode = user.getUserCode().intValue();
 
-    Map<String, List<IssueVO>> cols;
+    String scope = (viewScope == null || viewScope.isBlank()) ? "ALL" : viewScope;
 
-    if (projectCode == null) {
-      cols = kanbanService.getBoardColumnsByUser(loginUserCode); // 내 일감 전체
-      model.addAttribute("projectCode", "");
-      model.addAttribute("projectName", "내 일감");
-    } else {
-      cols = kanbanService.getBoardColumnsByProject(projectCode); // 프로젝트 보드
-      model.addAttribute("projectCode", projectCode);
-      model.addAttribute("projectName", "프로젝트"); // TODO 실제 조회
-    }
+    Map<String, List<IssueVO>> cols = kanbanService.getBoardColumns(userCode, projectCode, scope);
 
-    model.addAttribute("canWrite", true); // TODO 실제 권한 로직 연결
+    model.addAttribute("projectCode", projectCode == null ? "" : projectCode);
+    model.addAttribute("userCode", userCode);
 
     model.addAttribute("ob1List", cols.getOrDefault("OB1", List.of()));
     model.addAttribute("ob2List", cols.getOrDefault("OB2", List.of()));
@@ -63,26 +56,39 @@ public class KanbanController {
     return "kanban/board";
   }
 
-
-  // 이동 저장 API
   @ResponseBody
   @PostMapping("/api/issues/board/move")
-  public Map<String, Object> move(@RequestBody KanbanMoveRequest req,
-                                  HttpSession session) {
-
+  public Map<String, Object> move(@RequestBody KanbanMoveRequest req, HttpSession session) {
     UserVO user = (UserVO) session.getAttribute("user");
     if (user == null || user.getUserCode() == null) {
-      Map<String, Object> r = new HashMap<>();
-      r.put("success", false);
-      r.put("message", "로그인 정보가 없습니다.");
-      return r;
+      return Map.of("success", false, "message", "로그인 정보가 없습니다.");
     }
 
-    Long loginUserCode = user.getUserCode().longValue();
-    kanbanService.moveCard(loginUserCode, req);
+    Integer userCode = user.getUserCode().intValue();
 
-    Map<String, Object> r = new HashMap<>();
-    r.put("success", true);
-    return r;
+    if (req == null || req.getProjectCode() == null) {
+      return Map.of("success", false, "message", "프로젝트 정보가 없습니다.");
+    }
+
+    boolean canModify = authorityService.canModify(req.getProjectCode(), userCode, "일감");
+    if (!canModify) {
+      return Map.of("success", false, "message", "권한이 없습니다.");
+    }
+    
+    String to = req.getToStatusCode();
+    if ("OB4".equals(to) || "OB5".equals(to)) {
+      AuthorityVO auth = authorityService.getProjectAuth(userCode, req.getProjectCode());
+      boolean isAdmin = (auth != null) && "Y".equalsIgnoreCase(auth.getAdminCk());
+      if (!isAdmin) {
+        return Map.of("success", false, "message", "권한이 없습니다.");
+      }
+    }
+
+    try {
+      kanbanService.moveCard(userCode, req);
+      return Map.of("success", true);
+    } catch (Exception e) {
+      return Map.of("success", false, "message", e.getMessage());
+    }
   }
 }
