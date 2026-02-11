@@ -36,10 +36,12 @@ public interface ProjectMapper {
 
 	// 프로젝트 그룹 매퍼 등록
 	public int projectGroupInsert(ProjectAddGroupVO projectAddGroupVO);
-	
+
 	// 권한 조회
-	UserProjectAuthVO selectUserProjectAuth(Map<String, Object> params);
+	public UserProjectAuthVO selectUserProjectAuth(Map<String, Object> params);
+
+	public List<UserProjectAuthVO> selectUserProjectAuthAll(Map<String, Object> params);
 
 	// 프로젝트 상태 변경
-	int updateProjectStatus(Map<String, Object> params);
+	public int updateProjectStatus(Map<String, Object> params);
 }

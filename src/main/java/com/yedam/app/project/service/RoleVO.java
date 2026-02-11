@@ -18,4 +18,5 @@ public class RoleVO {
 	private Integer roleCode;
 	private String roleName;
 	private String explanation;
+	private String adminCk;
 }

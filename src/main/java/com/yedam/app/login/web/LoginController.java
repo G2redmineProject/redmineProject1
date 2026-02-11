@@ -1,5 +1,7 @@
 package com.yedam.app.login.web;
 
+import java.util.List;
+
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,6 +12,8 @@ import com.yedam.app.login.service.LoginResultDTO;
 import com.yedam.app.login.service.LoginResultType;
 import com.yedam.app.login.service.LoginService;
 import com.yedam.app.login.service.UserVO;
+import com.yedam.app.project.service.ProjectService;
+import com.yedam.app.project.service.UserProjectAuthVO;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +26,7 @@ import lombok.RequiredArgsConstructor;
 public class LoginController {
 
 	private final LoginService loginService;
+	private final ProjectService projectService;
 	
 	// 사원번호, 비밀번호 조회
 	// 페이지 이동
@@ -83,6 +88,10 @@ public class LoginController {
 		
 		// 로그인 성공 세션저장
 		session.setAttribute("user", user);
+		
+		// 권한 세션 저장
+		List<UserProjectAuthVO> auths = projectService.getUserProjectAuthAll(user.getUserCode());
+		session.setAttribute("userAuth", auths);
 		
 		// 사원번호 기억
 		String remember = userVO.getRememberEmpNo(); //체크박스 name과 매핑

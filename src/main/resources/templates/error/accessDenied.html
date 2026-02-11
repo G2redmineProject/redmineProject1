@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>접근 거부</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        .error-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 30px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        h1 { color: #d9534f; }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin-top: 20px;
+            background-color: #5cb85c;
+            color: white;
+            text-decoration: none;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <h1>⛔ 접근 권한이 없습니다</h1>
+        <p>해당 페이지에 접근할 권한이 없습니다.</p>
+        <p>관리자에게 문의하세요.</p>
+        <a th:href="@{/empList}" class="btn">메인으로 돌아가기</a>
+    </div>
+</body>
+</html>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.auth.mapper.AuthMapper">
+
+	<!-- 역할 수정 -->
+	<!-- <update id="deleteRole"> UPDATE role SET role_name = role_name || '[-delete]' 
+		WHERE role_code = #{roleCode} AND role_name NOT LIKE '%[-delete]' </update> -->
+	<!-- 역할 삭제 (이름에 [-delete] 추가) -->
+	<update id="deleteAuth">
+		UPDATE role
+		SET role_name = role_name || '[-delete]'
+		WHERE role_code = #{roleCode}
+		AND role_name NOT LIKE '%[-delete]'
+	</update>
+</mapper>
