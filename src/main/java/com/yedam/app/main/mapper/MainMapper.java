@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.yedam.app.main.service.AssigneeIssStaVO;
 import com.yedam.app.main.service.MainProjectStatusVO;
+import com.yedam.app.main.service.MyTopIssueVO;
 import com.yedam.app.main.service.ProIssStaVO;
 
 public interface MainMapper {
@@ -28,4 +29,7 @@ public interface MainMapper {
 	
 	// 내가 속한 진행중 프로젝트들의 전체 현재 진척도(가중 평균)
 	public int selectTodayProgressRate(Integer userCode);
+	
+	// 본인 이슈 Top 5
+	public List<MyTopIssueVO> selectMyTopIssues(Integer projectCode, Integer userCode);
 }

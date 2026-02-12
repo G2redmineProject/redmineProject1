@@ -1,5 +1,7 @@
 package com.yedam.app.login.service;
 
+import java.util.Date;
+
 import lombok.Data;
 
 @Data
@@ -11,7 +13,10 @@ public class UserVO {
 	private String passwordHash;
 	private String name;
 	private String phone;
+	private String position;
+	private Date createdAt;
 	private String rememberEmpNo;
 	private String isLock;
 	private String firstLoginYn;
+	private String autoLogin;
 }

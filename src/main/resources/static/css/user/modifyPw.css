@@ -1,7 +1,8 @@
 /* =========================================================
-   issuesStatus - /static/css/main/issuesStatus.css
+   Modify Password - /static/css/user/modifyPw.css
    ========================================================= */
 
+/* 타이틀 */
 .x-page-title {
   margin: 14px 0 12px;
   padding-bottom: 10px;
@@ -22,54 +23,60 @@
   color: #6b7280;
 }
 
-/* 카드 */
+/* 카드(일감목록/내정보 톤) */
 .card.mb-4 {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
 }
 
-/* 카드 헤더(회색 톤) */
+/* 카드 헤더(회색 톤 통일) */
 .card-header {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
+
   background-color: rgb(224, 229, 243);
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.card-body {
-  padding: 0;
-  overflow-x: auto;
+/* 카드 바디 */
+.modify-card-body {
+  padding: 14px;
 }
 
-/* 테이블 */
-#issStaTable {
-  width: 100%;
-  white-space: nowrap;
-  margin: 0;
+.modify-hint-body {
+  padding: 14px;
 }
 
-/* 테이블 헤더(회색 통일) */
-#issStaTable thead th {
-  font-size: 14px;
-  font-weight: 700;
-  vertical-align: middle;
+/* 폼 박스(내 정보 페이지의 filters 톤) */
+.modify-filters {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px 10px;
+  background: #f9fafb;
+}
+
+.modify-filters .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
   color: #111827;
-  border-bottom: 1px solid #e5e7eb;
 }
 
-/* 바디 */
-#issStaTable tbody td {
-  font-size: 14px;
-  vertical-align: middle;
+/* 안내 리스트 */
+.modify-hint {
+  padding-left: 18px;
   color: #111827;
-  border-color: #eeeeee;
 }
 
-/* hover */
-#issStaTable.table-hover > tbody > tr:hover > * {
-  background-color: #ffffff;
+.modify-hint li {
+  margin: 6px 0;
+  font-size: 14px;
+}
+
+/* 버튼 간격 */
+.btn {
+  border-radius: 8px;
 }

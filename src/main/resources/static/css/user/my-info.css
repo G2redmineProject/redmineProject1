@@ -1,5 +1,5 @@
 /* =========================================================
-   issuesStatus - /static/css/main/issuesStatus.css
+   My Info - /static/css/user/my-info.css
    ========================================================= */
 
 .x-page-title {
@@ -22,54 +22,54 @@
   color: #6b7280;
 }
 
-/* 카드 */
+/* 폼 박스(issue-filters 톤) */
+.myinfo-filters {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px 10px;
+  background: #f9fafb;
+}
+
+.myinfo-filters .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111827;
+}
+
+/* 카드(issue-list와 동일 톤) */
 .card.mb-4 {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid #e5e7eb;
 }
 
-/* 카드 헤더(회색 톤) */
 .card-header {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
+
   background-color: rgb(224, 229, 243);
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.card-body {
-  padding: 0;
-  overflow-x: auto;
+.myinfo-card-body {
+  padding: 14px;
 }
 
-/* 테이블 */
-#issStaTable {
-  width: 100%;
-  white-space: nowrap;
-  margin: 0;
-}
-
-/* 테이블 헤더(회색 통일) */
-#issStaTable thead th {
-  font-size: 14px;
-  font-weight: 700;
-  vertical-align: middle;
+.myinfo-hint {
+  padding-left: 18px;
   color: #111827;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* 바디 */
-#issStaTable tbody td {
   font-size: 14px;
-  vertical-align: middle;
-  color: #111827;
-  border-color: #eeeeee;
 }
 
-/* hover */
-#issStaTable.table-hover > tbody > tr:hover > * {
-  background-color: #ffffff;
+.myinfo-hint li {
+  margin: 6px 0;
+}
+
+/* readonly 입력은 살짝 회색 */
+.myinfo-filters input[readonly] {
+  background: #f3f4f6;
+  color: #111827;
 }

@@ -8,9 +8,18 @@ import lombok.RequiredArgsConstructor;
 public class ProIssStaVO {
 	private Integer projectCode;
 	private String projectName;
-	private Integer newIss;
-	private Integer progress;
-	private Integer solution;
-	private Integer returnIss;
-	private Integer completion;
+	
+	// 전체
+	private Integer NewIss;
+	private Integer Progress;
+	private Integer Solution;
+	private Integer ReturnIss;
+	private Integer Completion;
+
+	// 내 이슈
+	private Integer myNewIss;
+	private Integer myProgress;
+	private Integer mySolution;
+	private Integer myReturnIss;
+	private Integer myCompletion;
 }

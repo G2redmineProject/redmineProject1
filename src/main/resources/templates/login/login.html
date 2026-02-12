@@ -22,23 +22,43 @@
 										<input class="form-control" id="empNo" name="employeeNo"
 											type="text" inputmode="numeric" pattern="[0-9]*"
 											placeholder="사원번호" th:value="${savedEmpNo}"
-											oninput="this.value = this.value.replace(/[^0-9]/g, '')" /> <label
-											for="empNo">사원번호</label>
+											oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+										<label for="empNo">사원번호</label>
 									</div>
 									<div class="form-floating mb-3">
 										<input class="form-control" id="empPw" name="password"
 											type="password" placeholder="비밀번호" /> <label for="empPw">비밀번호</label>
 									</div>
-									<div class="form-check mb-3 d-flex justify-content-between">
-										<div>
-											<input class="form-check-input" id="inputRememberEmpNo"
-												name="rememberEmpNo" type="checkbox"
-												th:checked="${savedEmpNo != null and #strings.length(savedEmpNo) > 0}" />
-											<label class="form-check-label" for="inputRememberEmpNo">사원번호
-												기억</label>
+									<div
+										class="mb-3 d-flex justify-content-between align-items-center">
+
+										<!-- 왼쪽 체크박스 묶음 -->
+										<div class="d-flex align-items-center gap-4">
+
+											<!-- 사원번호 기억 -->
+											<div class="d-flex align-items-center">
+												<input class="form-check-input me-2" id="inputRememberEmpNo"
+													name="rememberEmpNo" type="checkbox"
+													th:checked="${savedEmpNo != null and #strings.length(savedEmpNo) > 0}" />
+												<label class="form-check-label mb-0"
+													for="inputRememberEmpNo">사원번호 기억</label>
+											</div>
+
+											<!-- 자동로그인 -->
+											<div class="d-flex align-items-center">
+												<input class="form-check-input me-2" id="inputAutoLogin"
+													name="autoLogin" type="checkbox" /> <label
+													class="form-check-label mb-0" for="inputAutoLogin">자동로그인</label>
+											</div>
+
 										</div>
+
+										<!-- 오른쪽 비밀번호 찾기 -->
 										<a class="small" th:href="@{/findPw}">비밀번호 찾기</a>
 									</div>
+
+
+
 									<div
 										class="d-flex align-items-center justify-content-center mt-4 mb-0">
 

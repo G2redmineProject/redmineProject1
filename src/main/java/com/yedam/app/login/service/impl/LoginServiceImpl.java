@@ -4,6 +4,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.yedam.app.login.mapper.LoginMapper;
+import com.yedam.app.login.service.AutoLoginTokenVO;
 import com.yedam.app.login.service.LoginResultDTO;
 import com.yedam.app.login.service.LoginResultType;
 import com.yedam.app.login.service.LoginService;
@@ -56,6 +57,26 @@ public class LoginServiceImpl implements LoginService {
 		userVO.setPasswordHash(hashPw);
 		
 		return loginMapper.updateFirstLoginInfo(userVO);
+	}
+
+	@Override
+	public int saveAutoLoginToken(AutoLoginTokenVO autoLoginTokenVO) {
+	    return loginMapper.insertAutoLoginToken(autoLoginTokenVO);
+	}
+
+	@Override
+	public UserVO findUserByValidAutoLoginToken(String tokenHash) {
+	    return loginMapper.selectUserByValidAutoLoginToken(tokenHash);
+	}
+
+	@Override
+	public int touchAutoLoginToken(String tokenHash) {
+	    return loginMapper.updateAutoLoginLastUsed(tokenHash);
+	}
+
+	@Override
+	public int removeAutoLoginToken(String tokenHash) {
+	    return loginMapper.deleteAutoLoginToken(tokenHash);
 	}
 
 }

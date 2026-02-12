@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yedam.app.user.mapper.MyInfoMapper">
+
+	<!-- 내 정보 select 단건 -->
+	<select id="selectMyInfo" resultType="UserVO">
+    	SELECT
+      		user_code     AS userCode,
+      		employee_no   AS employeeNo,
+      		email         AS email,
+      		name          AS name,
+      		phone         AS phone,
+      		position      AS position,
+      		created_at    AS createdAt
+    	FROM users
+    	WHERE user_code = #{userCode}
+  	</select>
+  	
+  	<!-- 내 정보 수정 -->
+  	<update id="updateMyInfo" parameterType="MyInfoUpdateReqDTO">
+    	UPDATE users
+    	SET email = #{email},
+      		phone = #{phone}
+    	WHERE user_code = #{userCode}
+  	</update>
+  	
+  	<!-- 유저코드, 비밀번호 해시 select -->
+  	<select id="selectByUserCode" resultType="UserVO">
+  		SELECT user_code,
+         	password_hash
+  		FROM users
+  		WHERE user_code = #{userCode}
+	</select>
+	
+	<!-- 새 비밀번호 업데이트 -->
+	<update id="updatePassword">
+  		UPDATE users
+  		SET password_hash = #{encodedPw}
+  		WHERE user_code = #{userCode}
+	</update>
+</mapper>
