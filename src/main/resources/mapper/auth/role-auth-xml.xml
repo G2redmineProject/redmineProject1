@@ -45,9 +45,7 @@
         VALUES (#{raCode},#{roleCode}, #{category}, #{rdRol}, #{wrRol}, #{moRol}, #{delRol})
     </insert>
 
-	<!-- 역할 수정 -->
-	<!-- <update id="deleteRole"> UPDATE role SET role_name = role_name || '[-delete]' 
-		WHERE role_code = #{roleCode} AND role_name NOT LIKE '%[-delete]' </update> -->
+
 	<!-- 역할 삭제 (이름에 [-delete] 추가) -->
 	<update id="deleteAuth">
 		UPDATE role
@@ -60,5 +58,26 @@
 	    UPDATE role 
 	    SET admin_ck = #{adminCk} 
 	    WHERE role_code = #{roleCode}
+	</update>
+	
+	<!-- 역할 수정 -->
+	<update id="updateRole">
+		UPDATE role 
+		SET 
+		    role_name = #{roleName}
+		    ,explanation = #{explanation}
+		    ,admin_ck = #{adminCk}
+		WHERE role_code = #{roleCode}
+	</update>
+	
+	<!-- 역할 권한 수정 -->
+	<update id="updateRoleAuth">
+		UPDATE role_authority 
+		SET 
+		    rd_rol = #{rdRol}
+		    ,wr_rol = #{wrRol}
+		    ,mo_rol = #{moRol}
+		    ,del_rol = #{delRol}
+		WHERE ra_code = #{raCode} AND category = #{category}
 	</update>
 </mapper>

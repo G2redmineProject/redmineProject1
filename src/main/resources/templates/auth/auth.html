@@ -78,8 +78,7 @@
 
 							<tbody id="projectTbody">
 								<tr class="projectRow" th:each="info, status : ${auths}"
-							
-									th:onclick="|location.href='@{/authInfo(roleCode=${info.roleCode})}'|"
+									th:onclick="|if(!event.target.closest('button') && !event.target.closest('input')) location.href='@{/authInfo(roleCode=${info.roleCode})}'|"
 									style="cursor: pointer;">
 									<td>[[ ${status.index+1} ]]</td>
 									<td style="display: none;">[[ ${info.roleCode} ]]</td>

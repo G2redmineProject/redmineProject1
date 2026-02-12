@@ -38,13 +38,14 @@ public class AuthContorller {
 		model.addAttribute("auths", auth);
 		return "auth/auth";
 	}
+
 	// 역할 단건 조회
 	@GetMapping("authInfo")
-	public String authInfo(@RequestParam Integer roleCode,Model model, HttpSession session) {
+	public String authInfo(@RequestParam Integer roleCode, Model model, HttpSession session) {
 		RoleVO findRol = authService.findRoleInfo(roleCode);
 		List<RoleAuthVO> findAuth = authService.findAuthInfo(roleCode);
-		model.addAttribute("role",findRol);
-		model.addAttribute("auths",findAuth);
+		model.addAttribute("role", findRol);
+		model.addAttribute("auths", findAuth);
 		return "auth/authinfo";
 	}
 
@@ -73,7 +74,7 @@ public class AuthContorller {
 		return authService.insertRoleWithAuth(requestData);
 	}
 
-	// 역할 관리자 권한 변경 
+	// 역할 관리자 권한 변경
 	@ResponseBody
 	@PostMapping("/api/auth/{adminCk}/{roleCode}/adminmodify")
 	public int modifyAdminRole(@PathVariable String adminCk, @PathVariable Integer roleCode) {
@@ -109,6 +110,24 @@ public class AuthContorller {
 		}
 
 		return result;
+	}
+
+	// 역할 및 권한 수정
+	@ResponseBody
+	@PostMapping("/api/auth/updateRole")
+	public Map<String, Object> updateRoleAuth(@RequestBody Map<String, Object> requestData, HttpSession session) {
+
+		// 보안용으로 필요 js끄기로 하면 검증 안됨
+		String roleName = (String) requestData.get("roleName");
+		if (roleName == null || roleName.trim().isEmpty()) {
+			Map<String, Object> result = new HashMap<>();
+			result.put("success", false);
+			result.put("message", "역할명을 입력해주세요.");
+			return result;
+		}
+
+		// 서비스에 Map 그대로 전달
+		return authService.modifyAuthInfo(requestData);
 	}
 
 	// 접근 거부

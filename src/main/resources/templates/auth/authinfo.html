@@ -23,6 +23,7 @@
 					<div class="mb-2">
 						<label class="form-label fw-bold">역할명</label> <input type="text"
 							id="roleName" class="form-control" placeholder="역할명 입력" th:value="${role.roleName}">
+							<div id="roleCode" style="display: none;">[[ ${role.roleCode} ]] </div>
 					</div>
 					<div>
 						<label class="form-label fw-bold">설명</label>
@@ -44,7 +45,7 @@
 					class="col-12 col-md-4 d-flex justify-content-end align-items-end"
 					style="height: 100%;">
 					<button type="button" class="btn btn-success"
-						id="registerRoleBtn">
+						id="updateRoleBtn">
 						<i class="fas fa-check me-1"></i> 저장
 					</button>
 
@@ -89,6 +90,7 @@
 									<td><input type="checkbox" class="wr_rol" th:checked="${auth.wrRol == 'Y'}"></td>
 									<td><input type="checkbox" class="md_rol" th:checked="${auth.moRol == 'Y'}"></td>
 									<td><input type="checkbox" class="del_rol" th:checked="${auth.delRol == 'Y'}"></td>
+									<td style="display: none;" class="raCode">[[ ${auth.raCode} ]]</td>
 								</tr>
 							</tbody>
 						</table>
