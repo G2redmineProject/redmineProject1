@@ -11,6 +11,7 @@ import com.yedam.app.login.service.UserVO;
 import com.yedam.app.main.service.AssigneeIssStaVO;
 import com.yedam.app.main.service.MainProjectStatusVO;
 import com.yedam.app.main.service.MainService;
+import com.yedam.app.main.service.MyTopIssueVO;
 import com.yedam.app.main.service.ProIssStaVO;
 
 import jakarta.servlet.http.HttpSession;
@@ -36,12 +37,12 @@ public class MainController {
 		List<MainProjectStatusVO> listCnt = mainService.findCodeNameCnt(userCode);
 		List<ProIssStaVO> proIssList = mainService.findProIssSta(userCode);
 		List<Integer> adminProList = mainService.findAdminProByUserCode(userCode);
-		Integer TodayProRate = mainService.findTodayProgressRate(userCode);
+		Integer todayProRate = mainService.findTodayProgressRate(userCode);
 		
-		model.addAttribute("statusListCnt", listCnt);
-		model.addAttribute("ProIssStatusList", proIssList);
-		model.addAttribute("adminProjectList", adminProList);
-		model.addAttribute("todayProgressRate", TodayProRate);
+		model.addAttribute("statusListCnt", listCnt != null ? listCnt : List.of());
+	    model.addAttribute("ProIssStatusList", proIssList != null ? proIssList : List.of());
+	    model.addAttribute("adminProjectList", adminProList != null ? adminProList : List.of());
+	    model.addAttribute("todayProgressRate", todayProRate != null ? todayProRate : 0);
 		
 		return "main/main";
 	}
@@ -64,9 +65,15 @@ public class MainController {
 			assIssStaList = mainService.findMyAssIssSta(projectCode, userCode);
 		}
 		
+		List<MyTopIssueVO> topIssueList = List.of();
+		if (!isAdmin) {
+		  topIssueList = mainService.findMyTopIssues(projectCode, userCode);
+		}
+		
 		model.addAttribute("AssIssStaList", assIssStaList);
 		model.addAttribute("isAdmin", isAdmin);
 	    model.addAttribute("projectCode", projectCode);
+	    model.addAttribute("topIssueList", topIssueList);
 		
 		return "main/issuesStatus";
 	}

@@ -122,7 +122,6 @@
   font-size: 14px;
   font-weight: 800;
   vertical-align: middle;
-  background-color: rgb(224, 229, 243);
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -136,6 +135,15 @@
 
 #mainIssueTable.table-hover > tbody > tr:hover > * {
   background-color: #ffffff;
+}
+
+#mainIssueTable.table-hover > tbody > tr.no-data-row:hover > * {
+  background-color: transparent !important;
+}
+
+#mainIssueTable tbody tr.no-data-row {
+  cursor: default !important;
+  pointer-events: none;
 }
 
 /* 클릭 가능한 행 */

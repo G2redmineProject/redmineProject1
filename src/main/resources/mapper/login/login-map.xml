@@ -28,4 +28,58 @@
 		   ,first_login_yn = 'N'
 		where user_code = #{userCode}
 	</update>
+	
+	<!-- 자동로그인 토큰 저장 -->
+	<insert id="insertAutoLoginToken" parameterType="AutoLoginTokenVO">
+    	INSERT INTO user_auto_login (
+        	token_hash,     -- 토큰 SHA-256 해시값 (PK)
+        	user_code,      -- 사용자 코드
+        	expires_at,     -- 만료일시
+        	created_at,     -- 생성일시
+        	last_used_at,   -- 마지막 사용일시
+        	user_agent,     -- 브라우저 정보
+        	ip_addr         -- IP 주소
+    	) VALUES (
+        	#{tokenHash},
+        	#{userCode},
+        	SYSDATE + (#{ttlSeconds} / 86400),  
+        	SYSDATE,
+        	SYSDATE,
+        	#{userAgent},
+        	#{ipAddr}
+    	)
+	</insert>
+	
+	<!-- 유효한 토큰인지 검사 + 사용자 조회 -->
+	<select id="selectUserByValidAutoLoginToken" resultType="UserVO">
+    	SELECT u.user_code,
+      			u.employee_no,
+      			u.password_hash,
+      			u.name,
+      			u.email,
+      			u.phone,
+      			u.is_lock,
+      			u.first_login_yn
+    	FROM user_auto_login t
+    	
+    	JOIN users u
+      	ON u.user_code = t.user_code
+      	
+    	WHERE t.token_hash = #{tokenHash}
+      	AND t.expires_at > SYSDATE
+      	AND u.is_lock = '0'
+	</select>
+	
+	<!-- 마지막 사용 시간 갱신 -->
+	<update id="updateAutoLoginLastUsed" parameterType="String">
+    	UPDATE user_auto_login
+    	SET last_used_at = SYSDATE
+    	WHERE token_hash = #{tokenHash}
+	</update>
+	
+	<!-- 로그아웃 시 토큰 삭제 -->
+	<delete id="deleteAutoLoginToken" parameterType="String">
+    	DELETE FROM user_auto_login
+    	WHERE token_hash = #{tokenHash}
+	</delete>
 </mapper>

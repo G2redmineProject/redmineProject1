@@ -50,7 +50,7 @@
 					<div class="table-responsive main-table-wrap">
 						<table class="table table-hover align-middle text-center mb-0"
 							id="mainIssueTable">
-							<thead class="table-light">
+							<thead>
 								<tr>
 									<th style="min-width: 200px;">프로젝트</th>
 									<th style="width: 90px;">신규</th>
@@ -64,26 +64,35 @@
 
 							<tbody>
 								<tr th:each="list : ${ProIssStatusList}"
-									th:classappend="${adminProjectList.contains(list.projectCode)} ? 'click-row admin-row' : 'click-row'"
+									th:with="
+      									isAdminProj=${adminProjectList != null and adminProjectList.contains(list.projectCode)},
+      									n=${(isAdminProj ? list.newIss : list.myNewIss) ?: 0},
+      									p=${(isAdminProj ? list.progress : list.myProgress) ?: 0},
+      									s=${(isAdminProj ? list.solution : list.mySolution) ?: 0},
+      									r=${(isAdminProj ? list.returnIss : list.myReturnIss) ?: 0},
+      									c=${(isAdminProj ? list.completion : list.myCompletion) ?: 0},
+      									total=${n + p + s + r + c}
+    									"
+									th:classappend="${isAdminProj} ? 'click-row admin-row' : 'click-row'"
 									th:onclick="|location.href='@{/G2main/{projectCode}/issuesStatus(projectCode=${list.projectCode})}'|">
+
+
 									<td class="text-start"><span class="proj-name"
 										th:text="${list.projectName}">프로젝트</span> <span
-										class="badge admin-badge ms-2"
-										th:if="${adminProjectList.contains(list.projectCode)}">관리자</span>
+										class="badge admin-badge ms-2" th:if="${isAdminProj}">관리자</span>
 									</td>
 
-									<td th:text="${list.newIss}">0</td>
-									<td th:text="${list.progress}">0</td>
-									<td th:text="${list.solution}">0</td>
-									<td th:text="${list.returnIss}">0</td>
-									<td th:text="${list.completion}">0</td>
+									<td th:text="${n}">0</td>
+									<td th:text="${p}">0</td>
+									<td th:text="${s}">0</td>
+									<td th:text="${r}">0</td>
+									<td th:text="${c}">0</td>
 
-									<td class="fw-bold"
-										th:text="${list.newIss + list.progress + list.solution + list.returnIss + list.completion}">
-										0</td>
+									<td class="fw-bold" th:text="${total}">0</td>
 								</tr>
 
-								<tr th:if="${#lists.isEmpty(ProIssStatusList)}">
+								<tr th:if="${#lists.isEmpty(ProIssStatusList)}"
+									class="no-data-row">
 									<td colspan="7" class="text-center text-muted py-3">표시할
 										데이터가 없습니다.</td>
 								</tr>
@@ -183,6 +192,11 @@
 
   function initChart() {
     const statusListCnt = /*[[${statusListCnt}]]*/ [];
+    if (!statusListCnt || statusListCnt.length === 0) {
+    	  document.getElementById("donutchart").innerHTML =
+    	    "<div class='text-muted text-center py-5'>표시할 데이터가 없습니다.</div>";
+    	  return;
+    	}
     const reversed = [...statusListCnt].reverse();
 
     data = new google.visualization.DataTable();
@@ -213,7 +227,7 @@
     const options = {
       pieHole: 0.4,
       colors: ["#3b9ff6", "#a3a3a3"],
-      legend: { position: "bottom", textStyle: { fontSize: 13 } },
+      legend: { position: "top", textStyle: { fontSize: 13 } },
       pieSliceText: "value",
       pieSliceTextStyle: { fontSize: 16, bold: true },
       // ✅ 컨테이너 폭에 맞춰 chartArea를 픽셀로 재계산
@@ -221,7 +235,7 @@
       	left: 10,
       	top: 55,
       	width: Math.max(w - 20, 0),
-      	height: "70%"   // <- 58~65% 사이에서 취향대로 조절
+      	height: "75%"   // <- 58~65% 사이에서 취향대로 조절
     	}
     };
 

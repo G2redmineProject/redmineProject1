@@ -8,6 +8,7 @@ import com.yedam.app.main.mapper.MainMapper;
 import com.yedam.app.main.service.AssigneeIssStaVO;
 import com.yedam.app.main.service.MainProjectStatusVO;
 import com.yedam.app.main.service.MainService;
+import com.yedam.app.main.service.MyTopIssueVO;
 import com.yedam.app.main.service.ProIssStaVO;
 
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,11 @@ public class MainServiceImpl implements MainService{
 	@Override
 	public int findTodayProgressRate(Integer userCode) {
 		return mainMapper.selectTodayProgressRate(userCode);
+	}
+
+	@Override
+	public List<MyTopIssueVO> findMyTopIssues(Integer projectCode, Integer userCode) {
+		return mainMapper.selectMyTopIssues(projectCode, userCode);
 	}
 
 }

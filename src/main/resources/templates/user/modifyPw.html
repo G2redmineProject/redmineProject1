@@ -1,0 +1,107 @@
+<!doctype html>
+<html xmlns:th="https://www.thymeleaf.org/"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{common/layouts/default_layout}">
+<head>
+<meta charset="UTF-8" />
+<title>비밀번호 변경</title>
+<link rel="stylesheet" th:href="@{/css/user/modifyPw.css}" />
+</head>
+
+<body>
+	<div layout:fragment="Content">
+
+		<!-- 타이틀 영역 -->
+		<div class="x-page-title">
+			<h3 class="page-title">비밀번호 변경</h3>
+			<div class="page-title-sub">현재 비밀번호를 확인한 뒤 새 비밀번호로 변경합니다.</div>
+		</div>
+
+		<!-- 돌아가기 버튼 (내 정보와 동일) -->
+		<div class="mb-3">
+			<a class="btn btn-secondary" th:href="@{/myInfo}"> <i
+				class="fas fa-arrow-left me-1"></i>돌아가기
+			</a>
+		</div>
+
+		<!-- 서버 메시지 -->
+		<div th:if="${errorMsg != null}" class="alert alert-danger py-2 mb-3"
+			th:text="${errorMsg}">에러</div>
+		<div th:if="${successMsg != null}"
+			class="alert alert-success py-2 mb-3" th:text="${successMsg}">성공</div>
+
+		<!-- 비밀번호 변경 폼 카드 -->
+		<div class="card mb-4">
+			<div
+				class="card-header d-flex align-items-center justify-content-between">
+				<div>
+					<i class="fas fa-lock me-1"></i> 비밀번호 변경
+				</div>
+				<div class="text-muted small">현재 비밀번호 확인 필수</div>
+			</div>
+
+			<div class="card-body modify-card-body">
+				<form id="modifyPwForm" th:action="@{/myInfo/modifyPw}"
+					method="post" class="modify-filters">
+
+					<!-- 클라이언트 검증 메시지 영역(원하면 JS 붙일 수 있음) -->
+					<div id="pwAlert" class="alert alert-warning py-2 mb-3 d-none"
+						role="alert"></div>
+
+					<div class="row g-2 align-items-end">
+						<div class="col-12">
+							<label class="form-label">현재 비밀번호</label> <input type="password"
+								name="currentPw" id="currentPw" class="form-control"
+								placeholder="현재 비밀번호 입력" required />
+						</div>
+					</div>
+
+					<div class="row g-2 align-items-end mt-1">
+						<div class="col-12 col-md-6">
+							<label class="form-label">새 비밀번호</label> <input type="password"
+								name="newPw" id="newPw" class="form-control"
+								placeholder="새 비밀번호 입력" required />
+						</div>
+
+						<div class="col-12 col-md-6">
+							<label class="form-label">새 비밀번호 확인</label> <input
+								type="password" name="confirmPw" id="confirmPw"
+								class="form-control" placeholder="새 비밀번호 확인" required />
+						</div>
+					</div>
+
+					<div class="d-flex justify-content-end gap-2 mt-3">
+						<button type="submit" class="btn btn-primary">변경</button>
+					</div>
+
+				</form>
+			</div>
+		</div>
+
+		<!-- 안내 카드(내 정보 톤 동일) -->
+		<div class="card mb-4">
+			<div
+				class="card-header d-flex align-items-center justify-content-between">
+				<div>
+					<i class="fas fa-circle-info me-1"></i> 안내
+				</div>
+				<div class="text-muted small">보안을 위해 주기적으로 변경하세요</div>
+			</div>
+
+			<div class="card-body modify-hint-body">
+				<ul class="mb-0 modify-hint">
+					<li>현재 비밀번호가 일치해야 변경할 수 있습니다.</li>
+					<li>새 비밀번호와 확인이 일치하지 않으면 저장되지 않습니다.</li>
+					<li>변경 후에는 기존 비밀번호로 로그인할 수 없습니다.</li>
+				</ul>
+			</div>
+		</div>
+
+	</div>
+
+	<th:block layout:fragment="pageScript">
+		<script th:src="@{/js/user/modifyPw.js}"></script>
+	</th:block>
+
+</body>
+</html>

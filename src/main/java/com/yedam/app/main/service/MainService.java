@@ -23,4 +23,7 @@ public interface MainService {
 	
 	// 내가 속한 진행중 프로젝트들의 전체 현재 진척도(가중 평균)
 	public int findTodayProgressRate(Integer userCode);
+	
+	// 본인 이슈 Top 5
+	public List<MyTopIssueVO> findMyTopIssues(Integer projectCode, Integer userCode);
 }

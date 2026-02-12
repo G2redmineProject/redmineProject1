@@ -16,14 +16,21 @@
 	<!-- 유저의 프로젝트별 일감 현황 -->
 	<select id="selectProIssSta" resultType="ProIssStaVO">
 		SELECT
-			p.project_code AS
-			projectCode,
+			/* 프로젝트 전체 이슈 */
+			p.project_code AS projectCode,
 			p.project_name AS projectName,
-			SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END) AS newIss,
-			SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END) AS progress,
-			SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS solution,
-			SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS returnIss,
-			SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS completion
+			NVL(SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END), 0) AS newIss,
+			NVL(SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END), 0) AS progress,
+			NVL(SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END), 0) AS solution,
+			NVL(SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END), 0) AS returnIss,
+			NVL(SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END), 0) AS completion,
+			
+			/* 내 이슈(담당자 = 나) */
+			NVL(SUM(CASE WHEN s.code_id = 'OB1' AND i.assignee_code = #{userCode} THEN 1 ELSE 0 END), 0) AS myNewIss,
+      		NVL(SUM(CASE WHEN s.code_id = 'OB2' AND i.assignee_code = #{userCode} THEN 1 ELSE 0 END), 0) AS myProgress,
+      		NVL(SUM(CASE WHEN s.code_id = 'OB3' AND i.assignee_code = #{userCode} THEN 1 ELSE 0 END), 0) AS mySolution,
+      		NVL(SUM(CASE WHEN s.code_id = 'OB4' AND i.assignee_code = #{userCode} THEN 1 ELSE 0 END), 0) AS myReturnIss,
+      		NVL(SUM(CASE WHEN s.code_id = 'OB5' AND i.assignee_code = #{userCode} THEN 1 ELSE 0 END), 0) AS myCompletion
 		FROM projects p
 		
 		JOIN (
@@ -182,9 +189,9 @@
 	
 	<!-- 내가 속한 진행중 프로젝트들의 전체 현재 진척도(가중 평균) -->
 	<select id="selectTodayProgressRate" resultType="Integer">
-		SELECT
-    		ROUND(SUM(v.plan * v.actual_prog) / NULLIF(SUM(v.plan), 0), 0) 
-    			AS total_actual_prog
+		SELECT NVL(
+    		     ROUND(SUM(v.plan * v.actual_prog) / NULLIF(SUM(v.plan), 0), 0), 0)
+    			 AS total_actual_prog
 		FROM VW_PROJECT_PROGRESS v
 		
 		JOIN projects p
@@ -200,7 +207,7 @@
 
       		UNION
 
-      		-- ✅ 2) 유저가 그룹에 속해있고, 그 그룹이 프로젝트에 역할로 연결된 경우
+      		-- 2) 유저가 그룹에 속해있고, 그 그룹이 프로젝트에 역할로 연결된 경우
       		SELECT gpr.project_code
       		FROM GROUP_MEMBER gm
       		
@@ -210,4 +217,37 @@
       		WHERE gm.user_code = #{userCode}
   		)
 	</select>
+	
+	<!-- 본인 이슈 Top 5 -->
+	<select id="selectMyTopIssues" resultType="MyTopIssueVO">
+	<![CDATA[
+  		SELECT *
+  		FROM (
+    		SELECT
+      			i.issue_code AS issueCode,
+      			i.title      AS title,
+      			i.priority   AS priority,
+      			s.code_id    AS statusCodeId,
+      			i.due_at     AS dueAt,
+      			NVL(i.updated_at, i.created_at) AS updatedAt,
+      			i.progress   AS progress
+    		FROM issues i
+    		
+    		JOIN status s
+      		ON s.status_code = i.status_code
+      		
+    		WHERE i.project_code  = #{projectCode}
+      		AND i.assignee_code = #{userCode}
+      		AND s.code_id != 'OB5'
+      		
+    		ORDER BY
+      			/* 마감일 빠른 순(없으면 뒤로) */
+      			i.due_at NULLS LAST,
+      			/* 최근 업데이트 순 */
+      			NVL(i.updated_at, i.created_at) DESC
+  		)
+  		WHERE ROWNUM <= 5
+  	]]>
+	</select>
+	
 </mapper>

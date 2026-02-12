@@ -1,5 +1,10 @@
 package com.yedam.app.login.web;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.util.HexFormat;
 import java.util.List;
 
 import org.springframework.stereotype.Controller;
@@ -8,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.yedam.app.login.service.AutoLoginTokenVO;
 import com.yedam.app.login.service.LoginResultDTO;
 import com.yedam.app.login.service.LoginResultType;
 import com.yedam.app.login.service.LoginService;
@@ -27,12 +33,54 @@ public class LoginController {
 
 	private final LoginService loginService;
 	private final ProjectService projectService;
+	// 쿠기이름: AUTO_LOGIN
+	private static final String AUTO_LOGIN_COOKIE = "AUTO_LOGIN";
+	// 30일까지 유지
+	private static final Duration AUTO_LOGIN_TTL = Duration.ofDays(30);
 	
 	// 사원번호, 비밀번호 조회
 	// 페이지 이동
 	@GetMapping("/login")
-	public String loginFrom(HttpServletRequest request, Model model) {
+	public String loginFrom(HttpServletRequest request, HttpSession session, Model model) {
 		
+		// 이미 세션 로그인 되어있으면 메인으로
+		UserVO sessionUser = (UserVO) session.getAttribute("user");
+	    if (sessionUser != null) {
+	        return "redirect:/G2main";
+	    }
+	    
+	    // 자동로그인 쿠키가 있으면 세션 복구 시도 → 성공하면 메인으로
+	    String rawToken = null;
+	    if (request.getCookies() != null) {
+	        for (Cookie c : request.getCookies()) {
+	            if (AUTO_LOGIN_COOKIE.equals(c.getName())) {
+	                rawToken = c.getValue();
+	                break;
+	            }
+	        }
+	    }
+
+	    if (rawToken != null && !rawToken.isBlank()) {
+	        String tokenHash = sha256Hex(rawToken);
+	        UserVO user = loginService.findUserByValidAutoLoginToken(tokenHash);
+
+	        if (user != null) {
+	            // 세션 복구
+	            session.setAttribute("user", user);
+
+	            List<UserProjectAuthVO> auths = projectService.getUserProjectAuthAll(user.getUserCode());
+	            session.setAttribute("userAuth", auths);
+
+	            // last_used 갱신(추천)
+	            loginService.touchAutoLoginToken(tokenHash);
+
+	            return "redirect:/G2main";
+	        }
+	        // (선택) 토큰이 무효면 여기서 쿠키 지우고 로그인 페이지 보여주기
+	        // -> 쿠키 삭제는 response가 필요하니까 아래 "선택 개선" 참고
+	    }
+		
+	    // 사원번호 기억 쿠키
 		String savedEmpNo = null;
 		// 브라우저 쿠키가 null이 아니면
 		if(request.getCookies() != null) {
@@ -58,14 +106,15 @@ public class LoginController {
 	public String login(UserVO userVO
 						,HttpSession session
 						,RedirectAttributes ra
-						,HttpServletResponse response) {
+						,HttpServletResponse response
+						,HttpServletRequest request) {
 		
 		
 		LoginResultDTO result = loginService.login(userVO);
 		
 		// 사번/비번 오류
 				if(result.getType() == LoginResultType.INVALID) {
-					ra.addFlashAttribute("loginLockedMsg",
+					ra.addFlashAttribute("loginErrorMsg",
 										 "사원번호 또는 비밀번호가 틀렸습니다.");
 					return "redirect:/login";
 				}
@@ -110,6 +159,38 @@ public class LoginController {
 			c.setPath("/");
 	        c.setMaxAge(0);
 	        response.addCookie(c);
+		}
+		
+		// 자동로그인 체크하면 토큰 발급
+		if("on".equals(userVO.getAutoLogin())) {
+			String rawToken = generateToken(); 		// 쿠키에 넣을 원본
+			String tokenHash = sha256Hex(rawToken); // DB 저장용 해시
+			
+			AutoLoginTokenVO tokenVO = new AutoLoginTokenVO();
+			tokenVO.setTokenHash(tokenHash);
+			tokenVO.setUserCode(user.getUserCode());
+			tokenVO.setTtlSeconds(AUTO_LOGIN_TTL.getSeconds());
+			tokenVO.setUserAgent(request.getHeader("User-Agent"));
+			tokenVO.setIpAddr(request.getRemoteAddr());
+			
+			// DB 저장
+			loginService.saveAutoLoginToken(tokenVO);
+			
+			// 쿠키 저장(원본 토큰)
+			Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, rawToken);
+			auto.setPath("/");
+		    auto.setMaxAge((int) AUTO_LOGIN_TTL.getSeconds());
+		    auto.setHttpOnly(true);
+		    // HTTPS 쓰면 true 권장
+		    // auto.setSecure(true);
+		    response.addCookie(auto);
+		} else {
+			// 자동로그인 체크 안 하면 혹시 남아있을 수 있는 쿠키 제거(선택)
+		    Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, "");
+		    auto.setPath("/");
+		    auto.setMaxAge(0);
+		    auto.setHttpOnly(true);
+		    response.addCookie(auto);
 		}
 		
 		// 첫 로그인 필수정보 입력 페이지로 이동
@@ -184,7 +265,33 @@ public class LoginController {
 	
 	// 로그아웃
 	@GetMapping("/logout")
-	public String logout(HttpSession session) {
+	public String logout(HttpServletRequest request
+						,HttpServletResponse response
+						,HttpSession session) {
+		
+		// 자동로그인 토큰 폐기 (쿠키에서 원본 토큰 읽어서 해시로 삭제)
+	    String rawToken = null;
+	    if (request.getCookies() != null) {
+	        for (Cookie c : request.getCookies()) {
+	            if (AUTO_LOGIN_COOKIE.equals(c.getName())) {
+	                rawToken = c.getValue();
+	                break;
+	            }
+	        }
+	    }
+	    
+	    if (rawToken != null && !rawToken.isBlank()) {
+	        String tokenHash = sha256Hex(rawToken);
+	        loginService.removeAutoLoginToken(tokenHash);
+	    }
+	    
+	    // 쿠키 삭제
+	    Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, "");
+	    auto.setPath("/");
+	    auto.setMaxAge(0);
+	    auto.setHttpOnly(true);
+	    response.addCookie(auto);
+		
 		session.invalidate(); // 세션 제거
 		return "redirect:/login";
 	}
@@ -192,5 +299,23 @@ public class LoginController {
 	// 널이거나 공백을 체크하는 메서드
 	private boolean isBlank(String s) {
 	    return s == null || s.trim().isEmpty();
+	}
+	
+	// 원본 토큰 만들기
+	private String generateToken() {
+	    byte[] b = new byte[32];
+	    new SecureRandom().nextBytes(b);
+	    return HexFormat.of().formatHex(b);
+	}
+	
+	// DB 저장용 해시 만들기
+	private String sha256Hex(String s) {
+	    try {
+	        MessageDigest md = MessageDigest.getInstance("SHA-256");
+	        byte[] hash = md.digest(s.getBytes(StandardCharsets.UTF_8));
+	        return HexFormat.of().formatHex(hash);
+	    } catch (Exception e) {
+	        throw new RuntimeException(e);
+	    }
 	}
 }
