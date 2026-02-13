@@ -25,67 +25,69 @@
 	min-width: 210px;
 }
 
-/* 유형 모달 트리 컨테이너 */
+/* 유형 모달 전체 */
 #typeModalTree {
+	padding: 0;
 	border: none !important;
-	padding: 2px;
+	background-color: #fff; /* 담당자 모달과 비슷한 연한 회색 */
 }
 
-/* 1. 프로젝트별 카드 (간격 및 라운딩) */
+/* 프로젝트 그룹 wrapper */
 .type-project-group {
 	border: 1px solid #dee2e6;
-	border-radius: 8px !important;
+	border-radius: 6px;
 	overflow: hidden;
 	margin-bottom: 12px;
-	background-color: #fff;
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	background-color: #f8f9fa; /* 카드 배경을 연하게 */
+	box-shadow: none; /* 그림자 제거 */
 }
 
-/* 2. 프로젝트 헤더 */
+/* 프로젝트 헤더 */
 .type-project-header {
-	background-color: #6d747b;
-	color: #fff;
-	padding: 12px 16px;
-	font-weight: 700;
-	font-size: 0.95rem;
+	background-color: #e9ecef; /* 담당자 모달 헤더 톤 */
+	color: #495057;
+	padding: 10px 14px;
+	font-weight: 600;
+	font-size: 16px;
 	border-bottom: 1px solid #dee2e6;
 }
 
-/* 3. 트리 구조 및 구분선 설정 */
+/* 트리 구조 ul 기본 스타일 제거 */
 #typeModalTree ul {
 	list-style: none;
 	padding: 0;
 	margin: 0;
 }
 
-/* 모든 유형 아이템에 하단 선 적용 */
+/* 유형 아이템 */
 .type-item {
 	cursor: pointer;
-	padding: 12px 16px !important;
+	padding: 10px 14px;
 	display: block;
-	font-size: 0.9rem;
-	color: #333;
+	font-size: 15px;
+	color: #495057;
 	background-color: #fff;
-	border-bottom: 1px solid #f0f0f0 !important; /* 하위 유형 포함 모든 곳에 선 생성 */
+	border-bottom: 1px solid #dee2e6; /* 연하게 */
 	transition: background-color 0.15s;
 	text-decoration: none;
 }
 
-/* 카드 전체의 맨 마지막 유형만 선을 제거 (박스 테두리와 겹침 방지) */
+/* 마지막 항목 하단선 제거 */
 .type-project-group>ul>li:last-child>.type-item:last-child,
 	.type-project-group>ul>li:last-child>ul>li:last-child>.type-item {
-	border-bottom: none !important;
+	border-bottom: none;
 }
 
+/* hover 효과 */
 .type-item:hover {
-	background-color: #f9fafb !important;
+	background-color: #e2e6ea;
 }
 
-/* 4. 계층별 들여쓰기 */
+/* 계층별 들여쓰기 */
 #typeModalTree ul ul .type-item {
-	padding-left: 40px !important;
+	padding-left: 28px;
 }
 
 #typeModalTree ul ul ul .type-item {
-	padding-left: 65px !important;
+	padding-left: 50px;
 }
