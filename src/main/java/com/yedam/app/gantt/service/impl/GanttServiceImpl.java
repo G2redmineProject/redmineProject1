@@ -28,9 +28,6 @@ public class GanttServiceImpl implements GanttService {
 		Map<Integer, Integer> issueCountMap = new HashMap<>();
 		Map<Integer, LocalDateTime> projectEndDateMap = new HashMap<>();
 
-		// TYPE 날짜 계산용 캐시 (요청 단위)
-		Map<String, LocalDateTime[]> typeDateCache = new HashMap<>();
-
 		calculateProjectEndDates(list, projectEndDateMap);
 
 		// 1단계: ISSUE 날짜 먼저 계산
@@ -44,14 +41,7 @@ public class GanttServiceImpl implements GanttService {
 			}
 		}
 
-		// 2단계: TYPE 날짜 계산 (이제 child의 issueStartDate/issueEndDate가 설정됨)
-		for (GanttVO vo : list) {
-			if ("TYPE".equals(vo.getRowType())) {
-				calculateTypeDate(vo, list, typeDateCache);
-			}
-		}
-
-		// 3단계: 나머지 계산 결과 적용
+		// 2단계: 나머지 계산 결과 적용
 		applyCalculatedValues(list, issueCountMap, projectEndDateMap);
 
 		return list;
@@ -75,64 +65,6 @@ public class GanttServiceImpl implements GanttService {
 
 			projectEndDateMap.merge(projectCode, issueEnd,
 					(oldVal, newVal) -> newVal.isAfter(oldVal) ? newVal : oldVal);
-		}
-	}
-
-	// 하위 TYPE과 ISSUE까지 포함해서 TYPE 시작일/종료일 계산
-	private LocalDateTime[] calculateTypeDate(GanttVO vo, List<GanttVO> list, Map<String, LocalDateTime[]> cache) {
-
-		if (cache.containsKey(vo.getNodeId())) {
-			return cache.get(vo.getNodeId());
-		}
-
-		List<GanttVO> childIssues = new java.util.ArrayList<>();
-
-		// 모든 하위 ISSUE 수집
-		collectChildIssues(vo.getNodeId(), list, childIssues);
-
-		LocalDateTime minStart = null;
-		LocalDateTime maxEnd = null;
-
-		for (GanttVO issue : childIssues) {
-			System.out.println("TYPE " + vo.getNodeId() + " 집계 ISSUE = " + issue.getNodeId() + " start="
-					+ issue.getIssueStartDate());
-
-			LocalDateTime start = issue.getIssueStartDate();
-			LocalDateTime end = issue.getIssueEndDate();
-
-			if (start != null && (minStart == null || start.isBefore(minStart))) {
-				minStart = start;
-			}
-
-			if (end != null && (maxEnd == null || end.isAfter(maxEnd))) {
-				maxEnd = end;
-			}
-		}
-
-		vo.setTypeStartDate(minStart);
-		vo.setTypeEndDate(maxEnd);
-
-		LocalDateTime[] result = new LocalDateTime[] { minStart, maxEnd };
-		cache.put(vo.getNodeId(), result);
-
-		return result;
-	}
-
-	private void collectChildIssues(String parentId, List<GanttVO> list, List<GanttVO> result) {
-
-		for (GanttVO child : list) {
-
-			// 1️. ISSUE가 현재 TYPE의 직계 자식인 경우
-			if ("ISSUE".equals(child.getRowType()) && parentId.equals(child.getParentId())) {
-
-				result.add(child);
-			}
-
-			// 2️. 하위 TYPE인 경우 (TYPE 트리 구조)
-			if ("TYPE".equals(child.getRowType()) && parentId.equals(child.getParentId())) {
-
-				collectChildIssues(child.getNodeId(), list, result);
-			}
 		}
 	}
 

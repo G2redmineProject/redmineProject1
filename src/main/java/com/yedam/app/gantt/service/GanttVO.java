@@ -27,7 +27,11 @@ public class GanttVO {
 	private Integer typeLevel; // 타입 레벨
 	private Integer parTypeCode; // 부모 타입 코드
 	private String parTypeName; // 부모 타입 이름
-
+	@JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+	private LocalDateTime startAt; // 타입 시작일
+	@JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
+	private LocalDateTime endAt; // 타입 종료일
+	
 	// 이슈
 	private Integer issueCode; // 일감 코드
 	private Integer parIssueCode; // 상위 일감 코드
@@ -56,10 +60,6 @@ public class GanttVO {
 	private LocalDateTime issueStartDate; // 일감 시작일
 	 @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
 	private LocalDateTime issueEndDate; // 일감 종료일
-	 @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
-	private LocalDateTime typeStartDate; // 타입 시작일
-	 @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
-	private LocalDateTime typeEndDate; // 타입 종료일
 	private Integer typeActualProg; // 타입 진척도
 	private Integer typePlanProg; // 타입 예상 진척도
 }
