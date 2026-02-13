@@ -217,9 +217,11 @@
     <update id="updateProjectStatus">
         UPDATE projects 
         SET status = #{status}
+        <if test="status == 'OD3'">,completed_on = SYSDATE</if>
         WHERE project_code = #{projectCode}
     </update>
     
+    <!-- 유저 권한 조회 -->
     <select id="selectUserProjectAuthAll" resultType="UserProjectAuthVO">
 	    SELECT 
 		    user_code,
@@ -264,5 +266,123 @@
 		ORDER BY max(ra_code) asc 
     </select>
     
+    
+    
+    
+    
+	<!-- 프로젝트 상세 조회 -->
+	<select id="selectProjectDetail" resultType="ProjectDetailVO">
+	    SELECT 
+	        p.project_code,
+	        p.project_name,
+	        p.description,
+	        TO_CHAR(p.created_on, 'YYYY-MM-DD') as created_on,
+	        p.status,
+	        p.user_code,
+	        u.name as user_name
+	    FROM projects p
+	    JOIN users u ON p.user_code = u.user_code
+	    WHERE p.project_code = #{projectCode}
+	</select>
+	
+	<!-- 프로젝트 구성원 목록 조회 (삭제된 것 제외) -->
+	<select id="selectProjectMembers" resultType="ProjectMemberDetailVO">
+	    SELECT 
+	        pru.mapp_code,
+	        pru.project_code,
+	        pru.user_code,
+	        u.name as user_name,
+	        u.email,
+	        pru.role_code,
+	        r.role_name
+	    FROM project_role_user pru
+	    JOIN users u ON pru.user_code = u.user_code
+	    JOIN role r ON pru.role_code = r.role_code
+	    WHERE pru.project_code = #{projectCode}
+	      AND pru.project_code > 0  <!-- 양수만 조회 (음수는 삭제된 것) -->
+	</select>
+	
+	<!-- 프로젝트 그룹 목록 조회 (삭제된 것 제외) -->
+	<select id="selectProjectGroups" resultType="ProjectGroupDetailVO">
+	    SELECT 
+	        gpr.gr_pro_code,
+	        gpr.gr_code,
+	        g.gr_name,
+	        gpr.project_code,
+	        gpr.role_code,
+	        r.role_name
+	    FROM gr_pro_role gpr
+	    JOIN "GROUP" g ON gpr.gr_code = g.group_code
+	    JOIN role r ON gpr.role_code = r.role_code
+	    WHERE gpr.project_code = #{projectCode}
+	      AND gpr.project_code > 0  <!-- 양수만 조회 (음수는 삭제된 것) -->
+	</select>
+	
+	<!-- 프로젝트 정보 수정 -->
+	<update id="updateProject" parameterType="ProjectDetailVO">
+	    UPDATE projects 
+	    SET project_name = #{projectName},
+	        description = #{description},
+	        status = #{status}
+	    WHERE project_code = #{projectCode}
+	</update>
+	
+	<!-- 구성원 삭제 (음수로 변환) -->
+	<update id="softDeleteProjectMember">
+	    UPDATE project_role_user 
+	    SET project_code = project_code * -1
+	    WHERE mapp_code = #{mappCode}
+	      AND project_code = #{projectCode}
+	</update>
+	
+	<!-- 구성원 복원 (양수로 변환) -->
+	<update id="restoreProjectMember">
+	    UPDATE project_role_user 
+	    SET project_code = ABS(project_code),  <!-- 절대값으로 양수 변환 -->
+	        role_code = #{roleCode}
+	    WHERE user_code = #{userCode}
+	      AND project_code = #{projectCode} * -1  <!-- 음수 상태인 것 찾기 -->
+	</update>
+	
+	<!-- 그룹 삭제 (음수로 변환) -->
+	<update id="softDeleteProjectGroup">
+	    UPDATE gr_pro_role 
+	    SET project_code = project_code * -1
+	    WHERE gr_pro_code = #{grProCode}
+	      AND project_code = #{projectCode}
+	</update>
+	
+	<!-- 그룹 복원 (양수로 변환) -->
+	<update id="restoreProjectGroup">
+	    UPDATE gr_pro_role 
+	    SET project_code = ABS(project_code),  <!-- 절대값으로 양수 변환 -->
+	        role_code = #{roleCode}
+	    WHERE gr_code = #{grCode}
+	      AND project_code = #{projectCode} * -1  <!-- 음수 상태인 것 찾기 -->
+	</update>
+	
+	<!-- 삭제된 구성원 확인 -->
+	<select id="findDeletedMember" resultType="ProjectMemberDetailVO">
+	    SELECT 
+	        mapp_code,
+	        project_code,
+	        user_code,
+	        role_code
+	    FROM project_role_user
+	    WHERE user_code = #{userCode}
+	      AND project_code = #{projectCode} * -1  <!-- 음수 상태인 것 -->
+	</select>
+	
+	<!-- 삭제된 그룹 확인 -->
+	<select id="findDeletedGroup" resultType="ProjectGroupDetailVO">
+	    SELECT 
+	        gr_pro_code,
+	        gr_code,
+	        project_code,
+	        role_code
+	    FROM gr_pro_role
+	    WHERE gr_code = #{grCode}
+	      AND project_code = #{projectCode} * -1  <!-- 음수 상태인 것 -->
+	</select>
     
 </mapper>

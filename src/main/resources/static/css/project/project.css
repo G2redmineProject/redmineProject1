@@ -87,7 +87,7 @@ tbody td:not(:nth-child(2)) {
 /* project.css에 추가 */
 .progress {
 	background-color: #b9fff2;
-	border:solid 1px #00ffff;
+	border: solid 1px #00ffff;
 }
 
 .progress-bar {
@@ -105,3 +105,10 @@ tbody td:not(:nth-child(2)) {
 	text-align: center;
 }
 
+.projectRow {
+	cursor: pointer;
+}
+
+.projectRow:hover {
+	background-color: #f8f9fa;
+}

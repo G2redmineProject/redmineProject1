@@ -14,9 +14,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.yedam.app.login.service.UserVO;
 import com.yedam.app.project.service.GroupVO;
+import com.yedam.app.project.service.ProjectDetailVO;
+import com.yedam.app.project.service.ProjectGroupDetailVO;
+import com.yedam.app.project.service.ProjectMemberDetailVO;
 import com.yedam.app.project.service.ProjectPrVO;
 import com.yedam.app.project.service.ProjectRequestDTO;
 import com.yedam.app.project.service.ProjectService;
+import com.yedam.app.project.service.ProjectUpdateDTO;
 import com.yedam.app.project.service.ProjectVO;
 import com.yedam.app.project.service.PruserVO;
 import com.yedam.app.project.service.RoleVO;
@@ -179,6 +183,77 @@ public class ProjectController {
 		} catch (Exception e) {
 			response.put("success", false);
 			response.put("message", "삭제 처리 중 오류가 발생했습니다: " + e.getMessage());
+		}
+
+		return response;
+	}
+
+	// ProjectController.java에 추가할 메서드들
+
+	@GetMapping("project/{projectCode}")
+	public String projectDetail(@PathVariable Integer projectCode, Model model, HttpSession session) {
+
+		// 프로젝트 상세 정보 조회
+		ProjectDetailVO project = projectService.getProjectDetail(projectCode);
+
+		// 구성원 목록 조회
+		List<ProjectMemberDetailVO> members = projectService.getProjectMembers(projectCode);
+
+		// 그룹 목록 조회
+		List<ProjectGroupDetailVO> groups = projectService.getProjectGroups(projectCode);
+
+		// 전체 사용자 목록 (구성원 추가용)
+		List<PruserVO> allUsers = projectService.userFindAll();
+
+		// 전체 역할 목록
+		List<RoleVO> allRoles = projectService.roleFindAll();
+
+		// 전체 그룹 목록
+		List<GroupVO> allGroups = projectService.groupFindAll();
+
+		model.addAttribute("project", project);
+		model.addAttribute("members", members);
+		model.addAttribute("groups", groups);
+		model.addAttribute("users", allUsers);
+		model.addAttribute("roles", allRoles);
+		model.addAttribute("allGroups", allGroups);
+
+		return "project/projectinfo";
+	}
+
+	@PostMapping("project/{projectCode}/update")
+	@ResponseBody
+	public Map<String, Object> updateProject(@PathVariable Integer projectCode, @RequestBody ProjectUpdateDTO updateDTO,
+			HttpSession session) {
+
+		Map<String, Object> response = new HashMap<>();
+
+		UserVO user = (UserVO) session.getAttribute("user");
+		if (user == null) {
+			response.put("success", false);
+			response.put("message", "로그인이 필요합니다.");
+			return response;
+		}
+
+		try {
+
+			// 프로젝트 코드 설정
+			updateDTO.setProjectCode(projectCode);
+
+			// 프로젝트 수정
+			int result = projectService.updateProject(updateDTO);
+
+			if (result > 0) {
+				response.put("success", true);
+				response.put("message", "프로젝트가 수정되었습니다.");
+			} else {
+				response.put("success", false);
+				response.put("message", "프로젝트 수정에 실패했습니다.");
+			}
+
+		} catch (Exception e) {
+			response.put("success", false);
+			response.put("message", "수정 처리 중 오류가 발생했습니다: " + e.getMessage());
 		}
 
 		return response;

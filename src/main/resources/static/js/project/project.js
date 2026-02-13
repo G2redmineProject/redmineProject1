@@ -245,13 +245,24 @@
 	// 초기 로드 시 모든 행에 스타일 적용
 	rowsAll().forEach(tr => updateRowStyle(tr));
 
-	// 삭제 및 종료 버튼 이벤트 수정
+	// 프로젝트 행 클릭 이벤트 (상세 페이지 이동)
 	$("#projectTbody").addEventListener("click", async (e) => {
 		const btn = e.target.closest("button");
-		if (!btn) return;
+		const row = e.target.closest("tr.projectRow");
 
-		const row = btn.closest("tr");
-		const projectCode = row.dataset.projectCode; // HTML에 data-project-code 속성 필요
+		if (!row) return;
+
+		// 버튼 클릭이 아닌 경우 상세 페이지로 이동
+		if (!btn) {
+			const projectCode = row.dataset.projectCode;
+			if (projectCode) {
+				location.href = `/project/${projectCode}`;
+			}
+			return;
+		}
+
+		// 기존 버튼 클릭 로직 (삭제, 종료)
+		const projectCode = row.dataset.projectCode;
 		const projectName = rowData(row).projectName;
 
 		// 1. 삭제 버튼 클릭
@@ -270,7 +281,6 @@
 
 				if (result.success) {
 					alert(result.message);
-					// 화면에서 제거
 					row.dataset.filtered = "1";
 					row.style.display = "none";
 					renderPage();
@@ -299,7 +309,6 @@
 
 				if (result.success) {
 					alert(result.message);
-					// 상태 열 업데이트
 					const statusCell = row.querySelectorAll("td")[6];
 					if (statusCell) statusCell.textContent = "종료";
 					updateRowStyle(row);

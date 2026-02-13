@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org/"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{common/layouts/default_layout}"
+	layout:fragment="Content">
+
+<head>
+<meta charset="UTF-8">
+<title>프로젝트 상세</title>
+<link rel="stylesheet" th:href="@{/css/issue/issue-insert.css}">
+<link rel="stylesheet" th:href="@{/css/project/project.css}">
+</head>
+<body>
+	<div id="container">
+		<!-- 개요 -->
+		<div class="x-page-title">
+			<h3 class="page-title">프로젝트 상세</h3>
+			<div class="page-title-sub">프로젝트 상세 정보 확인 및 수정이 가능합니다.</div>
+		</div>
+
+		<form id="updateForm">
+			<input type="hidden" id="projectCode"
+				th:value="${project.projectCode}">
+
+			<!-- 프로젝트명 + 등록자 -->
+			<div class="issue-filters mb-3 mt-3">
+				<div class="row g-3 align-items-start">
+					<div class="col-md-9">
+						<label class="form-label fw-bold">프로젝트명 <span
+							class="text-danger">*</span></label> <input type="text" id="projectName"
+							class="form-control" th:value="${project.projectName}"
+							placeholder="프로젝트명 입력 (5~50자, 특수문자/공백 제외)" maxlength="50"
+							required> <small class="form-text text-muted">한글,
+							영문, 숫자만 사용 가능 (5~50자)</small>
+					</div>
+
+					<div class="col-md-3">
+						<label class="form-label fw-bold">등록자</label> <input type="text"
+							class="form-control" th:value="${project.userName}" readonly>
+					</div>
+				</div>
+			</div>
+
+			<!-- 설명 -->
+			<div class="mb-3">
+				<label for="editor" class="form-label fw-bold">프로젝트 설명</label>
+				<textarea id="editor" th:text="${project.description}"></textarea>
+				<small class="form-text text-muted">최대 1000자</small>
+			</div>
+
+			<!-- 상태 -->
+			<div class="mb-3">
+				<label class="form-label fw-bold">상태</label>
+				<div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="radio" name="statusRadio"
+							id="statusOD1" value="OD1"
+							th:checked="${project.status == 'OD1'}"> <label
+							class="form-check-label" for="statusOD1">진행</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="radio" name="statusRadio"
+							id="statusOD2" value="OD2"
+							th:checked="${project.status == 'OD2'}"> <label
+							class="form-check-label" for="statusOD2">중단</label>
+					</div>
+					<div class="form-check form-check-inline">
+						<input class="form-check-input" type="radio" name="statusRadio"
+							id="statusOD3" value="OD3"
+							th:checked="${project.status == 'OD3'}"> <label
+							class="form-check-label" for="statusOD3">종료</label>
+					</div>
+				</div>
+			</div>
+
+			<!-- 구성원 등록 머리말 -->
+			<div class="project-filters mb-2 mt-4">
+				<div
+					class="col-12 d-flex justify-content-between align-items-center">
+					<label class="form-label mb-0 fw-bold">구성원/그룹 등록</label>
+					<button type="button" class="btn btn-success py-1"
+						id="btnAddMember">
+						<i class="fas fa-plus me-1"></i>구성원/그룹 추가
+					</button>
+				</div>
+			</div>
+
+			<!-- 구성원 테이블 -->
+			<div class="card mt-1 mb-4">
+				<div
+					class="card-header d-flex align-items-center justify-content-between">
+					<div>
+						<i class="fas fa-users me-1"></i> 구성원/그룹 목록
+					</div>
+				</div>
+				<div class="card-body">
+					<div class="table-responsive">
+						<table class="table table-hover align-middle" id="memberTable">
+							<thead class="table-light">
+								<tr>
+									<th>이름/그룹명</th>
+									<th>권한</th>
+									<th>수정</th>
+									<th>삭제</th>
+								</tr>
+							</thead>
+							<tbody id="projectTbody">
+								<!-- 구성원 -->
+								<tr th:each="member : ${members}" th:data-type="'member'"
+									th:data-mapp-code="${member.mappCode}"
+									th:data-user-code="${member.userCode}"
+									th:data-role-code="${member.roleCode}">
+									<td>👤 <span>[[ ${member.userName} ]]([[ ${member.email} ]])</span></td>
+									<td th:text="${member.roleName}"></td>
+									<td>
+										<button type="button"
+											class="btn btn-success btn-sm btn-edit-role">
+											<i class="fa-regular fa-face-meh"></i> 수정
+										</button>
+									</td>
+									<td>
+										<button type="button"
+											class="btn btn-danger btn-sm btn-delete-member">
+											<i class="fa-solid fa-face-dizzy"></i> 삭제
+										</button>
+									</td>
+								</tr>
+
+								<!-- 그룹 -->
+								<tr th:each="group : ${groups}" th:data-type="'group'"
+									th:data-gr-pro-code="${group.grProCode}"
+									th:data-gr-code="${group.grCode}"
+									th:data-role-code="${group.roleCode}">
+									<td>👥 <span th:text="${group.grName}"></span></td>
+									<td th:text="${group.roleName}"></td>
+									<td>
+										<button type="button"
+											class="btn btn-success btn-sm btn-edit-role">
+											<i class="fa-regular fa-face-meh"></i> 수정
+										</button>
+									</td>
+									<td>
+										<button type="button"
+											class="btn btn-danger btn-sm btn-delete-member">
+											<i class="fa-solid fa-face-dizzy"></i> 삭제
+										</button>
+									</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<!-- 버튼 -->
+			<div class="d-flex justify-content-between align-items-center mt-4">
+				<a th:href="@{/projects}" class="btn btn-secondary"> <i
+					class="fas fa-arrow-left me-1"></i>목록으로
+				</a>
+
+				<div class="d-flex gap-2">
+					<button type="button" class="btn btn-success" id="btnSave">
+						<i class="fas fa-check me-1"></i>저장
+					</button>
+				</div>
+			</div>
+		</form>
+
+		<!-- 구성원/그룹 추가 모달 (기존 projectadd.html과 동일) -->
+		<div class="modal fade" id="creatorSelectModal" tabindex="-1"
+			aria-hidden="true">
+			<div class="modal-dialog modal-lg modal-dialog-scrollable">
+				<div class="modal-content">
+					<div class="modal-header">
+						<h5 class="modal-title">구성원/그룹 추가</h5>
+						<button type="button" class="btn-close" data-bs-dismiss="modal"
+							aria-label="Close"></button>
+					</div>
+					<div class="modal-body">
+						<ul class="tabnav nav nav-tabs mb-3">
+							<li class="nav-item"><a class="nav-link active" href="#mem">구성원</a></li>
+							<li class="nav-item"><a class="nav-link" href="#group">그룹</a></li>
+						</ul>
+
+						<div class="tabcontent">
+							<div id="mem">
+								<input type="text" id="creatorModalSearch"
+									class="form-control mb-3" placeholder="구성원 검색">
+								<div class="card mb-3">
+									<div class="card-body p-0">
+										<table class="table table-hover mb-0">
+											<thead class="table-light">
+												<tr>
+													<th style="width: 60px"><input type="checkbox"
+														id="selectAllMembers" class="form-check-input"></th>
+													<th>이름</th>
+												</tr>
+											</thead>
+											<tbody id="memberSelectList"></tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+
+							<div id="group" style="display: none;">
+								<input type="text" id="groupModalSearch"
+									class="form-control mb-3" placeholder="그룹 검색">
+								<div class="card mb-3">
+									<div class="card-body p-0">
+										<table class="table table-hover mb-0">
+											<thead class="table-light">
+												<tr>
+													<th style="width: 60px"><input type="checkbox"
+														id="selectAllgroup" class="form-check-input"></th>
+													<th>그룹명</th>
+												</tr>
+											</thead>
+											<tbody id="groupSelectList"></tbody>
+										</table>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="common-selection-area border-top pt-3">
+							<div class="mb-3">
+								<label class="fw-bold mb-2">역할 선택</label>
+								<div id="roleSelectList"
+									class="d-flex flex-wrap gap-3 p-2 bg-light rounded"></div>
+							</div>
+							<button type="button" class="btn btn-success w-100"
+								id="btnAddSelectedMembers">
+								<i class="fas fa-plus me-1"></i>선택한 항목 추가하기
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<script th:inline="javascript">
+		/*<![CDATA[*/
+		window.serverData = {
+			users : /*[[${users}]]*/[],
+			roles : /*[[${roles}]]*/[],
+			groups : /*[[${allGroups}]]*/[]
+		};
+		/*]]>*/
+	</script>
+
+	<!-- CKEditor -->
+	<script
+		src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+	<script th:src="@{/js/ckeditor5.js}"></script>
+
+	<!-- 프로젝트 상세 스크립트 -->
+	<script th:src="@{/js/project/projectinfo.js}"></script>
+</body>
+</html>

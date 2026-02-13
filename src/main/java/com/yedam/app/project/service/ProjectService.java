@@ -31,4 +31,18 @@ public interface ProjectService {
 	public List<UserProjectAuthVO> getUserProjectAuthAll(Integer userCode);
     // 프로젝트 상태 변경
 	public int updateProjectStatus(Integer projectCode, String status);
+	
+	
+	// 프로젝트 상세 조회
+	public ProjectDetailVO getProjectDetail(Integer projectCode);
+
+	// 프로젝트 구성원 목록 조회
+	public List<ProjectMemberDetailVO> getProjectMembers(Integer projectCode);
+
+	// 프로젝트 그룹 목록 조회
+	public List<ProjectGroupDetailVO> getProjectGroups(Integer projectCode);
+
+	// 프로젝트 수정
+	public int updateProject(ProjectUpdateDTO updateDTO);
+
 }
