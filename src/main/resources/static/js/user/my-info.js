@@ -18,12 +18,12 @@
     alertEl.classList.add("d-none");
   }
 
-  // ✅ 숫자만 추출
+  // 숫자만 추출
   function onlyDigits(v) {
     return (v || "").replace(/\D/g, "");
   }
 
-  // ✅ 한국 전화번호 하이픈 포맷 (010 / 02 / 0xx 대응)
+  // 한국 전화번호 하이픈 포맷 (010 / 02 / 0xx 대응)
   function formatPhoneKR(value) {
     const digits = onlyDigits(value);
 
@@ -44,7 +44,7 @@
     return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7, 11)}`;
   }
 
-  // ✅ 입력 중 자동 하이픈
+  // 입력 중 자동 하이픈
   phoneEl?.addEventListener("input", (e) => {
     const el = e.target;
     const prev = el.value;
@@ -52,14 +52,14 @@
     el.value = formatted;
   });
 
-  // ✅ 붙여넣기/입력 시 숫자 외 제거 + 하이픈 반영
+  // 붙여넣기/입력 시 숫자 외 제거 + 하이픈 반영
   phoneEl?.addEventListener("paste", () => {
     setTimeout(() => {
       phoneEl.value = formatPhoneKR(phoneEl.value);
     }, 0);
   });
 
-  // ✅ 저장 버튼(폼 submit) 검증: 하나라도 공백이면 막고 포커스 + 메시지
+  // 저장 버튼(폼 submit) 검증: 하나라도 공백이면 막고 포커스 + 메시지
   form.addEventListener("submit", (e) => {
     hideAlert();
 
@@ -80,7 +80,7 @@
       return;
     }
 
-    // ✅ 전화번호 자리수 간단 검증(선택)
+    // 전화번호 자리수 간단 검증
     const digits = onlyDigits(phone);
     if (digits.length < 9) {
       e.preventDefault();
@@ -89,7 +89,24 @@
       return;
     }
 
-    // ✅ 제출 직전에 공백/특수문자 섞임 방지: 전화번호는 포맷된 값 그대로 OK
+    // 제출 직전에 공백/특수문자 섞임 방지: 전화번호는 포맷된 값 그대로 OK
     // 필요하면 digits로 DB 저장하고 싶을 때는 서버에서 처리하는 게 안전함.
   });
 })();
+
+// 서버 메시지 3초 후 자동 사라짐
+document.addEventListener("DOMContentLoaded", function () {
+  const serverAlert = document.getElementById("myInfoServerAlert");
+  if (!serverAlert) return;
+
+  setTimeout(() => {
+    serverAlert.classList.add("fade");
+    serverAlert.style.transition = "opacity 0.5s ease";
+    serverAlert.style.opacity = "0";
+
+    setTimeout(() => {
+      serverAlert.remove();
+    }, 500);
+  }, 1000); // 몇초 뒤 사라질건지
+});
+

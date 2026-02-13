@@ -69,3 +69,38 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+document.addEventListener("DOMContentLoaded", function () {
+  // ✅ 1) 에러 메시지: 1초 뒤 자동 사라짐
+  const errorAlert = document.querySelector(".alert-danger");
+  if (errorAlert) {
+    setTimeout(() => {
+      errorAlert.style.transition = "opacity 0.5s ease";
+      errorAlert.style.opacity = "0";
+      setTimeout(() => errorAlert.remove(), 500);
+    }, 1000);
+  }
+
+  // ✅ 2) 성공 시: 부트스트랩 모달 띄우고, 확인/닫기 시 내 정보로 이동
+  const modalEl = document.getElementById("pwChangeSuccessModal");
+  if (modalEl) {
+    const modal = new bootstrap.Modal(modalEl, {
+      backdrop: "static", // 바깥 클릭으로 닫히는 걸 막고 싶으면 true 대신 "static"
+      keyboard: false     // ESC로 닫히는 걸 막고 싶으면 false
+    });
+
+    modal.show();
+
+    const goMyInfo = () => {
+      window.location.replace("/myInfo");
+    };
+
+    // 확인 버튼 클릭 → 이동
+    const okBtn = document.getElementById("pwChangeOkBtn");
+    if (okBtn) okBtn.addEventListener("click", goMyInfo);
+
+    // X 버튼(또는 모달이 닫히는 모든 경우) → 이동
+    modalEl.addEventListener("hidden.bs.modal", goMyInfo);
+  }
+});
+

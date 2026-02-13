@@ -19,18 +19,18 @@
 
 		<!-- 돌아가기 버튼 -->
 		<div class="mb-3">
-			<button type="button" class="btn btn-secondary"
-				onclick="if(document.referrer){ history.back(); } else { location.href='/G2main'; }">
-				<i class="fas fa-arrow-left me-1"></i>돌아가기
-			</button>
+			<a class="btn btn-secondary" th:href="@{/G2main}"> <i
+				class="fas fa-arrow-left me-1"></i>돌아가기
+			</a>
 		</div>
 
 		<!-- 알림 -->
-		<div th:if="${msg != null}" class="alert alert-info py-2 mb-3"
+		<div th:if="${msg != null}" id="myInfoServerAlert" 
+			class="alert alert-info py-2 mb-3"
 			th:text="${msg}">메시지</div>
 
 		<!-- 내 정보 수정 폼 -->
-		<form id="myInfoForm" th:action="@{/my}" method="post"
+		<form id="myInfoForm" th:action="@{/myInfo}" method="post"
 			class="myinfo-filters mb-3">
 
 			<!-- 클라이언트 검증 안내 메시지 영역 -->
