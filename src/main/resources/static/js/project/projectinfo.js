@@ -1,13 +1,20 @@
 // ============================================
-// projectadd.js
+// projectinfo.js (프로젝트 상세/수정)
 // ============================================
 
 // CKEditor 인스턴스
 let editorInstance;
 
-// 선택된 사용자/그룹 목록 (구성원 테이블에 추가된 항목들)
-let selectedUsers = [];
-let selectedGroups = [];
+// 서버 데이터
+const users = window.serverData?.users || [];
+const roles = window.serverData?.roles || [];
+const groups = window.serverData?.groups || [];
+
+// 변경 추적
+const changes = {
+	members: [], // { action: "add|delete|keep", mappCode, userCode, roleCode }
+	groups: [],  // { action: "add|delete|keep", grProCode, grCode, roleCode }
+};
 
 // ============================================
 // 1. 페이지 로드 시 초기화
@@ -16,6 +23,16 @@ document.addEventListener('DOMContentLoaded', function() {
 	initializeCKEditor();
 	initializeEventListeners();
 	initializeTabNavigation();
+	initializeChanges();
+
+	// 상태 라디오 버튼 비활성화
+	disableStatusRadios();
+
+	// 종료 상태 체크 및 수정 불가 처리
+	checkProjectStatus();
+
+	// 기존 테이블 버튼에 이벤트 등록
+	attachMemberTableEvents();
 });
 
 // ============================================
@@ -25,22 +42,7 @@ function initializeCKEditor() {
 	const checkEditor = setInterval(() => {
 		if (window.ckEditor) {
 			editorInstance = window.ckEditor;
-			// --------------------------------------------
-			// 기본 양식 설정
-			// --------------------------------------------
-			const defaultTemplate = `
-			                <p><strong>프로젝트 기간 :</strong> </p>
-			                <p><strong>사용 DB :</strong> </p>
-			                <p><strong>기술 스택 :</strong> </p>
-			                <p><strong>상세 내용 :</strong> </p>
-							<p><strong>기타 사항 :</strong> </p>
-			                <hr>
-			            `;
 
-			// 에디터에 내용이 비어있을 때만 양식을 넣습니다.
-			if (!editorInstance.getData()) {
-				editorInstance.setData(defaultTemplate);
-			}
 			// 글자 수 제한 (1000자)
 			editorInstance.model.document.on('change:data', () => {
 				const data = editorInstance.getData();
@@ -68,22 +70,19 @@ function initializeCKEditor() {
 // 3. 이벤트 리스너 초기화
 // ============================================
 function initializeEventListeners() {
-	const projectNameInput = document.querySelector('[name="projectName"]');
-	projectNameInput.addEventListener('input', validateProjectName);
+	const projectNameInput = document.getElementById('projectName');
+	if (projectNameInput) {
+		projectNameInput.addEventListener('input', validateProjectName);
+	}
 
-	const addMemberBtn = document.querySelector('#btnAddMember');
+	const addMemberBtn = document.getElementById('btnAddMember');
 	if (addMemberBtn) {
 		addMemberBtn.addEventListener('click', openMemberModal);
 	}
 
-	const resetBtn = document.querySelector('#btnReset');
-	if (resetBtn) {
-		resetBtn.addEventListener('click', resetForm);
-	}
-
-	const submitBtn = document.querySelector('#btnSubmit');
-	if (submitBtn) {
-		submitBtn.addEventListener('click', handleFormSubmit);
+	const saveBtn = document.getElementById('btnSave');
+	if (saveBtn) {
+		saveBtn.addEventListener('click', handleFormSubmit);
 	}
 
 	const searchInput = document.getElementById('creatorModalSearch');
@@ -98,7 +97,104 @@ function initializeEventListeners() {
 }
 
 // ============================================
-// 4. 프로젝트명 유효성 검사
+// 4. 상태 라디오 버튼 비활성화
+// ============================================
+function disableStatusRadios() {
+	const statusRadios = document.querySelectorAll('input[name="statusRadio"]');
+	statusRadios.forEach(radio => {
+		radio.disabled = true;
+	});
+}
+
+// ============================================
+// 4-2. 프로젝트 종료 상태 체크 및 수정 불가 처리
+// ============================================
+function checkProjectStatus() {
+	const statusOD3 = document.getElementById('statusOD3');
+
+	// 종료 상태(OD3)인 경우
+	if (statusOD3 && statusOD3.checked) {
+		// 프로젝트명 입력 비활성화
+		const projectNameInput = document.getElementById('projectName');
+		if (projectNameInput) {
+			projectNameInput.disabled = true;
+		}
+
+		// 에디터 비활성화 (CKEditor가 로드된 후에 실행되도록 대기)
+		const waitForEditor = setInterval(() => {
+			if (editorInstance) {
+				editorInstance.enableReadOnlyMode('readonly-mode');
+				clearInterval(waitForEditor);
+			}
+		}, 100);
+
+		// 구성원 추가 버튼 비활성화
+		const btnAddMember = document.getElementById('btnAddMember');
+		if (btnAddMember) {
+			btnAddMember.disabled = true;
+			btnAddMember.classList.add('disabled');
+		}
+
+		// 저장 버튼 비활성화
+		const btnSave = document.getElementById('btnSave');
+		if (btnSave) {
+			btnSave.disabled = true;
+			btnSave.classList.add('disabled');
+		}
+
+		// 모든 수정/삭제 버튼 비활성화
+		document.querySelectorAll('.btn-edit-role, .btn-delete-member').forEach(btn => {
+			btn.disabled = true;
+			btn.classList.add('disabled');
+		});
+
+		// 안내 메시지 표시
+		const container = document.getElementById('container');
+		if (container) {
+			const alertDiv = document.createElement('div');
+			alertDiv.className = 'alert alert-warning alert-dismissible fade show mt-3';
+			alertDiv.innerHTML = `
+				<i class="fas fa-info-circle me-2"></i>
+				<strong>종료된 프로젝트입니다.</strong> 수정이 불가능합니다.
+				<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+			`;
+			const pageTitle = container.querySelector('.x-page-title');
+			if (pageTitle) {
+				pageTitle.after(alertDiv);
+			}
+		}
+	}
+}
+
+// ============================================
+// 5. 기존 데이터를 changes에 초기화
+// ============================================
+function initializeChanges() {
+	const tbody = document.getElementById('projectTbody');
+	const rows = tbody.querySelectorAll('tr');
+
+	rows.forEach((tr) => {
+		const type = tr.dataset.type;
+		if (type === "member") {
+			changes.members.push({
+				action: "keep",
+				mappCode: parseInt(tr.dataset.mappCode),
+				userCode: parseInt(tr.dataset.userCode),
+				roleCode: parseInt(tr.dataset.roleCode),
+			});
+		} else if (type === "group") {
+			changes.groups.push({
+				action: "keep",
+				grProCode: parseInt(tr.dataset.grProCode),
+				grCode: parseInt(tr.dataset.grCode),
+				roleCode: parseInt(tr.dataset.roleCode),
+			});
+		}
+	});
+}
+
+// ============================================
+// 6. 프로젝트명 유효성 검사
 // ============================================
 function validateProjectName(event) {
 	const input = event.target;
@@ -127,7 +223,7 @@ function validateProjectName(event) {
 }
 
 // ============================================
-// 5. 유효성 검사 메시지 표시/숨김
+// 7. 유효성 검사 메시지 표시/숨김
 // ============================================
 function showValidationMessage(input, message) {
 	hideValidationMessage(input);
@@ -147,45 +243,39 @@ function hideValidationMessage(input) {
 }
 
 // ============================================
-// 6. 구성원 추가 모달 열기
+// 8. 구성원 추가 모달 열기
 // ============================================
 function openMemberModal() {
-	const users = window.serverData?.users || [];
-	const roles = window.serverData?.roles || [];
-	const groups = window.serverData?.groups || [];
+	// 이미 추가된 사용자 제외 (삭제되지 않은 것만)
+	const existingUserCodes = changes.members
+		.filter(m => m.action !== "delete")
+		.map(m => m.userCode);
 
-	const currentUserName = document.getElementById('filterWriter').value;
+	const availableUsers = users.filter(user =>
+		!existingUserCodes.includes(user.userCode)
+	);
 
-	// 이미 추가된 사용자 제외 (userCode 비교 수정)
-	const availableUsers = users.filter(user => {
-		// 현재 로그인한 사용자 제외
-		if (user.name === currentUserName) {
-			return false;
-		}
-		// 이미 추가된 사용자 제외 (String 비교로 수정)
-		return !selectedUsers.some(selected =>
-			String(selected.userCode) === String(user.userCode)
-		);
-	});
+	// 이미 추가된 그룹 제외 (삭제되지 않은 것만)
+	const existingGroupCodes = changes.groups
+		.filter(g => g.action !== "delete")
+		.map(g => g.grCode);
 
-	// 이미 추가된 그룹 제외 (groupCode 비교 수정)
 	const availableGroups = groups.filter(group =>
-		!selectedGroups.some(selected =>
-			String(selected.groupCode) === String(group.groupCode)
-		)
+		!existingGroupCodes.includes(group.groupCode)
 	);
 
 	displayUserList(availableUsers, roles);
 	displayGroupList(availableGroups, roles);
 
-	// 추가 버튼 이벤트 설정 (한 번만 호출)
+	// 추가 버튼 이벤트 설정
 	setupAddMembersButton();
 
 	const modal = new bootstrap.Modal(document.getElementById('creatorSelectModal'));
 	modal.show();
 }
+
 // ============================================
-// 7. 모달에 사용자 목록 표시
+// 9. 모달에 사용자 목록 표시
 // ============================================
 function displayUserList(users, roles) {
 	const memberListContainer = document.getElementById('memberSelectList');
@@ -225,12 +315,10 @@ function displayUserList(users, roles) {
 
 	setupSelectAllMembers();
 	displayRoleList(roles);
-	// 역할 목록과 추가 버튼은 displayGroupList에서도 호출되므로 여기서는 제거
-	// setupAddMembersButton은 탭 전환 시마다 재설정됩니다
 }
 
 // ============================================
-// 7-2. 모달에 그룹 목록 표시
+// 10. 모달에 그룹 목록 표시
 // ============================================
 function displayGroupList(groups, roles) {
 	const groupListContainer = document.getElementById('groupSelectList');
@@ -272,17 +360,22 @@ function displayGroupList(groups, roles) {
 
 	setupSelectAllGroup();
 	displayRoleList(roles);
-	// 역할 목록과 추가 버튼은 displayUserList에서도 호출되므로 중복 방지
 }
 
 // ============================================
-// 7-1. 전체 선택 기능 (구성원)
+// 11. 전체 선택 기능 (구성원)
 // ============================================
 function setupSelectAllMembers() {
 	const selectAllCheckbox = document.getElementById('selectAllMembers');
+	if (!selectAllCheckbox) return;
+
 	const memberCheckboxes = document.querySelectorAll('.member-checkbox');
 
-	selectAllCheckbox.addEventListener('change', function() {
+	// 기존 이벤트 제거 후 재등록
+	const newSelectAll = selectAllCheckbox.cloneNode(true);
+	selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+
+	newSelectAll.addEventListener('change', function() {
 		memberCheckboxes.forEach(checkbox => {
 			checkbox.checked = this.checked;
 		});
@@ -293,20 +386,26 @@ function setupSelectAllMembers() {
 			const allChecked = Array.from(memberCheckboxes).every(cb => cb.checked);
 			const someChecked = Array.from(memberCheckboxes).some(cb => cb.checked);
 
-			selectAllCheckbox.checked = allChecked;
-			selectAllCheckbox.indeterminate = someChecked && !allChecked;
+			newSelectAll.checked = allChecked;
+			newSelectAll.indeterminate = someChecked && !allChecked;
 		});
 	});
 }
 
 // ============================================
-// 7-1-2. 전체 선택 기능 (그룹)
+// 12. 전체 선택 기능 (그룹)
 // ============================================
 function setupSelectAllGroup() {
 	const selectAllCheckbox = document.getElementById('selectAllgroup');
+	if (!selectAllCheckbox) return;
+
 	const groupCheckboxes = document.querySelectorAll('.group-checkbox');
 
-	selectAllCheckbox.addEventListener('change', function() {
+	// 기존 이벤트 제거 후 재등록
+	const newSelectAll = selectAllCheckbox.cloneNode(true);
+	selectAllCheckbox.parentNode.replaceChild(newSelectAll, selectAllCheckbox);
+
+	newSelectAll.addEventListener('change', function() {
 		groupCheckboxes.forEach(checkbox => {
 			checkbox.checked = this.checked;
 		});
@@ -317,14 +416,14 @@ function setupSelectAllGroup() {
 			const allChecked = Array.from(groupCheckboxes).every(cb => cb.checked);
 			const someChecked = Array.from(groupCheckboxes).some(cb => cb.checked);
 
-			selectAllCheckbox.checked = allChecked;
-			selectAllCheckbox.indeterminate = someChecked && !allChecked;
+			newSelectAll.checked = allChecked;
+			newSelectAll.indeterminate = someChecked && !allChecked;
 		});
 	});
 }
 
 // ============================================
-// 7-2. 역할 목록 표시
+// 13. 역할 목록 표시
 // ============================================
 function displayRoleList(roles) {
 	const roleListContainer = document.getElementById('roleSelectList');
@@ -348,7 +447,7 @@ function displayRoleList(roles) {
 }
 
 // ============================================
-// 7-3. 추가 버튼 이벤트 설정
+// 14. 추가 버튼 이벤트 설정
 // ============================================
 function setupAddMembersButton() {
 	const addButton = document.getElementById('btnAddSelectedMembers');
@@ -357,9 +456,7 @@ function setupAddMembersButton() {
 	const newButton = addButton.cloneNode(true);
 	addButton.parentNode.replaceChild(newButton, addButton);
 
-	// 탭에 따라 활성
 	newButton.addEventListener('click', () => {
-		const roles = window.serverData?.roles || [];
 		const activeTab = document.querySelector('.tabnav .nav-link.active');
 		const isGroupTab = activeTab && activeTab.getAttribute('href') === '#group';
 
@@ -372,7 +469,7 @@ function setupAddMembersButton() {
 }
 
 // ============================================
-// 8. 선택한 구성원 추가
+// 15. 선택한 구성원 추가
 // ============================================
 function addSelectedMembers(roles) {
 	const checkedMembers = document.querySelectorAll('.member-checkbox:checked');
@@ -388,41 +485,38 @@ function addSelectedMembers(roles) {
 		return;
 	}
 
-	const newUsers = [];
-
 	checkedMembers.forEach(memberCheckbox => {
 		checkedRoles.forEach(roleCheckbox => {
-			const userCode = memberCheckbox.value;
+			const userCode = parseInt(memberCheckbox.value);
 			const userName = memberCheckbox.dataset.userName;
 			const userEmail = memberCheckbox.dataset.userEmail;
-			const roleCode = roleCheckbox.value;
+			const roleCode = parseInt(roleCheckbox.value);
 
 			const roleObj = roles.find(r => r.roleCode == roleCode);
 			const roleName = roleObj ? roleObj.roleName : '';
 
-			newUsers.push({
-				type: 'user',
+			// changes에 추가
+			changes.members.push({
+				action: "add",
+				mappCode: null,
 				userCode: userCode,
-				name: userEmail ? `${userName} (${userEmail})` : userName,
 				roleCode: roleCode,
-				roleName: roleName
 			});
+
+			// 테이블에 추가
+			const displayName = userEmail ? `${userName} (${userEmail})` : userName;
+			addMemberRow(null, userCode, displayName, roleCode, roleName);
 		});
 	});
 
-	if (newUsers.length > 0) {
-		selectedUsers.push(...newUsers);
-		updateMemberTable();
+	const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
+	modal.hide();
 
-		const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
-		modal.hide();
-
-		alert(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
-	}
+	alert(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
 }
 
 // ============================================
-// 8-2. 선택한 그룹 추가 
+// 16. 선택한 그룹 추가
 // ============================================
 function addSelectedGroups(roles) {
 	const checkedGroups = document.querySelectorAll('.group-checkbox:checked');
@@ -438,113 +532,130 @@ function addSelectedGroups(roles) {
 		return;
 	}
 
-	const newGroups = [];
-
 	checkedGroups.forEach(groupCheckbox => {
 		checkedRoles.forEach(roleCheckbox => {
-			const groupCode = groupCheckbox.value;
+			const grCode = parseInt(groupCheckbox.value);
 			const groupName = groupCheckbox.dataset.groupName;
-			const roleCode = roleCheckbox.value;
+			const roleCode = parseInt(roleCheckbox.value);
 
 			const roleObj = roles.find(r => r.roleCode == roleCode);
 			const roleName = roleObj ? roleObj.roleName : '';
 
-			newGroups.push({
-				type: 'group',
-				groupCode: groupCode,
-				name: groupName,
+			// changes에 추가
+			changes.groups.push({
+				action: "add",
+				grProCode: null,
+				grCode: grCode,
 				roleCode: roleCode,
-				roleName: roleName
 			});
+
+			// 테이블에 추가
+			addGroupRow(null, grCode, groupName, roleCode, roleName);
 		});
 	});
 
-	if (newGroups.length > 0) {
-		selectedGroups.push(...newGroups);
-		updateMemberTable();
+	const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
+	modal.hide();
 
-		const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
-		modal.hide();
-
-		alert(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
-	}
+	alert(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
 }
 
 // ============================================
-// 9. 구성원 테이블 업데이트 
+// 17. 테이블에 구성원 행 추가
 // ============================================
-function updateMemberTable() {
+function addMemberRow(mappCode, userCode, userName, roleCode, roleName) {
 	const tbody = document.getElementById('projectTbody');
-	tbody.innerHTML = '';
+	const row = document.createElement('tr');
 
-	// 구성원과 그룹 모두 표시
-	const allItems = [...selectedUsers, ...selectedGroups];
+	row.dataset.type = "member";
+	row.dataset.mappCode = mappCode || "";
+	row.dataset.userCode = userCode;
+	row.dataset.roleCode = roleCode;
 
-	if (allItems.length === 0) {
-		tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">추가된 구성원이 없습니다.</td></tr>';
-		return;
-	}
+	row.innerHTML = `
+		<td>👤 ${userName}</td>
+		<td>${roleName}</td>
+		<td>
+			<button type="button" class="btn btn-success btn-sm btn-edit-role">
+				<i class="fa-regular fa-face-meh"></i> 수정
+			</button>
+		</td>
+		<td>
+			<button type="button" class="btn btn-danger btn-sm btn-delete-member">
+				<i class="fa-solid fa-face-dizzy"></i> 삭제
+			</button>
+		</td>
+	`;
 
-	allItems.forEach((item, globalIndex) => {
-		const row = document.createElement('tr');
-		row.className = 'projectRow';
-
-		// 타입 확인 및 실제 인덱스 계산
-		const isGroup = item.type === 'group';
-		const actualIndex = isGroup
-			? selectedGroups.indexOf(item)
-			: selectedUsers.indexOf(item);
-		const type = isGroup ? 'group' : 'user';
-		const icon = isGroup ? '👥' : '👤';
-
-		row.innerHTML = `
-            <td>${icon} ${item.name}</td>
-            <td>${item.roleName}</td>
-            <td>
-                <button class="btn btn-success btn-sm btn-edit-member" data-index="${actualIndex}" data-type="${type}"><i class="fa-regular fa-face-meh"></i> 수정</button>
-            </td>
-            <td>
-                <button class="btn btn-danger btn-sm btn-remove-member" data-index="${actualIndex}" data-type="${type}"><i class="fa-solid fa-face-dizzy"></i> 삭제</button>
-            </td>
-        `;
-		tbody.appendChild(row);
-	});
-
-	// 이벤트 리스너 등록
+	tbody.appendChild(row);
 	attachMemberTableEvents();
 }
 
 // ============================================
-// 9-1. 테이블 버튼 이벤트 리스너 등록
+// 18. 테이블에 그룹 행 추가
+// ============================================
+function addGroupRow(grProCode, grCode, grName, roleCode, roleName) {
+	const tbody = document.getElementById('projectTbody');
+	const row = document.createElement('tr');
+
+	row.dataset.type = "group";
+	row.dataset.grProCode = grProCode || "";
+	row.dataset.grCode = grCode;
+	row.dataset.roleCode = roleCode;
+
+	row.innerHTML = `
+		<td>👥 ${grName}</td>
+		<td>${roleName}</td>
+		<td>
+			<button type="button" class="btn btn-success btn-sm btn-edit-role">
+				<i class="fa-regular fa-face-meh"></i> 수정
+			</button>
+		</td>
+		<td>
+			<button type="button" class="btn btn-danger btn-sm btn-delete-member">
+				<i class="fa-solid fa-face-dizzy"></i> 삭제
+			</button>
+		</td>
+	`;
+
+	tbody.appendChild(row);
+	attachMemberTableEvents();
+}
+
+// ============================================
+// 19. 테이블 버튼 이벤트 리스너 등록 ⭐ 수정됨
 // ============================================
 function attachMemberTableEvents() {
-	// 수정 버튼
-	document.querySelectorAll('.btn-edit-member').forEach(btn => {
-		btn.addEventListener('click', function() {
-			const index = parseInt(this.dataset.index);
-			const type = this.dataset.type;
-			openEditModal(index, type);
+	// 수정 버튼 - HTML의 btn-edit-role 클래스 사용
+	document.querySelectorAll('.btn-edit-role').forEach(btn => {
+		btn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			const row = this.closest('tr');
+			const type = row.dataset.type;
+			openEditModal(row, type);
 		});
 	});
 
 	// 삭제 버튼
-	document.querySelectorAll('.btn-remove-member').forEach(btn => {
-		btn.addEventListener('click', function() {
-			const index = parseInt(this.dataset.index);
-			const type = this.dataset.type;
-			removeMember(index, type);
+	document.querySelectorAll('.btn-delete-member').forEach(btn => {
+		btn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			const row = this.closest('tr');
+			const type = row.dataset.type;
+			removeMember(row, type);
 		});
 	});
 }
+
 // ============================================
-// 10. 구성원 수정 모달 열기
+// 20. 구성원 수정 모달 열기
 // ============================================
-function openEditModal(index, type) {
-	const item = type === 'group' ? selectedGroups[index] : selectedUsers[index];
-	const roles = window.serverData?.roles || [];
+function openEditModal(row, type) {
+	const currentRoleCode = parseInt(row.dataset.roleCode);
+	const currentName = row.querySelector('td:first-child').textContent;
 
 	const roleOptions = roles.map(role => {
-		const isSelected = (item.roleCode == role.roleCode) ? 'selected' : '';
+		const isSelected = (currentRoleCode == role.roleCode) ? 'selected' : '';
 		return `<option value="${role.roleCode}" ${isSelected}>${role.roleName}</option>`;
 	}).join('');
 
@@ -559,7 +670,7 @@ function openEditModal(index, type) {
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label fw-bold">${type === 'group' ? '그룹명' : '구성원'}</label>
-                            <input type="text" class="form-control" value="${item.name}" readonly>
+                            <input type="text" class="form-control" value="${currentName}" readonly>
                         </div>
                         <div class="mb-3">
                             <label class="form-label fw-bold">권한 <span class="text-danger">*</span></label>
@@ -570,7 +681,9 @@ function openEditModal(index, type) {
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">취소</button>
-                        <button type="button" class="btn btn-success" onclick="saveRoleChange(${index}, '${type}')">저장</button>
+                        <button type="button" class="btn btn-success" id="btnSaveRoleChange">
+							<i class="fas fa-check me-1"></i>저장
+						</button>
                     </div>
                 </div>
             </div>
@@ -582,87 +695,115 @@ function openEditModal(index, type) {
 
 	document.body.insertAdjacentHTML('beforeend', modalHtml);
 	const modal = new bootstrap.Modal(document.getElementById('editMemberModal'));
+
+	// 저장 버튼 이벤트
+	document.getElementById('btnSaveRoleChange').addEventListener('click', function() {
+		saveRoleChange(row, type, modal);
+	});
+
 	modal.show();
 }
 
 // ============================================
-// 11. 구성원 권한 변경 저장
+// 21. 구성원 권한 변경 저장
 // ============================================
-function saveRoleChange(index, type) {
+function saveRoleChange(row, type, modal) {
 	const roleSelect = document.getElementById('editRoleSelect');
-	const newRoleCode = roleSelect.value;
+	const newRoleCode = parseInt(roleSelect.value);
 	const newRoleName = roleSelect.options[roleSelect.selectedIndex].text;
 
-	// 타입에 따라 다른 배열 업데이트
-	if (type === 'group') {
-		selectedGroups[index].roleCode = newRoleCode;
-		selectedGroups[index].roleName = newRoleName;
-	} else {
-		selectedUsers[index].roleCode = newRoleCode;
-		selectedUsers[index].roleName = newRoleName;
+	// 화면 업데이트
+	row.dataset.roleCode = newRoleCode;
+	row.querySelector('td:nth-child(2)').textContent = newRoleName;
+
+	// changes 업데이트
+	if (type === "member") {
+		const userCode = parseInt(row.dataset.userCode);
+		const mappCode = row.dataset.mappCode ? parseInt(row.dataset.mappCode) : null;
+
+		const item = changes.members.find(
+			m => m.userCode === userCode && (mappCode ? m.mappCode === mappCode : m.action === "add")
+		);
+
+		if (item) {
+			item.roleCode = newRoleCode;
+		}
+	} else if (type === "group") {
+		const grCode = parseInt(row.dataset.grCode);
+		const grProCode = row.dataset.grProCode ? parseInt(row.dataset.grProCode) : null;
+
+		const item = changes.groups.find(
+			g => g.grCode === grCode && (grProCode ? g.grProCode === grProCode : g.action === "add")
+		);
+
+		if (item) {
+			item.roleCode = newRoleCode;
+		}
 	}
 
-	updateMemberTable();
-
-	const modalElement = document.getElementById('editMemberModal');
-	const modal = bootstrap.Modal.getInstance(modalElement);
 	modal.hide();
 
+	const modalElement = document.getElementById('editMemberModal');
 	modalElement.addEventListener('hidden.bs.modal', function() {
 		modalElement.remove();
 	}, { once: true });
 }
 
 // ============================================
-// 12. 구성원 삭제
+// 22. 구성원 삭제
 // ============================================
-function removeMember(index, type) {
-	if (confirm(`해당 ${type === 'group' ? '그룹을' : '구성원을'} 삭제하시겠습니까?`)) {
-		// 타입에 따라 다른 배열에서 삭제
-		if (type === 'group') {
-			selectedGroups.splice(index, 1);
-		} else {
-			selectedUsers.splice(index, 1);
-		}
-		updateMemberTable();
+function removeMember(row, type) {
+	const name = row.querySelector('td:first-child').textContent;
+
+	if (!confirm(`${name}을(를) 삭제하시겠습니까?`)) {
+		return;
 	}
+
+	if (type === "member") {
+		const mappCode = row.dataset.mappCode ? parseInt(row.dataset.mappCode) : null;
+		const userCode = parseInt(row.dataset.userCode);
+
+		const item = changes.members.find(
+			m => m.userCode === userCode && (mappCode ? m.mappCode === mappCode : m.action === "add")
+		);
+
+		if (item) {
+			if (item.action === "add") {
+				changes.members = changes.members.filter(m => m !== item);
+			} else {
+				item.action = "delete";
+			}
+		}
+	} else if (type === "group") {
+		const grProCode = row.dataset.grProCode ? parseInt(row.dataset.grProCode) : null;
+		const grCode = parseInt(row.dataset.grCode);
+
+		const item = changes.groups.find(
+			g => g.grCode === grCode && (grProCode ? g.grProCode === grProCode : g.action === "add")
+		);
+
+		if (item) {
+			if (item.action === "add") {
+				changes.groups = changes.groups.filter(g => g !== item);
+			} else {
+				item.action = "delete";
+			}
+		}
+	}
+
+	row.remove();
 }
 
 // ============================================
-// 13. 폼 초기화
-// ============================================
-function resetForm() {
-	if (confirm('입력한 내용을 모두 초기화하시겠습니까?')) {
-		document.querySelector('[name="projectName"]').value = '';
-
-		if (editorInstance) {
-			editorInstance.setData('');
-		}
-
-		selectedUsers = [];
-		selectedGroups = [];
-		updateMemberTable();
-
-		document.getElementById('inlineRadio1').checked = true;
-
-		document.querySelectorAll('.is-invalid').forEach(el => {
-			el.classList.remove('is-invalid');
-		});
-		document.querySelectorAll('.invalid-feedback').forEach(el => {
-			el.remove();
-		});
-	}
-}
-
-// ============================================
-// 14. 폼 제출 처리
+// 23. 폼 제출 처리
 // ============================================
 function handleFormSubmit(event) {
-	event.preventDefault();
+	if (event) event.preventDefault();
 
-	const projectNameInput = document.querySelector('[name="projectName"]');
+	const projectCodeInput = document.getElementById('projectCode');
+	const projectNameInput = document.getElementById('projectName');
 	const projectName = projectNameInput.value.trim();
-	const userCode = document.querySelector('[name="userCode"]').value;
+
 	if (projectName === '') {
 		alert('프로젝트명을 입력해주세요.');
 		projectNameInput.focus();
@@ -705,65 +846,55 @@ function handleFormSubmit(event) {
 		return false;
 	}
 
-
-	if (selectedUsers.length === 0 && selectedGroups.length === 0) {
-		alert('최소 1명 이상의 구성원 또는 1개 이상의 그룹을 추가해주세요.');
-		return false;
-	}
-
-	// 등록자 본인을 관리자로 추가 (중복 체크)
-	const creatorUserCode = parseInt(userCode);
-	const hasCreatorAsAdmin = selectedUsers.some(user =>
-		parseInt(user.userCode) === creatorUserCode && parseInt(user.roleCode) === 1
-	);
-
-	// 등록자가 관리자로 추가되지 않았다면 자동 추가
-	if (!hasCreatorAsAdmin) {
-		const currentUserName = document.getElementById('filterWriter').value;
-
-		selectedUsers.unshift({
-			type: 'user',
-			userCode: String(creatorUserCode),
-			name: currentUserName + ' (등록자)',
-			roleCode: '1',  // 관리자 role_code
-			roleName: '관리자'
-		});
-	}
-
-
 	const formData = {
+		projectCode: parseInt(projectCodeInput.value),
 		projectName: projectName,
-		userCode: parseInt(userCode),  // Integer로 변환
 		description: description,
-		status: document.querySelector('input[name="inlineRadioOptions"]:checked').value,
-		projectUsers: selectedUsers.map(user => ({
-			userCode: user.userCode,
-			roleCode: user.roleCode
-		})),
-		projectGroups: selectedGroups.map(group => ({
-			groupCode: group.groupCode,
-			roleCode: group.roleCode
-		}))
+		status: document.querySelector('input[name="statusRadio"]:checked')?.value || "OD1",
+		members: changes.members,
+		groups: changes.groups,
 	};
 
-	submitProject(formData);  // 주석 제거
-
-	console.log(formData);
+	submitProject(formData);
 }
 
 // ============================================
-// 15. 프로젝트 등록 서버 요청
+// 24. 프로젝트 수정 서버 요청
 // ============================================
 function submitProject(formData) {
-	fetch('/projects', {
+	fetch(`/project/${formData.projectCode}/update`, {
 		method: 'POST',
 		headers: {
 			'Content-Type': 'application/json'
 		},
 		body: JSON.stringify(formData)
 	})
-		.then(response => response.json())
+		.then(async response => {
+			// 1. 상태 코드 체크
+			if (response.status === 403) {
+				alert('수정 권한이 없습니다.');
+				return null;
+			}
+
+			if (response.status === 401 || response.redirected) {
+				alert('로그인이 필요합니다.');
+				window.location.href = '/login';
+				return null;
+			}
+
+			// 2. Content-Type 체크
+			const contentType = response.headers.get("content-type");
+			if (!contentType || !contentType.includes("application/json")) {
+				alert('서버 오류가 발생했습니다.');
+				return null;
+			}
+
+			// 3. JSON 파싱
+			return response.json();
+		})
 		.then(data => {
+			if (!data) return; // null이면 종료
+
 			if (data.success) {
 				alert(data.message);
 				window.location.href = '/projects';
@@ -772,13 +903,13 @@ function submitProject(formData) {
 			}
 		})
 		.catch(error => {
-			console.error('프로젝트 등록 오류:', error);
-			alert('프로젝트 등록 중 오류가 발생했습니다.');
+			console.error('프로젝트 수정 오류:', error);
+			alert('프로젝트 수정 중 오류가 발생했습니다.');
 		});
 }
 
 // ============================================
-// 16. 모달 검색 기능
+// 25. 모달 검색 기능
 // ============================================
 function handleModalSearch(event) {
 	const searchTerm = event.target.value.toLowerCase();
@@ -793,21 +924,11 @@ function handleModalSearch(event) {
 		}
 	});
 
-	const selectAllCheckbox = document.getElementById('selectAllMembers');
-	const visibleCheckboxes = Array.from(document.querySelectorAll('.member-checkbox'))
-		.filter(cb => cb.closest('tr').style.display !== 'none');
-
-	if (visibleCheckboxes.length > 0) {
-		const allChecked = visibleCheckboxes.every(cb => cb.checked);
-		const someChecked = visibleCheckboxes.some(cb => cb.checked);
-
-		selectAllCheckbox.checked = allChecked;
-		selectAllCheckbox.indeterminate = someChecked && !allChecked;
-	}
+	updateSelectAllState('selectAllMembers', '.member-checkbox');
 }
 
 // ============================================
-// 16-2. 모달 검색 기능 (그룹)
+// 26. 모달 검색 기능 (그룹)
 // ============================================
 function handleModalSearchGroup(event) {
 	const searchTerm = event.target.value.toLowerCase();
@@ -822,8 +943,17 @@ function handleModalSearchGroup(event) {
 		}
 	});
 
-	const selectAllCheckbox = document.getElementById('selectAllgroup');
-	const visibleCheckboxes = Array.from(document.querySelectorAll('.group-checkbox'))
+	updateSelectAllState('selectAllgroup', '.group-checkbox');
+}
+
+// ============================================
+// 27. 전체 선택 상태 업데이트
+// ============================================
+function updateSelectAllState(checkboxId, itemSelector) {
+	const selectAllCheckbox = document.getElementById(checkboxId);
+	if (!selectAllCheckbox) return;
+
+	const visibleCheckboxes = Array.from(document.querySelectorAll(itemSelector))
 		.filter(cb => cb.closest('tr').style.display !== 'none');
 
 	if (visibleCheckboxes.length > 0) {
@@ -836,7 +966,7 @@ function handleModalSearchGroup(event) {
 }
 
 // ============================================
-// 17. 탭 기능 (구성원/그룹)
+// 28. 탭 기능 (구성원/그룹)
 // ============================================
 function initializeTabNavigation() {
 	const tabLinks = document.querySelectorAll('.tabnav a');

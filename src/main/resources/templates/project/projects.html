@@ -117,40 +117,42 @@
 								<td>[[ ${pro.email} ]]</td>
 								<td>[[ ${pro.codeName} ]]</td>
 								<td>
-									<!-- 1순위: 종료된 프로젝트일 경우 -->
 									<div th:if="${pro.codeName == '종료'}"
 										class="text-center text-muted">
 										<i class="fas fa-info-circle me-1"></i> 종료된 프로젝트 입니다.
-									</div> <!-- 2순위: 진척률이 있는 경우 (종료가 아닐 때만) -->
-									<div
-										th:if="${pro.codeName != '종료' and progMap.containsKey(pro.projectCode)}"
-										class="text-start">
-										<!-- 예상 진척률 -->
-										<div class="progress mb-1" role="progressbar"
-											th:attr="aria-valuenow=${progMap.get(pro.projectCode).planProg}"
-											aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
-											<div class="progress-bar progress-bar-striped bg-secondary"
-												th:style="'width: ' + ${progMap.get(pro.projectCode).planProg} + '%'"
-												th:text="${progMap.get(pro.projectCode).planProg} + '%'">
-											</div>
-										</div>
+									</div>
 
-										<!-- 실제 진척률 -->
-										<div class="progress" role="progressbar"
-											th:attr="aria-valuenow=${progMap.get(pro.projectCode).actualProg}"
-											aria-valuemin="0" aria-valuemax="100" style="height: 20px;">
-											<!-- 진척률에 따른 동적 색상 적용 -->
-											<div
-												class="progress-bar progress-bar-striped progress-bar-animated"
-												th:classappend="${progMap.get(pro.projectCode).actualProg >= progMap.get(pro.projectCode).planProg} ? 'bg-primary' :
-            (${progMap.get(pro.projectCode).planProg - progMap.get(pro.projectCode).actualProg <= 10} ? 'bg-warning' : 'bg-danger')"
-												th:style="'width: ' + ${progMap.get(pro.projectCode).actualProg} + '%'"
-												th:text="${progMap.get(pro.projectCode).actualProg} + '%'">
-											</div>
-										</div>
-									</div> <!-- 3순위: 진척률이 없는 경우 (종료가 아니고 진척률도 없을 때) -->
 									<div
-										th:if="${pro.codeName != '종료' and !progMap.containsKey(pro.projectCode)}"
+										th:if="${pro.codeName != '종료' and progMap.containsKey(pro.projectCode) and progMap.get(pro.projectCode).planProg != null}"
+										class="text-start">
+
+										<th:block
+											th:with="
+            planProg=${progMap.get(pro.projectCode).planProg},
+            actualProg=${progMap.get(pro.projectCode).actualProg ?: 0}">
+
+											<div class="progress mb-1" role="progressbar"
+												th:attr="aria-valuenow=${planProg}" aria-valuemin="0"
+												aria-valuemax="100" style="height: 20px;">
+												<div class="progress-bar progress-bar-striped bg-secondary"
+													th:style="|width: ${planProg}%|" th:text="|${planProg}%|">
+												</div>
+											</div>
+
+											<div class="progress" role="progressbar"
+												th:attr="aria-valuenow=${actualProg}" aria-valuemin="0"
+												aria-valuemax="100" style="height: 20px;">
+												<div
+													class="progress-bar progress-bar-striped progress-bar-animated"
+													th:classappend="${actualProg >= planProg} ? 'bg-primary' : (${planProg - actualProg <= 10} ? 'bg-warning' : 'bg-danger')"
+													th:style="|width: ${actualProg}%|"
+													th:text="|${actualProg}%|"></div>
+											</div>
+										</th:block>
+									</div>
+
+									<div
+										th:if="${pro.codeName != '종료' and (!progMap.containsKey(pro.projectCode) or progMap.get(pro.projectCode).planProg == null)}"
 										class="text-center text-muted">
 										<i class="fas fa-info-circle me-1"></i> 프로젝트 개발이 진행 전입니다.
 									</div>

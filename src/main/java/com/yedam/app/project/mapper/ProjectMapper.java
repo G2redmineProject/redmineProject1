@@ -8,6 +8,9 @@ import com.yedam.app.project.service.ProjectAddGroupVO;
 import com.yedam.app.project.service.ProjectAddMapVO;
 import com.yedam.app.project.service.ProjectAddStatusVO;
 import com.yedam.app.project.service.ProjectAddVO;
+import com.yedam.app.project.service.ProjectDetailVO;
+import com.yedam.app.project.service.ProjectGroupDetailVO;
+import com.yedam.app.project.service.ProjectMemberDetailVO;
 import com.yedam.app.project.service.ProjectPrVO;
 import com.yedam.app.project.service.ProjectVO;
 import com.yedam.app.project.service.PruserVO;
@@ -44,4 +47,35 @@ public interface ProjectMapper {
 
 	// 프로젝트 상태 변경
 	public int updateProjectStatus(Map<String, Object> params);
+	
+	
+	// 프로젝트 상세 조회
+	public ProjectDetailVO selectProjectDetail(Integer projectCode);
+
+	// 프로젝트 구성원 목록 조회
+	public List<ProjectMemberDetailVO> selectProjectMembers(Integer projectCode);
+
+	// 프로젝트 그룹 목록 조회
+	public List<ProjectGroupDetailVO> selectProjectGroups(Integer projectCode);
+
+	// 프로젝트 정보 수정
+	public int updateProject(ProjectDetailVO projectDetailVO);
+
+	// 구성원 삭제 (999- prefix 추가)
+	public int softDeleteProjectMember(Map<String, Object> params);
+
+	// 구성원 복원 (999- prefix 제거)
+	public int restoreProjectMember(Map<String, Object> params);
+
+	// 그룹 삭제 (999- prefix 추가)
+	public int softDeleteProjectGroup(Map<String, Object> params);
+
+	// 그룹 복원 (999- prefix 제거)
+	public int restoreProjectGroup(Map<String, Object> params);
+
+	// 삭제된 구성원 확인
+	public ProjectMemberDetailVO findDeletedMember(Map<String, Object> params);
+
+	// 삭제된 그룹 확인
+	public ProjectGroupDetailVO findDeletedGroup(Map<String, Object> params);
 }
