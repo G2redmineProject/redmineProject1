@@ -36,7 +36,7 @@
 				name: "start_date", label: "시작일", align: "center", width: 110,
 				template: (t) => {
 					// ISSUE 상태가 "신규"이거나 TYPE 노드인 경우 시작일 빈칸
-					if ((t.rowType === "ISSUE" && t.status === "신규") || t.rowType === "TYPE") {
+					if (t.rowType === "ISSUE" && t.status === "신규") {
 						return "";
 					}
 					return DateUtils.getYYYYMMDD(t.start_date);
@@ -196,8 +196,10 @@
 		const typeMap = {};
 		data.filter(d => d.rowType === "TYPE").forEach(t => typeMap[t.typeCode] = t);
 
-		// 4. 하위 ISSUE 있는 TYPE 찾기
+		// 4. 여기가 핵심! 하위 ISSUE가 있는 TYPE뿐만 아니라 모든 TYPE 포함
 		const validTypes = new Set();
+
+		// 4-1. 일감이 있는 TYPE의 모든 상위 TYPE 추가
 		filteredIssues.forEach(issue => {
 			let type = typeMap[issue.typeCode];
 			while (type) {
@@ -207,7 +209,15 @@
 			}
 		});
 
-		// 유형 필터가 적용된 경우, 선택한 유형과 하위 유형들도 표시
+		// 4-2. 모든 TYPE을 추가 (일감 없어도 표시)
+		data.filter(d => d.rowType === "TYPE").forEach(type => {
+			// 필터가 없으면 모든 TYPE 포함
+			if (!pCode || type.projectCode === Number(pCode)) {
+				validTypes.add(type.typeCode);
+			}
+		});
+
+		// 유형 필터가 적용된 경우
 		if (tCode) {
 			typeCodesSet.forEach(code => {
 				validTypes.add(Number(code));
@@ -243,198 +253,145 @@
 	   ======================================================================== */
 	function toValidDate(value) {
 		if (!value) return null;
+
+		// YYYY-MM-DD 직접 파싱
+		const parts = value.split("-");
+		if (parts.length === 3) {
+			return new Date(parts[0], parts[1] - 1, parts[2]);
+		}
+
 		const d = new Date(value);
 		return isNaN(d.getTime()) ? null : d;
 	}
 
-
 	const transformToGanttFormat = (data) => {
 		const tasks = [];
 		const links = [];
-		const projectSet = new Set();
 		let linkId = 1;
 
-		// 프로젝트별로 그룹화
-		const projectMap = {};
+		console.log("=== 원본 데이터 ===", data);
+
 		data.forEach(item => {
-			if (!projectMap[item.projectCode]) projectMap[item.projectCode] = [];
-			projectMap[item.projectCode].push(item);
-		});
+			const id = item.nodeId;
+			const parent = item.parentId ? item.parentId : 0;
 
-		for (const [projectCode, issues] of Object.entries(projectMap)) {
-			const projectId = `project_${projectCode}`;
+			console.log(`Processing: ${item.rowType} - ${item.nodeId} - parent: ${parent}`);
 
-			// 1. 프로젝트 노드
-			if (!projectSet.has(projectId)) {
-				projectSet.add(projectId);
+			// =========================
+			// PROJECT
+			// =========================
+			if (item.rowType === "PROJECT") {
+				const start = toValidDate(item.createdOn);
+				const end =
+					toValidDate(item.projectEndDate) ||
+					toValidDate(item.completedOn) ||
+					start;
 
-				const projectRow = issues.find(r => r.rowType === "PROJECT");
-
-				const projectStart = toValidDate(projectRow?.createdOn);
-				const projectEnd =
-					toValidDate(projectRow?.projectEndDate)
-					|| toValidDate(projectRow?.completedOn)
-					|| projectStart;
-
-				// start_date 없으면 gantt 전체가 죽으니 방어
-				if (!projectStart || !projectEnd) {
-					continue;
+				if (!start || !end) {
+					console.warn("PROJECT 날짜 없음:", item);
+					return;
 				}
 
 				tasks.push({
-					id: projectId,
-					text: issues[0].projectName,
-					start_date: projectStart,
-					end_date: projectEnd,
+					id: id,
+					text: item.projectName,
+					start_date: start,
+					end_date: end,
 					type: gantt.config.types.project,
 					parent: 0,
 					open: true,
-					progress: (projectRow?.actualProg || 0) / 100,  // 프로젝트는 actualProg 사용
-					actualProg: projectRow?.actualProg || 0,        // 그리드 표시용
-					planProg: projectRow?.planProg || 0,
+					progress: (item.actualProg || 0) / 100,
+					actualProg: item.actualProg || 0,
+					planProg: item.planProg || 0,
 					rowType: "PROJECT",
-					projectCode: projectCode
+					projectCode: item.projectCode
 				});
+				console.log("✅ PROJECT 추가:", id);
 			}
 
-			const typeMap = {}; // typeCode → ganttId
-			const issueMap = {}; // 이슈번호 → gantt id
+			// =========================
+			// TYPE
+			// =========================
+			else if (item.rowType === "TYPE") {
+				let start = toValidDate(item.startAt);
+				let end = toValidDate(item.endAt);
 
-			// 2. TYPE 노드 먼저 전부 수집
-			issues.forEach(item => {
-				if (item.rowType !== "TYPE") return;
+				console.log(`TYPE ${item.typeName}: startAt=${item.startAt}, endAt=${item.endAt}`);
+				console.log(`Converted: start=${start}, end=${end}`);
 
-				const typeId = `TYPE_${item.typeCode}`;
-
-				let start = toValidDate(item.typeStartDate);
-				let end = toValidDate(item.typeEndDate);
-
-				// 방어 코드
 				if (!start) start = new Date();
-				if (!end) end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+				if (!end) end = new Date(start.getTime() + 86400000);
 
 				tasks.push({
-					id: typeId,
+					id: id,
 					text: item.typeName,
 					start_date: start,
 					end_date: end,
 					type: gantt.config.types.task,
-					parent: projectId,
+					parent: parent,
 					open: true,
 					isTypeNode: true,
-					progress: (item.typeActualProg || 0) / 100,  // 타입은 typeActualProg 사용
+					progress: (item.typeActualProg || 0) / 100,
 					typeActualProg: item.typeActualProg || 0,
-					typePlanProg: item.typePlanProg || 0
+					typePlanProg: item.typePlanProg || 0,
+					rowType: "TYPE",
+					typeCode: item.typeCode,
+					parTypeCode: item.parTypeCode
 				});
+				console.log("✅ TYPE 추가:", id, item.typeName);
+			}
 
-				typeMap[item.typeCode] = { id: typeId, parTypeCode: item.parTypeCode };
-			});
-
-			// 3. TYPE parent 연결
-			Object.values(typeMap).forEach(type => {
-				let parentId = projectId;
-
-				if (type.parTypeCode && typeMap[type.parTypeCode]) {
-					parentId = typeMap[type.parTypeCode].id;
-				}
-
-				const task = tasks.find(t => t.id === type.id);
-				if (task) task.parent = parentId;
-			});
-
-
-			// 4. 타입별 트리 생성
-			issues.forEach(item => {
-				if (item.rowType !== "ISSUE") return;
+			// =========================
+			// ISSUE
+			// =========================
+			else if (item.rowType === "ISSUE") {
+				console.log(`ISSUE ${item.title}:`, {
+					issueStartDate: item.issueStartDate,
+					issueEndDate: item.issueEndDate,
+					startedAt: item.startedAt,
+					dueAt: item.dueAt
+				});
 
 				let start = toValidDate(item.issueStartDate);
 				let end = toValidDate(item.issueEndDate);
 
-				// 신규 ISSUE이면 start/end fallback
-				if (!start) start = new Date();
-				if (!end) end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+				console.log(`Converted: start=${start}, end=${end}`);
 
-				// 종료일 < 시작일 방어
-				if (end < start) end = new Date(start.getTime() + 1 * 24 * 60 * 60 * 1000);
-
-				let parentId;
-
-				// 상위 일감
-				if (item.parIssueCode && issueMap[item.parIssueCode]) {
-					parentId = issueMap[item.parIssueCode];
-				} else if (item.typeCode && typeMap[item.typeCode]) { // 타입
-					parentId = typeMap[item.typeCode].id;
-				} else {
-					parentId = projectId;
+				// 날짜가 없으면 기본값 설정
+				if (!start && !end) {
+					console.warn("ISSUE 날짜 없음, 기본값 사용:", item.title);
+					start = new Date();
+					end = new Date(start.getTime() + 86400000);
+				} else if (!start && end) {
+					start = new Date(end.getTime() - 86400000);
+				} else if (start && !end) {
+					end = new Date(start.getTime() + 86400000);
 				}
 
-				// 상위 이슈가 있으면 parentId 덮어쓰기
-				const issueId = `ISSUE_${item.issueCode}`;
+				if (end < start) end = new Date(start.getTime() + 86400000);
 
-				// 실제 이슈 노드 추가
 				tasks.push({
-					id: issueId,
-					text: `${item.title}`,
-					title: item.title,  // 원본 title 저장
+					id: id,
+					text: item.title,
+					title: item.title,
 					start_date: start,
 					end_date: end,
-					duration: item.duration || 1,
 					progress: (item.progress || 0) / 100,
 					priority: item.priority,
 					status: item.issueStatus,
 					assigneeName: item.assigneeName,
-					parent: parentId,
+					parent: parent,
+					type: gantt.config.types.task,
 					rowType: "ISSUE",
-					issueCode: item.issueCode
+					issueCode: item.issueCode,
+					typeCode: item.typeCode
 				});
+				console.log("✅ ISSUE 추가:", id, item.title);
+			}
+		});
 
-				issueMap[item.issueCode] = issueId;
-
-				// 상위 이슈 링크
-				if (item.parIssueCode && issueMap[item.parIssueCode]) {
-					links.push({
-						id: linkId++,
-						source: issueMap[item.parIssueCode],
-						target: issueId,
-						type: "1" // FS
-					});
-				}
-				// 상위 차입 링크(ISSUE의 parent가 TYPE인 경우)
-				else if (item.typeCode && typeMap[item.typeCode]) {
-					links.push({
-						id: linkId++,
-						source: typeMap[item.typeCode].id,
-						target: issueId,
-						type: "1"
-					});
-				}
-				// 상위 PROJECT 링크 (TYPE도 없고 상위 ISSUE도 없는 경우)
-				else {
-					links.push({
-						id: linkId++,
-						source: projectId,
-						target: issueId,
-						type: "1"
-					});
-				}
-			});
-
-			// 상위 PROJECT → TYPE 링크 (TYPE 노드 추가 후)
-			Object.values(typeMap).forEach(type => {
-				let parentId = projectId;
-				if (type.parTypeCode && typeMap[type.parTypeCode]) {
-					parentId = typeMap[type.parTypeCode].id;
-				}
-
-				// TYPE 링크 추가
-				links.push({
-					id: linkId++,
-					source: parentId,
-					target: type.id,
-					type: "1"
-				});
-			});
-		}
+		console.log("=== 최종 tasks ===", tasks);
+		console.log("=== 최종 links ===", links);
 
 		return { data: tasks, links };
 	};
@@ -452,6 +409,12 @@
 
 			gantt.clearAll();
 			gantt.parse(ganttData);
+
+			setTimeout(() => {
+				gantt.eachTask(function(task) {
+					gantt.open(task.id);
+				});
+			}, 100);
 		} catch (e) {
 			console.error("Gantt 데이터 조회 실패:", e);
 		}
@@ -474,15 +437,18 @@
 
 			gantt.init("e7eGantt");
 
+			// 모든 태스크를 펼친 상태로 표시
+			gantt.config.open_tree_initially = true;
+
 			// 간트 기간 필터링
-			gantt.attachEvent("onBeforeTaskDisplay", function(id, task) {
+			/*gantt.attachEvent("onBeforeTaskDisplay", function(id, task) {
 				if (!window.ganttRange) return true;
 
 				return (
 					task.end_date >= window.ganttRange.start &&
 					task.start_date <= window.ganttRange.end
 				);
-			});
+			});*/
 
 			// PROJECT/ISSUE 클릭 시 상세페이지 이동
 			gantt.attachEvent("onTaskClick", function(id, e) {

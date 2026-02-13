@@ -19,6 +19,8 @@
 		    gv.type_level,
 		    gv.par_type_code,
 		    gv.par_type_name,
+		    gv.start_at,
+		    gv.end_at,
 		
 		    gv.issue_code,
 		    gv.par_issue_code,
@@ -67,10 +69,15 @@
 		      )
 		)
 		
-		ORDER BY
-		    gv.project_code,
-		    gv.row_type DESC,
-		    gv.type_level NULLS FIRST,
-		    gv.node_id
+		START WITH parent_id IS NULL
+	    CONNECT BY PRIOR node_id = parent_id
+	    ORDER SIBLINGS BY
+	        CASE row_type
+	            WHEN 'PROJECT' THEN 1
+	            WHEN 'TYPE' THEN 2
+	            WHEN 'ISSUE' THEN 3
+	        END,
+	        type_code,
+	        issue_code
 	</select>
 </mapper>
