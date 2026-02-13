@@ -25,18 +25,69 @@
 	min-width: 210px;
 }
 
-.type-tree ul {
-	list-style-type: none;
-	padding-left: 1rem;
+/* 유형 모달 전체 */
+#typeModalTree {
+	padding: 0;
+	border: none !important;
+	background-color: #fff; /* 담당자 모달과 비슷한 연한 회색 */
 }
 
-.type-tree li {
-	margin: 0.2rem 0;
+/* 프로젝트 그룹 wrapper */
+.type-project-group {
+	border: 1px solid #dee2e6;
+	border-radius: 6px;
+	overflow: hidden;
+	margin-bottom: 12px;
+	background-color: #f8f9fa; /* 카드 배경을 연하게 */
+	box-shadow: none; /* 그림자 제거 */
+}
+
+/* 프로젝트 헤더 */
+.type-project-header {
+	background-color: #e9ecef; /* 담당자 모달 헤더 톤 */
+	color: #495057;
+	padding: 10px 14px;
+	font-weight: 600;
+	font-size: 16px;
+	border-bottom: 1px solid #dee2e6;
+}
+
+/* 트리 구조 ul 기본 스타일 제거 */
+#typeModalTree ul {
+	list-style: none;
+	padding: 0;
+	margin: 0;
+}
+
+/* 유형 아이템 */
+.type-item {
 	cursor: pointer;
+	padding: 10px 14px;
+	display: block;
+	font-size: 15px;
+	color: #495057;
+	background-color: #fff;
+	border-bottom: 1px solid #dee2e6; /* 연하게 */
+	transition: background-color 0.15s;
+	text-decoration: none;
 }
 
-.type-tree li span.type-label::before {
-	content: "▸";
-	display: inline-block;
-	width: 1rem;
+/* 마지막 항목 하단선 제거 */
+.type-project-group>ul>li:last-child>.type-item:last-child,
+	.type-project-group>ul>li:last-child>ul>li:last-child>.type-item {
+	border-bottom: none;
+}
+
+/* hover 효과 */
+.type-item:hover {
+	background-color: #e2e6ea;
+}
+
+/* 계층별 들여쓰기 */
+#typeModalTree ul ul .type-item {
+	padding-left: 28px;
+}
+
+#typeModalTree ul ul ul .type-item {
+	padding-left: 50px;
 }
