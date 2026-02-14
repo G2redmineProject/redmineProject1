@@ -108,16 +108,9 @@
 						<tbody>
 							<tr th:each="t : ${topIssueList}">
 								<td th:text="${t.title}">이슈 제목</td>
-								<td th:text="${t.priority}">긴급</td>
+								<td th:text="${t.priorityName != null ? t.priorityName : t.priorityCode}">긴급</td>
+								<td th:text="${t.statusName != null ? t.statusName : t.statusCodeId}">진행</td>
 
-								<!-- 상태 OB코드 한글 변환 -->
-								<td
-									th:text="${t.statusCodeId == 'OB1' ? '신규' :
-                          t.statusCodeId == 'OB2' ? '진행' :
-                          t.statusCodeId == 'OB3' ? '해결' :
-                          t.statusCodeId == 'OB4' ? '반려' :
-                          t.statusCodeId == 'OB5' ? '완료' : t.statusCodeId}">
-									진행</td>
 
 								<td
 									th:text="${t.dueAt != null ? #dates.format(t.dueAt, 'yyyy-MM-dd') : '-'}">-</td>
