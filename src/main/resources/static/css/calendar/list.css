@@ -1,0 +1,65 @@
+html, body {
+	height: 100%;
+	overflow: auto;
+}
+
+/* 타이틀 */
+.x-page-title {
+	margin: 14px 0 12px;
+	padding-bottom: 10px;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.x-page-title .page-title {
+	margin: 0;
+	font-size: 20px;
+	font-weight: 800;
+	color: #111827;
+	letter-spacing: -0.2px;
+}
+
+.x-page-title .page-title-sub {
+	margin-top: 4px;
+	font-size: 12px;
+	color: #6b7280;
+}
+
+/* ===================== */
+/* list.html (calendar) 전용 */
+/* ===================== */
+
+/* ===== FullCalendar 이벤트 글씨 검정 ===== */
+.fc .fc-event-title, .fc .fc-event-time, .fc .fc-event-main {
+	color: #111827 !important; /* 검정 */
+}
+
+/* dayGrid에서 링크 색 방지 */
+.fc .fc-daygrid-event {
+	color: #111827 !important;
+}
+
+.fc .fc-daygrid-event .fc-event-title {
+	color: #111827 !important;
+	font-weight: 600;
+}
+
+/* ===== 달력 날짜/요일 링크 스타일 제거 ===== */
+.fc .fc-col-header-cell a, .fc .fc-daygrid-day-number {
+	color: #111827 !important; /* 검정 */
+	text-decoration: none !important; /* 밑줄 제거 */
+}
+
+/* hover 시에도 파란색 안 나오게 */
+.fc .fc-col-header-cell a:hover, .fc .fc-daygrid-day-number:hover {
+	color: #111827 !important;
+	text-decoration: none !important;
+}
+
+.fc .fc-event {
+	cursor: pointer;
+	transition: filter 0.15s ease;
+}
+
+.fc .fc-event:hover {
+	filter: brightness(0.9);
+}
