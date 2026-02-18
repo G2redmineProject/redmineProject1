@@ -1,0 +1,156 @@
+.x-page-title {
+  margin: 14px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.x-page-title .page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.2px;
+}
+
+.x-page-title .page-title-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 카드 */
+.card.mb-4 {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+/* 카드 헤더(회색 톤) */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.card-body {
+  padding: 0;
+  overflow-x: auto;
+}
+
+/* 검색 영역(회색 톤) */
+.notice-filters {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px 14px 10px;
+  background: #f9fafb;
+}
+
+.notice-filters + .card {
+  margin-top: 10px;
+}
+
+.notice-filters .form-label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111827;
+}
+
+.notice-filters .input-group .btn {
+  white-space: nowrap;
+}
+
+/* 등록일 넓이 */
+.notice-filters input[type="date"] {
+  min-width: 210px;
+}
+
+/* 테이블 */
+#noticeTable {
+  width: 100%;
+  white-space: nowrap;
+  margin: 0;
+}
+
+/* 테이블 헤더(회색 통일) */
+#noticeTable thead th {
+  font-size: 14px;
+  font-weight: 700;
+  vertical-align: middle;
+
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 바디 */
+#noticeTable tbody td {
+  font-size: 14px;
+  vertical-align: middle;
+  color: #111827;
+  border-color: #eeeeee;
+}
+
+/* hover */
+#noticeTable.table-hover > tbody > tr:hover > * {
+  background-color: #ffffff;
+}
+
+/* 컬럼 폭(현재 notice 컬럼 순서 기준)
+   1: 번호
+   2: 프로젝트명
+   3: 공지명
+   4: 등록자
+   5: 생성일
+*/
+#noticeTable th:nth-child(1),
+#noticeTable td:nth-child(1) {
+  width: 70px;
+}
+
+#noticeTable th:nth-child(2),
+#noticeTable td:nth-child(2) {
+  min-width: 160px;
+}
+
+#noticeTable th:nth-child(3),
+#noticeTable td:nth-child(3) {
+  min-width: 320px;
+}
+
+#noticeTable th:nth-child(4),
+#noticeTable td:nth-child(4) {
+  width: 140px;
+}
+
+#noticeTable th:nth-child(5),
+#noticeTable td:nth-child(5) {
+  width: 140px;
+}
+
+/* 공지명 줄임표 */
+#noticeTable td:nth-child(3) {
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 페이지네이션(회색 톤으로) */
+.pagination .page-link {
+  color: #111827;
+  border-color: #e5e7eb;
+}
+
+.pagination .page-link:hover {
+  background-color: #f3f4f6;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #111827;
+  border-color: #111827;
+  color: #ffffff;
+}

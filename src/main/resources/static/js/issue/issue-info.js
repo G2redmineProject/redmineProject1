@@ -341,78 +341,110 @@ function renderHistory() {
 
   const dateFields = new Set(["dueAt", "startedAt", "resolvedAt"]);
 
-  document.querySelectorAll(".history-item").forEach((item) => {
-    const time = item.dataset.time || "";
-    const action = item.dataset.action || "";
-    const user = item.dataset.user || "";
-    const metaStr = item.dataset.meta;
+  // 리스트(컨테이너) 단위로 처리
+  document.querySelectorAll(".history-list").forEach((listEl) => {
+    const items = Array.from(listEl.querySelectorAll(".history-item"));
+    if (items.length === 0) return;
 
-    const head = item.querySelector(".head-line");
-    if (head) {
-      const actionKor = actionLabelMap[action] || action || "";
-      head.textContent = `${time} / ${actionKor} / ${user}`.trim();
-    }
+    let lastDate = "";
+    const frag = document.createDocumentFragment();
 
-    const box = item.querySelector(".change-lines");
-    if (!box) return;
+    items.forEach((item) => {
+      const timeStr = (item.dataset.time || "").trim(); // "yyyy-MM-dd HH:mm"
+      const action = (item.dataset.action || "").trim();
+      const user = (item.dataset.user || "").trim();
+      const metaStr = item.dataset.meta;
 
-    if (action === "CREATE") {
-      box.textContent = "일감이 생성되었습니다.";
-      return;
-    }
+      const { datePart, timePart } = splitDateTime(timeStr);
 
-    if (!metaStr || metaStr === "null") {
-      box.textContent = "";
-      return;
-    }
-
-    try {
-      const obj = JSON.parse(metaStr);
-      const changes = Array.isArray(obj.changes) ? obj.changes : [];
-
-      if (changes.length === 0) {
-        box.textContent = "";
-        return;
+      // 날짜가 바뀌면 날짜 헤더 1번만 추가
+      if (datePart && datePart !== lastDate) {
+        lastDate = datePart;
+        const dateHeader = document.createElement("div");
+        dateHeader.className = "history-date";
+        dateHeader.textContent = datePart;
+        frag.appendChild(dateHeader);
       }
 
-      const ul = document.createElement("ul");
-      ul.className = "change-list";
-
-      changes.forEach((c) => {
-        const fieldKey = c.field ?? "";
-        const label = fieldLabelMap[fieldKey] ?? fieldKey;
-
-        let before = normalizeValue(c.before);
-        let after = normalizeValue(c.after);
-
-        if (dateFields.has(fieldKey)) {
-          before = formatLocalDateTime(before);
-          after = formatLocalDateTime(after);
-        }
-
-        if (fieldKey === "description") {
-          before = truncateText(stripHtml(before), 80);
-          after = truncateText(stripHtml(after), 80);
-        }
-
-        if (before === after) return;
-
-        const li = document.createElement("li");
-        li.textContent = `${label} : ${before} >> ${after}`;
-        ul.appendChild(li);
-      });
-
-      if (ul.childElementCount === 0) {
-        box.textContent = "";
-        return;
+      // 헤더라인: 날짜는 빼고 "시간 / 액션타입 / 등록자"
+      const head = item.querySelector(".head-line");
+      if (head) {
+        const actionKor = actionLabelMap[action] || action || "";
+        const timeOnly = timePart || timeStr || "";
+        head.textContent = `${timeOnly} / ${actionKor} / ${user}`.trim();
       }
 
-      box.innerHTML = "";
-      box.appendChild(ul);
-    } catch (e) {
-      box.textContent = metaStr;
-    }
+      // 바뀐 이력(변경사항) 렌더링
+      const box = item.querySelector(".change-lines");
+      if (box) {
+        if (action === "CREATE") {
+          box.textContent = "일감이 생성되었습니다.";
+        } else if (!metaStr || metaStr === "null") {
+          box.textContent = "";
+        } else {
+          try {
+            const obj = JSON.parse(metaStr);
+            const changes = Array.isArray(obj.changes) ? obj.changes : [];
+
+            if (changes.length === 0) {
+              box.textContent = "";
+            } else {
+              const ul = document.createElement("ul");
+              ul.className = "change-list";
+
+              changes.forEach((c) => {
+                const fieldKey = c.field ?? "";
+                const label = fieldLabelMap[fieldKey] ?? fieldKey;
+
+                let before = normalizeValue(c.before);
+                let after = normalizeValue(c.after);
+
+                if (dateFields.has(fieldKey)) {
+                  before = formatLocalDateTime(before);
+                  after = formatLocalDateTime(after);
+                }
+
+                if (fieldKey === "description") {
+                  before = truncateText(stripHtml(before), 80);
+                  after = truncateText(stripHtml(after), 80);
+                }
+
+                if (before === after) return;
+
+                const li = document.createElement("li");
+                li.textContent = `${label} : ${before} >> ${after}`;
+                ul.appendChild(li);
+              });
+
+              if (ul.childElementCount === 0) {
+                box.textContent = "";
+              } else {
+                box.innerHTML = "";
+                box.appendChild(ul);
+              }
+            }
+          } catch (e) {
+            box.textContent = metaStr;
+          }
+        }
+      }
+
+      frag.appendChild(item);
+    });
+
+    // 기존 DOM 재구성
+    listEl.innerHTML = "";
+    listEl.appendChild(frag);
   });
+}
+
+function splitDateTime(s) {
+  if (!s) return { datePart: "", timePart: "" };
+  // "yyyy-MM-dd HH:mm" 또는 "yyyy-MM-dd HH:mm:ss" 등
+  const parts = s.split(" ");
+  const datePart = parts[0] || "";
+  const timePart = parts[1] || "";
+  return { datePart, timePart };
 }
 
 function normalizeValue(v) {

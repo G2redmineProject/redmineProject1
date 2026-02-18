@@ -1,0 +1,165 @@
+<!doctype html>
+<html
+  xmlns:th="https://www.thymeleaf.org/"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{common/layouts/default_layout}"
+  layout:fragment="Content"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>공지 등록</title>
+    <link rel="stylesheet" th:href="@{/css/notice/notice-create.css}" />
+  </head>
+
+  <body>
+    <div class="x-page-title">
+      <h3 class="page-title">공지 등록</h3>
+      <div class="page-title-sub">프로젝트 공지를 등록할 수 있습니다.</div>
+    </div>
+
+    <!-- 서버에서 내려온 에러(권한없음 등) -->
+    <div
+      th:if="${errorMessage != null}"
+      class="alert alert-danger mb-3"
+      th:text="${errorMessage}"
+    ></div>
+
+    <div class="card notice-card mb-4">
+      <div class="card-header">
+        <div class="card-header-title">공지 등록</div>
+      </div>
+
+      <div class="card-body">
+        <form id="noticeCreateForm" th:action="@{/noticeCreate}" method="post">
+          <div class="row g-3">
+            <div class="col-12 col-md-6">
+              <label class="form-label">프로젝트</label>
+              <div class="input-group">
+                <input
+                  type="text"
+                  id="projectText"
+                  class="form-control"
+                  placeholder="프로젝트 선택"
+                  readonly
+                  th:value="${projectName}"
+                />
+                <input
+                  type="hidden"
+                  id="projectCode"
+                  name="projectCode"
+                  th:value="${notice.projectCode}"
+                />
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="btnOpenProjectModal"
+                >
+                  선택
+                </button>
+              </div>
+              <div class="form-text">
+                프로젝트를 선택해야 등록할 수 있습니다.
+              </div>
+              <div
+                class="invalid-feedback d-block"
+                id="projectInvalidMsg"
+              ></div>
+            </div>
+
+            <div class="col-12 col-md-6">
+              <label class="form-label">공지 제목</label>
+              <input
+                type="text"
+                id="title"
+                name="title"
+                class="form-control"
+                placeholder="제목 입력"
+                maxlength="200"
+                th:value="${notice.title}"
+              />
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="form-text">제목은 200자 이내로 입력해주세요.</div>
+                <div class="text-muted small" id="titleCounter">0 / 200</div>
+              </div>
+              <div class="invalid-feedback" id="titleInvalidMsg"></div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-12">
+              <label class="form-label">공지 내용</label>
+              <textarea
+                id="content"
+                name="content"
+                class="form-control notice-textarea"
+                rows="10"
+                placeholder="내용 입력"
+                th:text="${notice.content}"
+              ></textarea>
+
+              <div class="d-flex justify-content-between align-items-center">
+                <div class="form-text">내용은 5000자 이내로 입력해주세요.</div>
+                <div class="text-muted small" id="contentCounter">0 / 5000</div>
+              </div>
+
+              <div
+                class="invalid-feedback d-block"
+                id="contentInvalidMsg"
+              ></div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-4">
+            <button type="button" class="btn btn-secondary" id="btnBack">
+              <i class="fas fa-arrow-left me-1"></i>돌아가기
+            </button>
+
+            <div class="d-flex gap-2">
+              <button type="button" class="btn btn-secondary" id="btnReset">
+                <i class="fas fa-redo me-1"></i>초기화
+              </button>
+
+              <button type="submit" class="btn btn-success" id="btnSave">
+                <i class="fas fa-save me-1"></i>공지 등록
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- 프로젝트 선택 모달 -->
+    <div
+      class="modal fade"
+      id="projectSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">프로젝트 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="projectModalSearch"
+              class="form-control mb-2"
+              placeholder="프로젝트명 검색"
+            />
+            <div class="list-group" id="projectModalList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+    <script th:src="@{/js/notice/notice-create.js}"></script>
+  </body>
+</html>

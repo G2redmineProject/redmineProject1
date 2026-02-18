@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yedam.app.notice.mapper.NoticeMapper">
+
+  <select id="selectNoticeList" resultType="NoticeVO">
+    SELECT
+      n.notice_code   AS noticeCode,
+      n.project_code  AS projectCode,
+      p.project_name  AS projectName,
+      n.title         AS title,
+      n.user_code     AS userCode,
+      u.name          AS creatorName,
+      n.created_at    AS createdAt,
+      n.updated_at    AS updatedAt,
+      n.file_code     AS fileCode
+    FROM notices n
+    JOIN projects p
+      ON p.project_code = n.project_code
+    LEFT JOIN users u
+      ON u.user_code = n.user_code
+    /* 로그인 사용자가 속한 프로젝트만 */
+    JOIN vw_user_auth a
+      ON a.project_code = n.project_code
+     AND a.user_code = #{loginUserCode}
+     AND a.status = 'OD1'
+    WHERE 1=1
+
+    ORDER BY n.notice_code DESC
+  </select>
+  
+  <!-- 등록 -->
+ <insert id="insertNotice" parameterType="NoticeVO">
+  <selectKey keyProperty="noticeCode" resultType="long" order="BEFORE">
+    SELECT NVL(MAX(n.notice_code), 0) + 1
+    FROM notices n
+  </selectKey>
+
+  INSERT INTO notices
+  <trim prefix="(" suffix=")" suffixOverrides=",">
+    notice_code,
+    project_code,
+    title,
+    content,
+    user_code,
+    created_at,
+    updated_at,
+    <if test="fileCode != null">file_code,</if>
+  </trim>
+  <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+    #{noticeCode},
+    #{projectCode},
+    #{title},
+    #{content},
+    #{userCode},
+    SYSTIMESTAMP,
+    SYSTIMESTAMP,
+    <if test="fileCode != null">#{fileCode},</if>
+  </trim>
+</insert>
+
+
+<!-- 상세 -->
+ <select id="selectNoticeInfo" resultType="NoticeVO">
+    SELECT
+      n.notice_code   AS noticeCode,
+      n.project_code  AS projectCode,
+      p.project_name  AS projectName,
+      n.title         AS title,
+      n.content       AS content,
+      n.user_code     AS userCode,
+      u.name          AS creatorName,
+      n.created_at    AS createdAt,
+      n.updated_at    AS updatedAt,
+      n.file_code     AS fileCode
+    FROM notices n
+    JOIN projects p
+      ON p.project_code = n.project_code
+    LEFT JOIN users u
+      ON u.user_code = n.user_code
+    JOIN vw_user_auth a
+      ON a.project_code = n.project_code
+     AND a.user_code = #{loginUserCode}
+     AND a.status = 'OD1'
+    WHERE n.notice_code = #{noticeCode}
+  </select>
+  
+  <!-- 수정 -->
+  <update id="updateNotice" parameterType="NoticeVO">
+  UPDATE notices
+  <set>
+  <if test="title != null">
+    title = #{title},  
+  </if>
+  <if test="content != null"> 
+    content = #{content},
+  </if>
+    updated_at = SYSTIMESTAMP,
+    <if test="fileCode != null">
+      file_code = #{fileCode},
+    </if>
+  </set>
+  WHERE notice_code = #{noticeCode}
+</update>
+  
+
+
+	<!-- 삭제 -->
+<delete id="deleteNotice">
+  DELETE FROM notices
+  WHERE notice_code = #{noticeCode}
+</delete>
+	
+</mapper>

@@ -338,3 +338,12 @@ button {
   white-space: nowrap;
   flex: 0 0 auto;
 }
+
+.history-date {
+  margin: 14px 0 8px;
+  padding: 8px 12px;
+  font-weight: 800;
+  border: 1px solid var(--border);
+  background: var(--subtle);
+  border-radius: 12px;
+}
