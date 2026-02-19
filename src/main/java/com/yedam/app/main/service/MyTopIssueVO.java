@@ -8,8 +8,8 @@ import lombok.Data;
 public class MyTopIssueVO {
 	private Integer issueCode;
 	private String title;
-	private String priority;		// OA1~OA4
-	private String statusCodeId;   	// OB1~OB5
+	private String priorityName;
+	private String statusName;
 	private Date dueAt;
 	private Date updatedAt;
 	private Integer progress;

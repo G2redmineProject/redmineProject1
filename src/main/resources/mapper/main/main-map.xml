@@ -226,8 +226,8 @@
     		SELECT
       			i.issue_code AS issueCode,
       			i.title      AS title,
-      			i.priority   AS priority,
-      			s.code_id    AS statusCodeId,
+      			cp.code_name AS priorityName,
+        			cs.code_name AS statusName,
       			i.due_at     AS dueAt,
       			NVL(i.updated_at, i.created_at) AS updatedAt,
       			i.progress   AS progress
@@ -235,6 +235,12 @@
     		
     		JOIN status s
       		ON s.status_code = i.status_code
+      		
+      	LEFT JOIN common_code cp
+      	ON cp.code_id = i.priority
+      	
+      	LEFT JOIN common_code cs
+      	ON cs.code_id = s.code_id
       		
     		WHERE i.project_code  = #{projectCode}
       		AND i.assignee_code = #{userCode}

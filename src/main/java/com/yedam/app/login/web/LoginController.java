@@ -41,7 +41,7 @@ public class LoginController {
 	// 사원번호, 비밀번호 조회
 	// 페이지 이동
 	@GetMapping("/login")
-	public String loginFrom(HttpServletRequest request, HttpSession session, Model model) {
+	public String loginFrom(HttpServletRequest request, HttpServletResponse response, HttpSession session, Model model) {
 		
 		// 이미 세션 로그인 되어있으면 메인으로
 		UserVO sessionUser = (UserVO) session.getAttribute("user");
@@ -70,14 +70,21 @@ public class LoginController {
 
 	            List<UserProjectAuthVO> auths = projectService.getUserProjectAuthAll(user.getUserCode());
 	            session.setAttribute("userAuth", auths);
+	            
+	            // 자동로그인 성공하면 마지막 로그인 갱신
+	            loginService.modifyLastLoginAt(user.getUserCode());
 
 	            // last_used 갱신(추천)
 	            loginService.touchAutoLoginToken(tokenHash);
 
 	            return "redirect:/G2main";
 	        }
-	        // (선택) 토큰이 무효면 여기서 쿠키 지우고 로그인 페이지 보여주기
-	        // -> 쿠키 삭제는 response가 필요하니까 아래 "선택 개선" 참고
+	        // 토큰 무효면 쿠키 제거
+	        Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, "");
+	        auto.setPath("/");
+	        auto.setMaxAge(0);
+	        auto.setHttpOnly(true);
+	        response.addCookie(auto);
 	    }
 		
 	    // 사원번호 기억 쿠키
