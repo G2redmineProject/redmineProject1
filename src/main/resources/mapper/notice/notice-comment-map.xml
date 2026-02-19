@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yedam.app.notice.mapper.NoticeCommentMapper">
+
+  <!-- 목록 -->
+  <select id="selectCommentList" resultType="NoticeCommentVO">
+    SELECT
+      c.comment_code      AS commentCode,
+      c.notice_code       AS noticeCode,
+      c.user_code         AS userCode,
+      u.name              AS userName,
+      c.content           AS content,
+      c.created_at        AS createdAt,
+      c.updated_at        AS updatedAt,
+      c.is_deleted        AS isDeleted,
+      c.deleted_at        AS deletedAt,
+      c.deleted_by_code   AS deletedByCode,
+      du.name             AS deletedByName
+    FROM comments c
+    JOIN notices n
+      ON n.notice_code = c.notice_code
+    JOIN vw_user_auth a
+      ON a.project_code = n.project_code
+     AND a.user_code = #{loginUserCode}
+     AND a.status = 'OD1'
+    LEFT JOIN users u
+      ON u.user_code = c.user_code
+    LEFT JOIN users du
+      ON du.user_code = c.deleted_by_code
+    WHERE c.notice_code = #{noticeCode}
+    ORDER BY c.comment_code DESC
+  </select>
+
+  <!-- 단건 -->
+  <select id="selectCommentOne" resultType="NoticeCommentVO">
+    SELECT
+      c.comment_code      AS commentCode,
+      c.notice_code       AS noticeCode,
+      c.user_code         AS userCode,
+      u.name              AS userName,
+      c.content           AS content,
+      c.created_at        AS createdAt,
+      c.updated_at        AS updatedAt,
+      c.is_deleted        AS isDeleted,
+      c.deleted_at        AS deletedAt,
+      c.deleted_by_code   AS deletedByCode
+    FROM comments c
+    JOIN notices n
+      ON n.notice_code = c.notice_code
+    JOIN vw_user_auth a
+      ON a.project_code = n.project_code
+     AND a.user_code = #{loginUserCode}
+     AND a.status = 'OD1'
+    LEFT JOIN users u
+      ON u.user_code = c.user_code
+    WHERE c.comment_code = #{commentCode}
+  </select>
+
+  <!-- 등록 -->
+  <insert id="insertComment" parameterType="NoticeCommentVO">
+    <selectKey keyProperty="commentCode" resultType="long" order="BEFORE">
+      SELECT NVL(MAX(comment_code), 0) + 1 FROM comments
+    </selectKey>
+
+    INSERT INTO comments (
+      comment_code,
+      notice_code,
+      user_code,
+      content,
+      created_at,
+      updated_at,
+      is_deleted
+    ) VALUES (
+      #{commentCode},
+      #{noticeCode},
+      #{userCode},
+      #{content},
+      SYSTIMESTAMP,
+      SYSTIMESTAMP,
+      0
+    )
+  </insert>
+
+  <!-- 수정 삭제 된 건 수정 금지 -->
+  <update id="updateComment" parameterType="NoticeCommentVO">
+    UPDATE comments
+       SET content = #{content},
+           updated_at = SYSTIMESTAMP
+     WHERE comment_code = #{commentCode}
+       AND is_deleted = 0
+  </update>
+
+  <!-- 삭제 -->
+  <update id="softDeleteComment">
+    UPDATE comments
+       SET is_deleted = 1,
+           deleted_at = SYSTIMESTAMP,
+           deleted_by_code = #{deletedByCode},
+           updated_at = SYSTIMESTAMP
+     WHERE comment_code = #{commentCode}
+       AND is_deleted = 0
+  </update>
+
+</mapper>

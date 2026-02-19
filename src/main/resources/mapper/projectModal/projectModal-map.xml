@@ -26,4 +26,18 @@
        AND status = 'OD1'
      ORDER BY project_name
   </select>
+  
+  <!-- 공지 등록용 : 관리자 권한 있는 실행 중 프로젝트만 -->
+  <select id="selectProjectModalListForNotice"
+  		  parameterType="Integer"
+          resultType="ProjectModalVO">
+          SELECT DISTINCT
+           project_code AS projectCode,
+           project_name AS projectName
+      FROM vw_user_auth
+     WHERE user_code = #{userCode}
+       AND status = 'OD1'
+       AND admin_ck = 'Y'
+     ORDER BY project_name
+  </select>
 </mapper>

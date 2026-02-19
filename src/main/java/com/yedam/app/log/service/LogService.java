@@ -11,4 +11,6 @@ public interface LogService {
                    String meta);
   
   List<LogVO> findLogsByTarget(String targetType, Long targetCode);
+  
+  List<LogVO> findLogs(Integer loginUserCode, LogVO cond, List<String> targetTypes);
 }

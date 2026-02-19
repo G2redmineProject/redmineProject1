@@ -10,4 +10,7 @@ public interface AuthorityMapper {
             @Param("category") String category);
 	AuthorityVO selectProjectAuth(@Param("userCode") Integer userCode,
             @Param("projectCode") Long projectCode);
+	
+	int existsAdminProject(@Param("userCode") Integer userCode);
+
 }

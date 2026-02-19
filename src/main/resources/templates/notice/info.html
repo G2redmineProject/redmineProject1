@@ -1,0 +1,186 @@
+<!doctype html>
+<html
+  xmlns:th="https://www.thymeleaf.org/"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{common/layouts/default_layout}"
+  layout:fragment="Content"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>공지 상세</title>
+    <link rel="stylesheet" th:href="@{/css/notice/notice-info.css}" />
+  </head>
+
+  <body>
+    <div class="x-page-title">
+      <h3 class="page-title">공지 상세</h3>
+      <div class="page-title-sub">공지 내용을 확인할 수 있습니다.</div>
+    </div>
+
+   <div class="d-flex justify-content-between align-items-center mt-2">
+  <button type="button" class="btn btn-secondary" id="btnBack">
+    <i class="fas fa-arrow-left me-1"></i>돌아가기
+  </button>
+
+  <div class="d-flex gap-2" th:if="${showManageButtons}">
+    <button
+      type="button"
+      class="btn btn-success"
+      id="btnEdit"
+      th:attr="
+        data-notice-code=${notice.noticeCode},
+        data-can-modify=${canModify}
+      "
+    >
+      <i class="fas fa-edit me-1"></i>수정
+    </button>
+
+    <button
+      type="button"
+      class="btn btn-danger"
+      id="btnDelete"
+      th:attr="
+        data-notice-code=${notice.noticeCode},
+        data-can-delete=${canDelete}
+      "
+    >
+      <i class="fa-solid fa-minus me-1"></i>삭제
+    </button>
+  </div>
+</div>
+
+
+    <!-- ===== Summary ===== -->
+    <section class="notice-summary">
+      <div class="notice-summary-head">
+        <div class="notice-summary-title">
+          <span class="project" th:text="${notice.projectName}">프로젝트명</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- 3열 메타 -->
+      <div class="notice-meta3">
+        <div class="meta-item">
+          <div class="meta-label">공지명</div>
+          <div class="meta-value" th:text="${notice.title}">-</div>
+        </div>
+
+        <div class="meta-item">
+          <div class="meta-label">등록자</div>
+          <div class="meta-value" th:text="${notice.creatorName != null ? notice.creatorName : '-'}">-</div>
+        </div>
+
+        <div class="meta-item">
+          <div class="meta-label">등록일</div>
+          <div
+            class="meta-value"
+            th:text="${notice.createdAt != null ? #temporals.format(notice.createdAt, 'yyyy-MM-dd') : '-'}"
+          >-</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Content ===== -->
+    <section class="notice-desc">
+      <h4 class="section-title">내용</h4>
+
+      <pre class="desc-box" th:utext="${notice.content}">내용</pre>
+   
+      <div class="attach-row">
+        <div class="attach-label">첨부파일</div>
+        <div class="attach-value">
+          <span th:if="${notice.fileCode == null}">-</span>
+          <a
+            th:if="${notice.fileCode != null}"
+            th:href="@{|/files/${notice.fileCode}|}"
+            th:text="${notice.originalName}"
+            target="_blank"
+            rel="noopener"
+          >다운로드</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Comments ===== -->
+    <section class="notice-comments">
+      <h4 class="section-title">댓글</h4>
+
+      <div class="comment-write" th:if="${canWriteComment}">
+        <input type="hidden" id="noticeCode" th:value="${notice.noticeCode}" />
+        <textarea
+          id="commentContent"
+          class="form-control"
+          rows="3"
+          placeholder="댓글을 입력하세요. (Enter 등록)"
+        ></textarea>
+
+        <div class="d-flex justify-content-between align-items-center mt-2">
+          <div class="text-muted small" id="commentCounter">0 / 500</div>
+          <button type="button" class="btn btn-success" id="btnCommentSubmit">
+            등록
+          </button>
+        </div>
+      </div>
+      <div class="comment-write-disabled text-muted" th:if="${!canWriteComment}">
+  댓글 작성 권한이 없습니다.
+</div>
+
+      <div class="comment-list" id="commentList">
+        <div
+          class="comment-empty"
+          th:if="${comments == null or #lists.isEmpty(comments)}"
+        >
+          댓글이 없습니다.
+        </div>
+
+        <div
+  class="comment-item"
+  th:each="c : ${comments}"
+  th:attr="data-comment-code=${c.commentCode}, data-user-code=${c.userCode}, data-is-deleted=${c.isDeleted}"
+>
+  <div class="comment-head">
+    <div class="head-left">
+      <span class="comment-writer" th:text="${c.userName != null ? c.userName : c.userCode}">작성자</span>
+      <span class="comment-time" th:text="${#temporals.format(c.createdAt,'yyyy-MM-dd HH:mm')}">시간</span>
+    </div>
+
+    <div class="head-actions" th:if="${c.isDeleted == 0}">
+      <!-- 수정/ 작성자 -->
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-secondary btnCommentEdit"
+        th:if="${c.userCode == loginUserCode}"
+        th:attr="data-can-modify=${canModifyComment}"
+      >수정</button>
+
+      <!-- 삭제/ 작성자 관리자 -->
+      <button
+        type="button"
+        class="btn btn-sm btn-outline-danger btnCommentDelete"
+        th:if="${c.userCode == loginUserCode or isAdmin}"
+        th:attr="data-can-delete=${canDeleteComment}"
+      >삭제</button>
+    </div>
+  </div>
+
+  <!-- 본문 -->
+  <pre class="comment-body" th:if="${c.isDeleted == 0}" th:text="${c.content}">댓글</pre>
+  <pre
+  class="comment-body deleted"
+  th:if="${c.isDeleted == 1}"
+  th:with="canSeeMeta=${isAdmin or c.userCode == loginUserCode or c.deletedByCode == loginUserCode}"
+><span
+    th:if="${canSeeMeta}"
+    th:text="|${c.deletedAt != null ? #temporals.format(c.deletedAt,'yyyy-MM-dd HH:mm') : '-'} · ${c.deletedByName != null ? c.deletedByName : c.deletedByCode}에게 삭제된 댓글입니다.|"
+  ></span><span th:unless="${canSeeMeta}">삭제된 댓글입니다.</span>
+</pre>
+
+</div>
+
+      </div>
+    </section>
+
+    <script th:src="@{/js/notice/notice-info.js}"></script>
+  </body>
+</html>

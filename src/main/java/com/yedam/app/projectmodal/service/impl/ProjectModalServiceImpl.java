@@ -25,4 +25,9 @@ public class ProjectModalServiceImpl implements ProjectModalService {
   public List<ProjectModalVO> findProjectListForCreate(Integer userCode) {
     return projectModalMapper.selectProjectModalListForCreate(userCode);
   }
+  
+  @Override
+  public List<ProjectModalVO> findProjectListForNotice(Integer userCode) {
+    return projectModalMapper.selectProjectModalListForNotice(userCode);
+  }
 }

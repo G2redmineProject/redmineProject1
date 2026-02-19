@@ -42,4 +42,11 @@ public class ProjectModalController {
 		  Integer userCode = getLoginUserCode(session);
 	    return projectModalService.findProjectListForCreate(userCode);
 	  }
+	  
+	// 공지 등록 화면용
+		  @GetMapping("/api/projects/modal/noticeCreate")
+		  public List<ProjectModalVO> forNoticeCreate(HttpSession session) {
+			  Integer userCode = getLoginUserCode(session);
+		    return projectModalService.findProjectListForNotice(userCode);
+		  }
 }

@@ -130,7 +130,7 @@
               <span th:if="${issue.fileCode == null}">-</span>
               <a
                 th:if="${issue.fileCode != null}"
-                th:href="${issue.filePath}"
+                th:href="@{|/files/${issue.fileCode}|}"
                 th:text="${issue.originalName}"
                 target="_blank"
                 rel="noopener"
@@ -305,7 +305,6 @@
                 th:text="|${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm:ss')} / ${log.actionType == 'CREATE' ? '생성' : (log.actionType == 'UPDATE' ? '수정' : log.actionType)} / ${log.userName != null ? log.userName : log.userCode}|"
               ></span>
             </div>
-
             <div class="history-body">
               <div class="change-lines"></div>
             </div>

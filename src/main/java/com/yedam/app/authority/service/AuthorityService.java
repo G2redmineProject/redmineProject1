@@ -9,4 +9,7 @@ public interface AuthorityService {
 	  boolean canDelete(Long projectCode, Integer userCode, String category);
 	  
 	  AuthorityVO getProjectAuth(Integer userCode, Long projectCode);
+	  
+	  boolean hasAnyAdminProject(Integer userCode);
+
 }

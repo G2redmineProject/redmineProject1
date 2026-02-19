@@ -46,4 +46,11 @@ public class AuthorityServiceImpl implements AuthorityService {
   public AuthorityVO getProjectAuth(Integer userCode, Long projectCode) {
     return authorityMapper.selectProjectAuth(userCode, projectCode);
   }
+  
+  @Override
+  public boolean hasAnyAdminProject(Integer userCode) {
+    if (userCode == null) return false;
+    return authorityMapper.existsAdminProject(userCode) == 1;
+  }
+
 }
