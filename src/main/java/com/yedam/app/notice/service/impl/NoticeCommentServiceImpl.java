@@ -37,7 +37,7 @@ public class NoticeCommentServiceImpl implements NoticeCommentService {
     }
 
     Long projectCode = notice.getProjectCode();
-    boolean canWrite = authorityService.canWrite(projectCode, userCode, "공지");
+    boolean canWrite = authorityService.canWrite(projectCode, userCode, "댓글");
     if (!canWrite) {
       throw new SecurityException("NO_PERMISSION");
     }
@@ -69,7 +69,7 @@ public class NoticeCommentServiceImpl implements NoticeCommentService {
     NoticeVO notice = noticeService.getNoticeInfo(loginUserCode, origin.getNoticeCode());
     if (notice == null) throw new IllegalArgumentException("NOT_FOUND");
 
-    boolean canModify = authorityService.canModify(notice.getProjectCode(), userCode, "공지");
+    boolean canModify = authorityService.canModify(notice.getProjectCode(), userCode, "댓글");
     if (!canModify) {
       throw new SecurityException("NO_PERMISSION");
     }
@@ -107,7 +107,7 @@ public class NoticeCommentServiceImpl implements NoticeCommentService {
     }
 
     // 삭제 권한
-    boolean canDelete = authorityService.canDelete(projectCode, userCode, "공지");
+    boolean canDelete = authorityService.canDelete(projectCode, userCode, "댓글");
     if (!canDelete) {
       throw new SecurityException("NO_PERMISSION");
     }

@@ -26,7 +26,11 @@ public class NoticeVO {
   private Long fileCode;
   private String originalName;
   private String filePath;
-
+  @DateTimeFormat(pattern = "yyyy-MM-dd'T'HH:mm")
+	private LocalDateTime uploadedAt;
+  
+  private Boolean removeFile;
+  
   // 목록 표시용
   private String projectName;
 }

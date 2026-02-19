@@ -1,0 +1,253 @@
+<!doctype html>
+<html
+  xmlns:th="https://www.thymeleaf.org/"
+  xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{common/layouts/default_layout}"
+  layout:fragment="Content"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <title>작업이력</title>
+    <link rel="stylesheet" th:href="@{/css/log/logs.css}" />
+  </head>
+
+  <body>
+    <div class="x-page-title">
+      <h3 class="page-title">작업내역</h3>
+      <div class="page-title-sub">
+        프로젝트별 작업내역을 조회할 수 있습니다.
+      </div>
+    </div>
+
+    <form id="logFilterForm" th:action="@{/logList}" method="get">
+      <div class="log-filters mb-3 mt-3">
+        <div class="row g-2 align-items-end">
+          <div class="col-12 col-md-3 col-lg-3 col-xl-2 log-top4">
+            <label class="form-label">프로젝트</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterProjectText"
+                class="form-control"
+                placeholder="프로젝트 선택"
+                readonly
+                th:value="${projectName}"
+              />
+              <input
+                type="hidden"
+                id="filterProjectValue"
+                name="projectCode"
+                th:value="${cond.projectCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenProjectModal"
+              >
+                선택
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3 col-lg-3 col-xl-2 log-top4">
+            <label class="form-label">사용자</label>
+            <div class="input-group">
+              <input
+                type="text"
+                id="filterUserText"
+                class="form-control"
+                placeholder="사용자 선택"
+                readonly
+                th:value="${userName}"
+              />
+              <input
+                type="hidden"
+                id="filterUserValue"
+                name="userCode"
+                th:value="${cond.userCode}"
+              />
+              <button
+                type="button"
+                class="btn btn-secondary"
+                id="btnOpenUserModal"
+              >
+                선택
+              </button>
+            </div>
+          </div>
+
+          <div class="col-12 col-md-3 col-lg-3 col-xl-2 log-top4">
+            <label class="form-label">시작일</label>
+            <input
+              type="date"
+              id="filterFromDate"
+              class="form-control"
+              name="fromDate"
+              th:value="${cond.fromDate != null ? #temporals.format(cond.fromDate, 'yyyy-MM-dd') : ''}"
+            />
+          </div>
+
+          <div class="col-12 col-md-3 col-lg-3 col-xl-2 log-top4">
+            <label class="form-label">종료일</label>
+            <input
+              type="date"
+              id="filterToDate"
+              class="form-control"
+              name="toDate"
+              th:value="${cond.toDate != null ? #temporals.format(cond.toDate, 'yyyy-MM-dd') : ''}"
+            />
+          </div>
+
+          <!-- 대상 + 버튼 -->
+          <div class="col-12 col-lg-4 log-typebar-col">
+            <label class="form-label mb-0 pt-2">대상</label>
+
+            <div class="log-typebar mb-2">
+              <div class="log-types">
+                <label class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="types"
+                    value="ISSUE"
+                    th:checked="${types != null and types.contains('ISSUE')}"
+                  />
+                  <span class="form-check-label">일감</span>
+                </label>
+
+                <label class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="types"
+                    value="NOTICE"
+                    th:checked="${types != null and types.contains('NOTICE')}"
+                  />
+                  <span class="form-check-label">공지</span>
+                </label>
+
+                <label class="form-check">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    name="types"
+                    value="DOC"
+                    th:checked="${types != null and types.contains('DOC')}"
+                  />
+                  <span class="form-check-label">문서</span>
+                </label>
+              </div>
+
+              <div class="log-btns">
+                <button type="button" class="btn btn-secondary" id="btnReset">
+                  초기화
+                </button>
+                <button type="submit" class="btn btn-primary" id="btnApply">
+                  조회
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </form>
+
+    <div id="logRaw" class="d-none">
+      <div
+        class="log-item"
+        th:each="log : ${logs}"
+        th:attr="
+          data-project-code=${log.projectCode},
+          data-project-name=${log.projectName},
+          data-user-code=${log.userCode},
+          data-user-name=${log.userName},
+          data-target-type=${log.targetType},
+          data-target-code=${log.targetCode},
+          data-action-type=${log.actionType},
+          data-meta=${log.meta},
+          data-title=${log.title},
+          data-created-date=${log.createdAt != null ? #temporals.format(log.createdAt,'yyyy-MM-dd') : ''},
+          data-created-time=${log.createdAt != null ? #temporals.format(log.createdAt,'HH:mm') : ''}"
+      ></div>
+    </div>
+
+    <!-- 화면 표시 영역 -->
+    <div class="log-area mt-3">
+      <div class="log-head">
+        <div class="log-title">내역</div>
+        <div class="text-muted small" id="logInfo"></div>
+      </div>
+
+      <div class="log-render" id="logRender"></div>
+
+      <div id="logEmpty" class="text-muted d-none">조회 결과가 없습니다.</div>
+    </div>
+
+    <!-- 프로젝트 선택 모달 -->
+    <div
+      class="modal fade"
+      id="projectSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">프로젝트 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="projectModalSearch"
+              class="form-control mb-2"
+              placeholder="프로젝트명 검색"
+            />
+            <div class="list-group" id="projectModalList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 사용자 선택 모달 -->
+    <div
+      class="modal fade"
+      id="userSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">사용자 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="userModalSearch"
+              class="form-control mb-2"
+              placeholder="사용자명 검색"
+            />
+            <div class="list-group" id="userModalList"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <input type="hidden" name="projectName" id="filterProjectNameHidden" />
+    <input type="hidden" name="userName" id="filterUserNameHidden" />
+
+    <script th:src="@{/js/log/logs.js}"></script>
+  </body>
+</html>

@@ -27,4 +27,16 @@
   WHERE user_code = #{userCode}
     AND project_code = #{projectCode}
 </select>
+
+<select id="existsAdminProject" resultType="int">
+  SELECT CASE WHEN EXISTS (
+    SELECT 1
+    FROM vw_user_auth
+    WHERE user_code = #{userCode}
+      AND admin_ck = 'Y'
+      AND status = 'OD1'
+  ) THEN 1 ELSE 0 END
+  FROM dual
+</select>
+
 </mapper>

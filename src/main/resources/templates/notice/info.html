@@ -93,7 +93,7 @@
           <span th:if="${notice.fileCode == null}">-</span>
           <a
             th:if="${notice.fileCode != null}"
-            th:href="${notice.filePath}"
+            th:href="@{|/files/${notice.fileCode}|}"
             th:text="${notice.originalName}"
             target="_blank"
             rel="noopener"
@@ -166,7 +166,16 @@
 
   <!-- 본문 -->
   <pre class="comment-body" th:if="${c.isDeleted == 0}" th:text="${c.content}">댓글</pre>
-  <pre class="comment-body deleted" th:if="${c.isDeleted == 1}">삭제된 댓글입니다.</pre>
+  <pre
+  class="comment-body deleted"
+  th:if="${c.isDeleted == 1}"
+  th:with="canSeeMeta=${isAdmin or c.userCode == loginUserCode or c.deletedByCode == loginUserCode}"
+><span
+    th:if="${canSeeMeta}"
+    th:text="|${c.deletedAt != null ? #temporals.format(c.deletedAt,'yyyy-MM-dd HH:mm') : '-'} · ${c.deletedByName != null ? c.deletedByName : c.deletedByCode}에게 삭제된 댓글입니다.|"
+  ></span><span th:unless="${canSeeMeta}">삭제된 댓글입니다.</span>
+</pre>
+
 </div>
 
       </div>

@@ -47,4 +47,9 @@ public class LogServiceImpl implements LogService {
   public List<LogVO> findLogsByTarget(String targetType, Long targetCode) {
     return logMapper.selectLogsByTarget(targetType, targetCode);
   }
+  
+  @Override
+  public List<LogVO> findLogs(Integer loginUserCode, LogVO cond, List<String> targetTypes) {
+    return logMapper.selectLogs(loginUserCode, cond, targetTypes);
+  }
 }

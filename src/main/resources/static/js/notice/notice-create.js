@@ -38,36 +38,46 @@
   let editor = null;
   let isSubmitting = false;
 
+  const ensureToastContainer = () => {
+    const id = "toastContainer";
+    let el = document.getElementById(id);
+    if (el) return el;
+
+    el = document.createElement("div");
+    el.id = id;
+    el.className = "toast-container position-fixed bottom-0 end-0 p-3";
+    el.style.zIndex = "1080";
+    document.body.appendChild(el);
+    return el;
+  };
+
   const showToast = (message) => {
-    const toastId = "commonToast";
-    let toastEl = document.getElementById(toastId);
+    const container = ensureToastContainer();
 
-    if (!toastEl) {
-      toastEl = document.createElement("div");
-      toastEl.id = toastId;
-      toastEl.className = "toast align-items-center text-bg-dark border-0";
-      toastEl.setAttribute("role", "alert");
-      toastEl.setAttribute("aria-live", "assertive");
-      toastEl.setAttribute("aria-atomic", "true");
-      toastEl.style.position = "fixed";
-      toastEl.style.right = "16px";
-      toastEl.style.bottom = "16px";
-      toastEl.style.zIndex = "1080";
+    const toastEl = document.createElement("div");
+    toastEl.className = "toast align-items-center text-bg-dark border-0";
+    toastEl.setAttribute("role", "alert");
+    toastEl.setAttribute("aria-live", "assertive");
+    toastEl.setAttribute("aria-atomic", "true");
 
-      toastEl.innerHTML = `
-        <div class="d-flex">
-          <div class="toast-body" id="commonToastBody"></div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-      document.body.appendChild(toastEl);
-    }
+    toastEl.innerHTML = `
+    <div class="d-flex">
+      <div class="toast-body"></div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  `;
 
-    const bodyEl = document.getElementById("commonToastBody");
-    if (bodyEl) bodyEl.textContent = message;
+    toastEl.querySelector(".toast-body").textContent = message;
+    container.appendChild(toastEl);
 
     const t = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 1800 });
+    toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
     t.show();
+  };
+
+  const hasTrue = (v) => {
+    const s = String(v ?? "").toLowerCase();
+    return s === "true" || s === "Y" || s === "1";
   };
 
   const clearInvalid = () => {
@@ -109,7 +119,7 @@
   const ensureProjectCache = async () => {
     if (projectCache.length > 0) return true;
 
-    const res = await fetch("/api/projects/modal", {
+    const res = await fetch("/api/projects/modal/noticeCreate", {
       headers: { Accept: "application/json" },
     });
 
@@ -134,9 +144,28 @@
     const ok = await ensureProjectCache();
     if (!ok) return;
 
-    renderListButtons(ui.projectModalList, projectCache, (picked) => {
+    renderListButtons(ui.projectModalList, projectCache, async (picked) => {
       ui.projectText.value = picked.name;
       ui.projectCode.value = picked.code;
+
+      // 권한 갱신
+      try {
+        const res = await fetch(
+          `/api/authority/notice/canWrite?projectCode=${encodeURIComponent(picked.code)}`,
+          {
+            headers: { Accept: "application/json" },
+          },
+        );
+        const data = await res.json().catch(() => ({}));
+        const canWrite = !!data.canWrite;
+
+        if (ui.btnSave) ui.btnSave.dataset.canWrite = String(canWrite);
+
+        if (!canWrite) showToast("이 프로젝트는 공지 등록 권한이 없습니다.");
+      } catch (e) {
+        if (ui.btnSave) ui.btnSave.dataset.canWrite = "false";
+        showToast("권한 확인 중 오류가 발생했습니다.");
+      }
 
       ui.projectText.classList.remove("is-invalid");
       ui.projectInvalidMsg && (ui.projectInvalidMsg.textContent = "");
@@ -300,6 +329,13 @@
   };
 
   ui.form.addEventListener("submit", (e) => {
+    const canWrite = hasTrue(ui.btnSave?.dataset?.canWrite);
+    if (!canWrite) {
+      e.preventDefault();
+      showToast("권한이 없습니다.");
+      return;
+    }
+
     if (isSubmitting) {
       e.preventDefault();
       return;

@@ -29,7 +29,12 @@
       </div>
 
       <div class="card-body">
-        <form id="noticeEditForm" th:action="@{/noticeEdit}" method="post">
+        <form
+          id="noticeEditForm"
+          th:action="@{/noticeEdit}"
+          method="post"
+          enctype="multipart/form-data"
+        >
           <input
             type="hidden"
             name="noticeCode"
@@ -98,6 +103,63 @@
                 class="invalid-feedback d-block"
                 id="contentInvalidMsg"
               ></div>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-1">
+            <div class="col-12 col-md-12">
+              <label class="form-label">첨부파일</label>
+
+              <!-- 기존 첨부 표시 -->
+              <div class="mb-2" th:if="${notice.fileCode != null}">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="fa-solid fa-paperclip"></i>
+
+                  <!-- 다운로드 링크: FileController 쓰면 이게 제일 안전 -->
+                  <a
+                    th:href="@{/files/{fileCode}(fileCode=${notice.fileCode})}"
+                    th:text="${notice.originalName != null ? notice.originalName : '첨부파일'}"
+                    target="_blank"
+                    rel="noopener"
+                    >첨부파일</a
+                  >
+
+                  <span
+                    class="text-muted small"
+                    th:if="${notice.uploadedAt != null}"
+                    th:text="${#temporals.format(notice.uploadedAt,'yyyy-MM-dd HH:mm')}"
+                  ></span>
+                  <div class="form-check mt-2">
+                    <input
+                      class="form-check-input"
+                      type="checkbox"
+                      id="removeFile"
+                      name="removeFile"
+                      value="true"
+                    />
+                    <label class="form-check-label" for="removeFile"
+                      >제거</label
+                    >
+                  </div>
+                </div>
+
+                <!-- 첨부 제거 -->
+              </div>
+
+              <!-- 새 파일 업로드 -->
+              <input
+                type="file"
+                class="form-control"
+                name="uploadFile"
+                id="uploadFile"
+              />
+
+              <div class="form-text" th:if="${notice.fileCode != null}">
+                새 파일을 선택하면 기존 파일이 교체됩니다.
+              </div>
+              <div class="form-text" th:if="${notice.fileCode == null}">
+                파일을 선택해 첨부할 수 있습니다.
+              </div>
             </div>
           </div>
 

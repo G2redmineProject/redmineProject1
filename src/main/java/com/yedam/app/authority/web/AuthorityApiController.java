@@ -78,5 +78,16 @@ public class AuthorityApiController {
 
     return Map.of("success", true, "isAdmin", isAdmin);
   }
+  
+  @GetMapping("/api/authority/notice/canWrite")
+  public Map<String, Object> canWriteNotice(@RequestParam("projectCode") Long projectCode,
+                                           HttpSession session) {
+    UserVO user = (UserVO) session.getAttribute("user");
+    if (user == null) return Map.of("success", false, "canWrite", false, "message", "LOGIN_REQUIRED");
+
+    boolean canWrite = authorityService.canWrite(projectCode, user.getUserCode(), "공지");
+    return Map.of("success", true, "canWrite", canWrite);
+  }
+
 
 }

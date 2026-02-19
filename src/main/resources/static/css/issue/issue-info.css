@@ -298,13 +298,13 @@ button {
 }
 
 .change-list {
-  margin: 8px 0 0;
-  padding-left: 18px;
+  font-size: 13px;
 }
 
-.change-list li {
-  margin: 4px 0;
-  color: var(--muted);
+ul,
+ol {
+  margin: 0;
+  padding-left: 0;
 }
 
 #rejectHistoryModal .modal-body {

@@ -2,7 +2,10 @@ package com.yedam.app.attach.web;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -22,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 public class FileController {
 
   private final AttachmentMapper attachmentMapper;
+  @Value("${app.upload.dir:uploads}")
+  private String uploadDir;
 
   @GetMapping("/files/{fileCode}")
   public ResponseEntity<Resource> download(@PathVariable Long fileCode) {
@@ -29,7 +34,16 @@ public class FileController {
     AttachmentVO vo = attachmentMapper.selectDetailByFileCode(fileCode);
     if (vo == null) return ResponseEntity.notFound().build();
 
-    File f = new File(vo.getPath());
+    // DB의 path(/uploads/...)는 URL용이므로, 물리 경로는 tableCode + storedName으로 만든다.
+    String table = (vo.getTableCode() == null) ? "" : vo.getTableCode().toLowerCase();
+    String stored = vo.getStoredName();
+
+    if (table.isBlank() || stored == null || stored.isBlank()) {
+      return ResponseEntity.notFound().build();
+    }
+
+    Path physicalPath = Paths.get(System.getProperty("user.dir"), uploadDir, table, stored);
+    File f = physicalPath.toFile();
     if (!f.exists()) return ResponseEntity.notFound().build();
 
     Resource res = new FileSystemResource(f);
@@ -38,7 +52,6 @@ public class FileController {
         ? "file"
         : vo.getOriginalName();
 
-    // 한글 파일명 깨짐 방지(기본)
     String encoded = new String(filename.getBytes(StandardCharsets.UTF_8), StandardCharsets.ISO_8859_1);
 
     MediaType mt = MediaType.APPLICATION_OCTET_STREAM;

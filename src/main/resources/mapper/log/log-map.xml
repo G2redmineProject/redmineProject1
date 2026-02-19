@@ -47,4 +47,70 @@
   ORDER BY l.created_at DESC, l.log_code DESC
 </select>
 
+
+<select id="selectLogs" resultType="LogVO">
+  SELECT
+    l.log_code     AS logCode,
+    l.project_code AS projectCode,
+    p.project_name AS projectName,
+    l.user_code    AS userCode,
+    u.name         AS userName,
+    l.action_type  AS actionType,
+    l.target_type  AS targetType,
+    l.target_code  AS targetCode,
+    l.created_at   AS createdAt,
+    l.meta         AS meta,
+    
+    COALESCE(i.title, n.title) AS title
+    
+  FROM logs l
+  JOIN projects p
+    ON p.project_code = l.project_code
+  LEFT JOIN users u
+    ON u.user_code = l.user_code
+    
+     LEFT JOIN issues i
+    ON l.target_type = 'ISSUE'
+   AND i.issue_code = l.target_code
+
+  LEFT JOIN notices n
+    ON l.target_type = 'NOTICE'
+   AND n.notice_code = l.target_code
+
+
+  /* 로그인 사용자가 속한 프로젝트만 */
+  JOIN vw_user_auth a
+    ON a.project_code = l.project_code
+   AND a.user_code = #{loginUserCode}
+   AND a.status = 'OD1'
+
+  WHERE 1=1
+
+  <if test="cond.projectCode != null">
+    AND l.project_code = #{cond.projectCode}
+  </if>
+
+  <if test="cond.userCode != null">
+    AND l.user_code = #{cond.userCode}
+  </if>
+
+  <!-- 기간 -->
+  <if test="cond.fromDate != null">
+    AND l.created_at >= #{cond.fromDate}
+  </if>
+  <if test="cond.toDate != null">
+    AND l.created_at &lt; (#{cond.toDate} + 1)  <!-- toDate 포함 -->
+  </if>
+
+  <!-- 타입 체크박스(ISSUE/NOTICE/DOC ...) -->
+  <if test="targetTypes != null and targetTypes.size() > 0">
+    AND l.target_type IN
+    <foreach collection="targetTypes" item="t" open="(" separator="," close=")">
+      #{t}
+    </foreach>
+  </if>
+
+  ORDER BY l.created_at DESC, l.log_code DESC
+</select>
+
 </mapper>

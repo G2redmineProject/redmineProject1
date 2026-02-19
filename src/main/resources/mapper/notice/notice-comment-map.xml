@@ -4,7 +4,7 @@
 
 <mapper namespace="com.yedam.app.notice.mapper.NoticeCommentMapper">
 
-  <!-- 목록(공지 접근 가능한 사람만) -->
+  <!-- 목록 -->
   <select id="selectCommentList" resultType="NoticeCommentVO">
     SELECT
       c.comment_code      AS commentCode,
@@ -33,7 +33,7 @@
     ORDER BY c.comment_code DESC
   </select>
 
-  <!-- 단건(수정/삭제 전 확인용) -->
+  <!-- 단건 -->
   <select id="selectCommentOne" resultType="NoticeCommentVO">
     SELECT
       c.comment_code      AS commentCode,
@@ -58,7 +58,7 @@
     WHERE c.comment_code = #{commentCode}
   </select>
 
-  <!-- 등록: 시퀀스 없이 MAX+1 -->
+  <!-- 등록 -->
   <insert id="insertComment" parameterType="NoticeCommentVO">
     <selectKey keyProperty="commentCode" resultType="long" order="BEFORE">
       SELECT NVL(MAX(comment_code), 0) + 1 FROM comments
@@ -83,7 +83,7 @@
     )
   </insert>
 
-  <!-- 수정: soft delete 된 건 수정 금지 -->
+  <!-- 수정 삭제 된 건 수정 금지 -->
   <update id="updateComment" parameterType="NoticeCommentVO">
     UPDATE comments
        SET content = #{content},
@@ -92,7 +92,7 @@
        AND is_deleted = 0
   </update>
 
-  <!-- 삭제: soft delete -->
+  <!-- 삭제 -->
   <update id="softDeleteComment">
     UPDATE comments
        SET is_deleted = 1,

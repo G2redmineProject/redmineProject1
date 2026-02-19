@@ -24,4 +24,7 @@ public interface NoticeMapper {
   
   //삭제
   int deleteNotice(@Param("noticeCode") Long noticeCode);
+  
+  // before/after 비교
+  NoticeVO selectNoticeByCode(@Param("noticeCode") Long noticeCode);
 }

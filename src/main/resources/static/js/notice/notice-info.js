@@ -49,8 +49,60 @@
 
   const hasTrue = (v) => String(v).toLowerCase() === "true";
 
+  // =========================
+  // 뒤로가기 앵커 저장/복원
+  // =========================
+  const ANCHOR_KEY = "notice_back_anchor";
+
+  const withTs = (urlStr) => {
+    try {
+      const url = new URL(urlStr, location.origin);
+      url.searchParams.set("_ts", String(Date.now()));
+      return url.toString();
+    } catch {
+      const sep = urlStr.includes("?") ? "&" : "?";
+      return `${urlStr}${sep}_ts=${Date.now()}`;
+    }
+  };
+
+  (function saveBackAnchor() {
+    const ref = document.referrer || "";
+    if (!ref) return;
+
+    // 수정/등록 화면에서 온 ref는 저장하지 않음(중간 경유 방지)
+    const isEditLike =
+      ref.includes("/noticeEdit") || ref.includes("/noticeInsert");
+
+    if (isEditLike) return;
+
+    // 돌아갈 후보: 공지목록 / 작업이력 등 (필요하면 추가)
+    const isBackCandidate =
+      ref.includes("/noticeList") || ref.includes("/logs");
+
+    if (!isBackCandidate) return;
+
+    sessionStorage.setItem(ANCHOR_KEY, ref);
+  })();
+
   ui.btnBack?.addEventListener("click", () => {
-    location.href = "/noticeList";
+    const ref = document.referrer || "";
+    const anchor = sessionStorage.getItem(ANCHOR_KEY) || "";
+
+    // 직전이 수정페이지면 저장된 전전페이지로(없으면 목록)
+    if (ref.includes("/noticeEdit")) {
+      if (anchor) return location.replace(withTs(anchor));
+      return location.replace(withTs("/noticeList"));
+    }
+
+    // 직전이 목록/작업이력이라면 그대로
+    if (ref.includes("/noticeList")) return location.replace(withTs(ref));
+    if (ref.includes("/logs")) return location.replace(withTs(ref));
+
+    // ref가 이상하면 anchor 우선
+    if (anchor) return location.replace(withTs(anchor));
+
+    // 최종 fallback
+    location.replace(withTs("/noticeList"));
   });
 
   // 공지 수정/삭제 버튼
@@ -94,7 +146,11 @@
       }
 
       showToast("삭제되었습니다.");
-      location.href = "/noticeList";
+
+      // 삭제 후에도 "원래 오던 곳"으로
+      const anchor = sessionStorage.getItem(ANCHOR_KEY) || "";
+      if (anchor) location.replace(withTs(anchor));
+      else location.replace(withTs("/noticeList"));
     } catch (e) {
       showToast("삭제 중 오류가 발생했습니다.");
     }
@@ -204,7 +260,7 @@
 
   ui.btnCommentSubmit?.addEventListener("click", submitComment);
 
-  // Ctrl+Enter -> Enter 등록, Shift+Enter는 줄바꿈
+  // Enter 등록, Shift+Enter는 줄바꿈
   ui.commentContent?.addEventListener("keydown", (e) => {
     if (e.isComposing) return;
 
@@ -237,7 +293,6 @@
       const bodyEl = item.querySelector(".comment-body");
       if (!bodyEl) return;
 
-      // 이미 편집 중이면 무시
       if (item.querySelector(".comment-edit-area")) return;
 
       const origin = bodyEl.textContent || "";
@@ -250,13 +305,13 @@
           <button type="button" class="btn btn-sm btn-success btnCommentSave">저장</button>
         </div>
       `;
+
       const ta = editWrap.querySelector(".comment-edit-text");
       ta.value = origin;
 
       bodyEl.style.display = "none";
       item.appendChild(editWrap);
       ta.focus();
-
       return;
     }
 
@@ -360,7 +415,6 @@
           return;
         }
 
-        // UI: 삭제된 댓글입니다.
         item.dataset.isDeleted = "1";
 
         const actions = item.querySelector(".head-actions");

@@ -20,4 +20,14 @@ public class LogVO {
 	  private String meta;
 	  
 	  private String userName;
+	  private String projectName;
+	  
+	  private String title;
+	  
+	// 조회 조건용(화면 필터)
+	  @DateTimeFormat(pattern = "yyyy-MM-dd")
+	  private LocalDateTime fromDate;
+
+	  @DateTimeFormat(pattern = "yyyy-MM-dd")
+	  private LocalDateTime toDate;
 }

@@ -11,4 +11,8 @@ public interface LogMapper {
 	
 	List<LogVO> selectLogsByTarget(@Param("targetType") String targetType,
             @Param("targetCode") Long targetCode);
+	
+	List<LogVO> selectLogs(@Param("loginUserCode") Integer loginUserCode,
+            @Param("cond") LogVO cond,
+            @Param("targetTypes") List<String> targetTypes);
 }
