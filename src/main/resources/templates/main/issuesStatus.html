@@ -63,7 +63,10 @@
 
 						<tbody>
 							<tr th:each="l : ${AssIssStaList}">
-								<td th:text="${l.userName}">홍길동</td>
+								<td><a
+									th:href="@{/users/{userCode}(userCode=${l.userCode})}"
+									th:text="${l.userName}" class="user-link text-decoration-none">
+								</a></td>
 								<td th:text="${l.newIss}">0</td>
 								<td th:text="${l.progress}">0</td>
 								<td th:text="${l.solution}">0</td>
@@ -108,8 +111,10 @@
 						<tbody>
 							<tr th:each="t : ${topIssueList}">
 								<td th:text="${t.title}">이슈 제목</td>
-								<td th:text="${t.priorityName != null ? t.priorityName : t.priorityCode}">긴급</td>
-								<td th:text="${t.statusName != null ? t.statusName : t.statusCodeId}">진행</td>
+								<td
+									th:text="${t.priorityName != null ? t.priorityName : t.priorityCode}">긴급</td>
+								<td
+									th:text="${t.statusName != null ? t.statusName : t.statusCodeId}">진행</td>
 
 
 								<td
