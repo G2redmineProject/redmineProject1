@@ -83,7 +83,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 
 		if (!hasPermission) {
 			System.out.println("상세 권한 부족 (Type: " + uriInfo.getType() + ")");
-			response.sendRedirect("/accessDenied");
+			response.sendError(HttpServletResponse.SC_FORBIDDEN, "권한이 없습니다.");
 			return false;
 		}
 
