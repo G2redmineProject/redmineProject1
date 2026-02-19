@@ -25,7 +25,6 @@ public class GanttServiceImpl implements GanttService {
 	public List<GanttVO> getGanttList(Integer userCode, GanttVO ganttVO) {
 		List<GanttVO> list = ganttMapper.selectGanttList(userCode, ganttVO);
 
-		Map<Integer, Integer> issueCountMap = new HashMap<>();
 		Map<Integer, LocalDateTime> projectEndDateMap = new HashMap<>();
 
 		calculateProjectEndDates(list, projectEndDateMap);
@@ -36,13 +35,11 @@ public class GanttServiceImpl implements GanttService {
 				vo.setIssueStartDate(issueStartDate(vo));
 				vo.setIssueEndDate(issueEndDate(vo));
 
-				System.out.println("ISSUE=" + vo.getNodeId() + " / status=" + vo.getIssueStatus() + " / start="
-						+ vo.getIssueStartDate() + " / end=" + vo.getIssueEndDate());
 			}
 		}
 
 		// 2단계: 나머지 계산 결과 적용
-		applyCalculatedValues(list, issueCountMap, projectEndDateMap);
+		applyCalculatedValues(list, projectEndDateMap);
 
 		return list;
 	}
@@ -99,8 +96,7 @@ public class GanttServiceImpl implements GanttService {
 	}
 
 	// 계산 결과 VO에 넣기
-	private void applyCalculatedValues(List<GanttVO> list, Map<Integer, Integer> issueCountMap,
-			Map<Integer, LocalDateTime> projectEndDateMap) {
+	private void applyCalculatedValues(List<GanttVO> list, Map<Integer, LocalDateTime> projectEndDateMap) {
 
 		for (GanttVO vo : list) {
 			Integer projectCode = vo.getProjectCode();
