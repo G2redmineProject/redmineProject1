@@ -1,6 +1,5 @@
 /* =========================================================
    overview - /static/css/overview/overview.css
-   (No horizontal/vertical scroll glitches on resize)
    ========================================================= */
 
 /* ===== Page Title ===== */
@@ -27,87 +26,64 @@
 /* ===== Main Grid ===== */
 .main-grid {
 	display: grid;
-	grid-template-columns: 1fr 1.4fr; /* 왼쪽(차트) : 오른쪽(테이블) */
-	gap: 14px;
+	grid-template-columns: 1fr 1fr; /* 좌우 균형 */
+	gap: 16px;
+	margin-top: 12px;
 	align-items: stretch;
-	overflow-x: hidden; /* ✅ grid 자체가 가로 스크롤 만들지 않게 */
 }
 
+.main-grid>.full-width {
+	grid-column: span 2;
+}
+
+/* 모바일 대응 */
 @media ( max-width : 992px) {
 	.main-grid {
 		grid-template-columns: 1fr;
 	}
+	.main-grid>.full-width {
+		grid-column: span 1;
+	}
 }
 
-/* ===== Card (통일) ===== */
-/* ✅ 카드 "전체 높이"를 고정(또는 최소 높이)하고,
-   내부는 header + body가 정확히 나눠먹도록 만든다. */
+/* ===== 카드 공통 ===== */
 .main-card {
 	border-radius: 10px;
 	border: 1px solid #e5e7eb;
-	background: #ffffff;
-	overflow: hidden;
-	/* 기존 min-height 대신 '카드 높이'를 안정적으로 유지 */
-	height: 360px; /* ✅ 고정 높이 (원하면 340~380 사이로 조절) */
-	display: flex; /* ✅ header/body 높이 분리 */
+	background: #fff;
+	display: flex;
 	flex-direction: column;
+	min-height: 200px;
+	overflow: hidden;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+
+.main-card.full-width {
+	min-height: 240px;
 }
 
 .main-card .card-header {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	justify-content: space-between;
 	font-weight: 700;
-	background-color: rgb(224, 229, 243);
+	gap: 8px;
+	background-color: #e0e5f3;
 	color: #111827;
 	border-bottom: 1px solid #e5e7eb;
-	/* ✅ 헤더 높이를 고정해 body calc가 안정적 */
 	min-height: 52px;
-	padding: 12px 16px; /* 부트스트랩 기본과 비슷하게 */
+	padding: 12px 16px;
 }
 
-/* ✅ card-body는 남은 높이 전부 차지 */
 .main-card .card-body {
 	flex: 1 1 auto;
-	min-height: 0; /* ✅ flex 컨테이너에서 overflow 계산 안정화 */
-	overflow: hidden; /* ✅ 카드 자체 스크롤 금지 */
-}
-
-/* p-0 쓰는 카드가 있으니 padding은 HTML에 맡기고, 필요 시 아래만 */
-.main-card .card-body.p-0 {
-	padding: 0 !important;
-}
-
-/* ===== Chart ===== */
-/* ✅ 차트는 card-body 안에서 100%만 사용 (절대 넘지 않게) */
-.chart-wrap {
-	height: 100%;
-	width: 100%;
-	padding: 8px 10px 12px;
-	overflow: hidden; /* ✅ 세로/가로 튐 방지 */
+	min-height: 0;
+	padding: 8px 12px;
+	overflow: auto;
 	box-sizing: border-box;
 }
 
-.chart-box {
-	width: 100%;
-	height: 100%;
-	overflow: hidden;
-}
-
-/* 구글 차트가 내부에 만드는 svg/div 폭/높이 튐 방지 */
-#donutchart, #donutchart>div, #donutchart svg {
-	width: 100% !important;
-	max-width: 100% !important;
-}
-
-/* ===== Project Issue Table (상단 오른쪽) ===== */
-/* ✅ 테이블 스크롤은 wrap에서만 */
-.main-table-wrap {
-	height: 100%; /* ✅ card-body 높이에 딱 맞춤 */
-	overflow: auto; /* ✅ 여기서만 스크롤 허용 */
-}
-
-/* table 기본 */
+/* ===== 테이블 스타일 ===== */
 #mainIssueTable {
 	width: 100%;
 	white-space: nowrap;
@@ -117,24 +93,14 @@
 #mainIssueTable thead th {
 	font-size: 14px;
 	font-weight: 800;
-	vertical-align: middle;
 	color: #111827;
 	border-bottom: 1px solid #e5e7eb;
 }
 
 #mainIssueTable tbody td {
 	font-size: 14px;
-	vertical-align: middle;
 	color: #111827;
 	border-color: #eeeeee;
-}
-
-#mainIssueTable.table-hover>tbody>tr:hover>* {
-	background-color: #ffffff;
-}
-
-#mainIssueTable.table-hover>tbody>tr.no-data-row:hover>* {
-	background-color: transparent !important;
 }
 
 #mainIssueTable tbody tr.no-data-row {
@@ -147,46 +113,24 @@
 	cursor: pointer;
 }
 
-/* 프로젝트명 */
-.proj-name {
-	font-weight: 800;
-	color: #111827;
+/* 클릭 가능한 구성원/그룹 */
+.clickable-row {
+	cursor: pointer;
+	transition: background 0.2s;
 }
 
-/* 관리자 배지 */
-.admin-badge {
-	display: inline-block;
-	font-size: 11px;
-	padding: 3px 8px;
-	border-radius: 999px;
-	border: 1px solid #c7d2fe;
-	background: #eef2ff;
-	color: #3730a3;
-	font-weight: 800;
+.clickable-row:hover {
+	background: #f5f5f5;
 }
 
-/* 하단 안내 문구 */
-.main-hint {
-	padding: 10px 12px;
-	border-top: 1px solid #e5e7eb;
-	font-size: 12px;
-	color: #6b7280;
-	background: #fafafa;
+/* 읽기 전용 구성원/그룹 */
+.readonly-row {
+	cursor: default;
+	pointer-events: none; /* 클릭 방지 */
+	background: #fff; /* hover 없어도 배경 유지 */
 }
 
-/* ===== Notice (하단 왼쪽) ===== */
-/* ✅ 공지 리스트도 card-body 안에서만 스크롤 나도록 */
-.notice-list {
-	height: 100%;
-	overflow: auto;
-}
-
-/* list-group-item */
-.notice-list .list-group-item {
-	padding: 12px 14px;
-	border-color: #eeeeee;
-}
-
+/* 공지사항 스타일 */
 .notice-title {
 	font-weight: 800;
 	color: #111827;
@@ -205,24 +149,31 @@
 	font-weight: 900;
 }
 
-/* ===== Today Progress (하단 오른쪽) ===== */
-.today-rate-value {
-	font-size: 34px;
-	font-weight: 900;
-	text-align: center;
+/* 구성원 / 그룹 리스트 */
+.member-list li, .notice-list a {
+	padding: 10px 12px;
+	border-radius: 8px;
+	margin-bottom: 6px;
+	transition: background 0.2s;
+}
+
+.member-list li:hover, .notice-list a:hover {
+	background: #f5f5f5;
+}
+
+.member-name {
+	font-weight: 600;
 	color: #111827;
 }
 
-/* 부트스트랩 progress 커스텀 */
-.progress-lg {
-	height: 16px;
-	border-radius: 999px;
-	background: #e5e7eb;
-	overflow: hidden;
+.member-email {
+	font-size: 13px;
+	color: #6b7280;
 }
 
-.progress-lg .progress-bar {
-	border-radius: 999px;
-	background: linear-gradient(90deg, #3b9ff6, #6366f1);
-	transition: width 0.4s ease;
+.member-list li {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	flex-wrap: wrap;
 }
