@@ -1,7 +1,11 @@
 package com.yedam.app.user.mapper;
 
+import java.util.List;
+
 import com.yedam.app.login.service.UserVO;
+import com.yedam.app.user.service.MyGroupProjectRoleVO;
 import com.yedam.app.user.service.MyInfoUpdateReqDTO;
+import com.yedam.app.user.service.MyProjectRoleVO;
 
 public interface MyInfoMapper {
 	
@@ -17,4 +21,9 @@ public interface MyInfoMapper {
 	// 새 비밀번호 업데이트
 	public int updatePassword(Integer userCode, String encodedPw);
 	
+	// 내가 속한 프로젝트 + 역할
+	public List<MyProjectRoleVO> selectMyProjectsWithRoles(Integer userCode);
+
+	// 내가 속한 그룹 + (프로젝트 + 역할)
+	public List<MyGroupProjectRoleVO> selectMyGroupsWithProjectRoles(Integer userCode);
 }

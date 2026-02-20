@@ -11,19 +11,20 @@
 <body>
 	<div layout:fragment="Content">
 
-		<!-- 타이틀 -->
+		<!-- 타이틀 + 우측 블록추가 버튼 -->
 		<div class="x-page-title">
-			<h3 class="page-title">내 페이지</h3>
-			<div class="page-title-sub">필요한 블록을 추가하고 드래그로 배치할 수 있습니다.</div>
-		</div>
+			<div class="x-page-title-row">
+				<div class="x-page-title-left">
+					<h3 class="page-title">내 페이지</h3>
+					<div class="page-title-sub">필요한 블록을 추가하고 드래그로 배치할 수 있습니다.</div>
+				</div>
 
-		<!-- 상단 컨트롤 -->
-		<div class="my-toolbar">
-			<div class="right">
-				<button type="button" class="btn btn-success btn-sm"
-					id="btnAddBlock">
-					<i class="fas fa-plus me-1"></i>블록 추가
-				</button>
+				<div class="x-page-title-right">
+					<button type="button" class="btn btn-success btn-sm"
+						id="btnAddBlock">
+						<i class="fas fa-plus me-1"></i>블록 추가
+					</button>
+				</div>
 			</div>
 		</div>
 
@@ -36,25 +37,19 @@
 				<!-- 헤더 -->
 				<div class="card-header my-block-header">
 
-					<!-- 타이틀 클릭 → 해당 화면 이동 -->
-					<a class="my-block-title"
-						th:href="${b.blockType == 'ASSIGNED'} ? @{/issuesStatus?tab=assignee}
-                : (${b.blockType == 'REGISTERED'} ? @{/issuesStatus?tab=created}
-                : (${b.blockType == 'NOTICE'} ? @{/notices}
-                : (${b.blockType == 'CALENDAR'} ? @{/calendar}
-                : (${b.blockType == 'WORKLOG'} ? @{/my(days=${days})}
-                : @{/my}))))">
+					
+					<div class="my-block-title">
 
 						<i class="fas fa-grip-vertical me-2 drag-handle" title="드래그로 이동"></i>
 
 						<span
 						th:text="${b.blockType == 'ASSIGNED'} ? '할당된 일감'
-                  : (${b.blockType == 'REGISTERED'} ? '등록한 일감'
-                  : (${b.blockType == 'NOTICE'} ? '최근공지'
-                  : (${b.blockType == 'CALENDAR'} ? '달력(주간)'
-                  : (${b.blockType == 'WORKLOG'} ? '작업내역' : b.blockType))))">
+                     : (${b.blockType == 'REGISTERED'} ? '등록한 일감'
+                     : (${b.blockType == 'NOTICE'} ? '최근공지'
+                     : (${b.blockType == 'CALENDAR'} ? '달력(주간)'
+                     : (${b.blockType == 'WORKLOG'} ? '작업내역' : b.blockType))))">
 							블록 </span>
-					</a>
+					</div>
 
 					<div class="my-block-actions">
 
@@ -72,11 +67,18 @@
 							<button class="btn btn-sm btn-primary" type="submit">조회</button>
 						</form>
 
+						<!-- ✅ CALENDAR일 때만 체크박스 2개 (기본 둘다 체크) -->
+						<div th:if="${b.blockType == 'CALENDAR'}" class="cal-filter">
+							<label class="cal-check"> <input type="checkbox"
+								class="calFilterChk" data-kind="ASSIGNED" checked> <span>할당</span>
+							</label> <label class="cal-check"> <input type="checkbox"
+								class="calFilterChk" data-kind="REGISTERED" checked> <span>등록</span>
+							</label>
+						</div>
+
 						<!-- 모든 블록 삭제 가능 -->
-						<button type="button" class="btn btn-sm btn-danger btnDelBlock"
-							title="블록 삭제">
-							<i class="fas fa-trash"></i>
-						</button>
+						<button type="button" class="btn-close btnDelBlock x-del"
+							aria-label="블록 삭제" title="블록 삭제"></button>
 
 					</div>
 				</div>
@@ -85,7 +87,7 @@
 				<div class="card-body p-0">
 
 					<!-- ASSIGNED -->
-					<div th:if="${b.blockType == 'ASSIGNED'}" class="p-3">
+					<div th:if="${b.blockType == 'ASSIGNED'}" class="p-3 block-inner">
 						<div th:if="${#lists.isEmpty(blockData['ASSIGNED'])}"
 							class="text-muted">할당된 일감이 없습니다.</div>
 
@@ -102,9 +104,11 @@
 							<tbody>
 								<tr th:each="i : ${blockData['ASSIGNED']}">
 									<td class="text-truncate" th:text="${i.projectName}">프로젝트</td>
-									<td class="text-truncate"><a
+									<td class="text-truncate">
+										<!-- ✅ 제목 링크 → 뱃지 링크 --> <a class="x-badge-link x-badge-issue"
 										th:href="@{/issueInfo(issueCode=${i.issueCode})}"
-										th:text="${i.title}">이슈</a></td>
+										th:text="${i.title}">이슈</a>
+									</td>
 									<td th:text="${i.statusName}">진행</td>
 									<td class="text-end"><a class="icon-link"
 										th:href="@{/issueEdit(issueCode=${i.issueCode})}" title="편집">
@@ -113,10 +117,20 @@
 								</tr>
 							</tbody>
 						</table>
+
+						<div class="block-spacer"></div>
+
+						<div class="block-pager" data-pager-for="ASSIGNED">
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-prev">이전</button>
+							<div class="pager-pages"></div>
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-next">다음</button>
+						</div>
 					</div>
 
 					<!-- REGISTERED -->
-					<div th:if="${b.blockType == 'REGISTERED'}" class="p-3">
+					<div th:if="${b.blockType == 'REGISTERED'}" class="p-3 block-inner">
 						<div th:if="${#lists.isEmpty(blockData['REGISTERED'])}"
 							class="text-muted">등록한 일감이 없습니다.</div>
 
@@ -133,9 +147,11 @@
 							<tbody>
 								<tr th:each="i : ${blockData['REGISTERED']}">
 									<td class="text-truncate" th:text="${i.projectName}">프로젝트</td>
-									<td class="text-truncate"><a
+									<td class="text-truncate">
+										<!-- ✅ 제목 링크 → 뱃지 링크 --> <a class="x-badge-link x-badge-issue"
 										th:href="@{/issueInfo(issueCode=${i.issueCode})}"
-										th:text="${i.title}">이슈</a></td>
+										th:text="${i.title}">이슈</a>
+									</td>
 									<td th:text="${i.statusName}">신규</td>
 									<td class="text-end"><a class="icon-link"
 										th:href="@{/issueEdit(issueCode=${i.issueCode})}" title="편집">
@@ -144,10 +160,20 @@
 								</tr>
 							</tbody>
 						</table>
+
+						<div class="block-spacer"></div>
+
+						<div class="block-pager" data-pager-for="REGISTERED">
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-prev">이전</button>
+							<div class="pager-pages"></div>
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-next">다음</button>
+						</div>
 					</div>
 
 					<!-- NOTICE -->
-					<div th:if="${b.blockType == 'NOTICE'}" class="p-3">
+					<div th:if="${b.blockType == 'NOTICE'}" class="p-3 block-inner">
 						<div th:if="${#lists.isEmpty(blockData['NOTICE'])}"
 							class="text-muted">최근 공지가 없습니다.</div>
 
@@ -157,9 +183,9 @@
 								th:each="n : ${blockData['NOTICE']}">
 								<div class="d-flex justify-content-between gap-2">
 									<div class="text-truncate">
-										<span class="badge bg-secondary me-1"
-											th:text="${n.projectName}">P</span> <a
-											th:href="@{/notices/{noticeCode}(noticeCode=${n.noticeCode})}"
+										<span class="notice-project" th:text="${n.projectName}">프로젝트명</span>
+										<a class="x-badge-link x-badge-notice"
+											th:href="@{/noticeInfo(noticeCode=${n.noticeCode})}"
 											th:text="${n.title}">공지</a>
 									</div>
 									<div class="text-muted small"
@@ -168,12 +194,22 @@
 								</div>
 							</li>
 						</ul>
+
+						<div class="block-spacer"></div>
+
+						<div class="block-pager" data-pager-for="NOTICE">
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-prev">이전</button>
+							<div class="pager-pages"></div>
+							<button type="button"
+								class="btn btn-sm btn-outline-secondary pager-next">다음</button>
+						</div>
 					</div>
 
-					<!-- CALENDAR (주간 간트) -->
-					<div th:if="${b.blockType == 'CALENDAR'}" class="p-3">
-						<div th:if="${blockData['CALENDAR'] == null}" class="text-muted">
-							달력 데이터가 없습니다.</div>
+					<!-- CALENDAR (주간 간트) : 내부 스크롤 -->
+					<div th:if="${b.blockType == 'CALENDAR'}" class="block-calendar">
+						<div th:if="${blockData['CALENDAR'] == null}"
+							class="text-muted p-3">달력 데이터가 없습니다.</div>
 
 						<div th:if="${blockData['CALENDAR'] != null}" class="gantt">
 
@@ -186,83 +222,114 @@
 										th:each="d : ${blockData['CALENDAR'].days}"
 										th:with="ld=${T(java.time.LocalDate).parse(d)}"
 										th:classappend="|${d == todayStr ? ' is-today' : ''}${#sets.contains(weekendDays, d) ? ' is-weekend' : ''}|">
-
 										<div class="dow" th:text="${#temporals.format(ld,'EEE')}">Mon</div>
 										<div class="md" th:text="${#temporals.format(ld,'MM/dd')}">02/19</div>
 									</div>
 								</div>
 							</div>
 
+							<!-- 바디 -->
+							<div class="gantt-body">
+								<div th:each="p : ${blockData['CALENDAR'].projects}"
+									class="gantt-project"
+									th:attr="data-project=${p.projectCode}, data-project-name=${p.projectName}">
 
-							<!-- 프로젝트 행 -->
-							<!-- 프로젝트 행 (✅ 1행 = 1일감) -->
-							<div th:each="p : ${blockData['CALENDAR'].projects}">
-
-								<!-- 일감이 하나도 없으면 프로젝트만 1줄 표시 -->
-								<div class="gantt-row" th:if="${#lists.isEmpty(p.items)}"
-									th:attr="data-project=${p.projectCode}">
-									<div class="gantt-left" th:text="${p.projectName}">프로젝트</div>
-
-									<div class="gantt-bars"
-										th:attr="data-week-start=${blockData['CALENDAR'].weekStart}">
-										<!-- 빈줄 -->
+									<!-- ✅ 항상 placeholder를 렌더링해두고 JS가 show/hide 하게 함 -->
+									<div class="gantt-row gantt-empty-row"
+										th:attr="data-project=${p.projectCode}" style="display: none;">
+										<div class="gantt-left gantt-left--single"
+											th:text="${p.projectName}">프로젝트</div>
+										<div class="gantt-bars"
+											th:attr="data-week-start=${blockData['CALENDAR'].weekStart}">
+											<div class="gantt-gridlines" aria-hidden="true">
+												<i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+											</div>
+										</div>
 									</div>
-								</div>
 
-								<!-- ✅ 일감 개수만큼 행을 추가 -->
-								<div class="gantt-row" th:each="it, stat : ${p.items}"
-									th:attr="data-project=${p.projectCode}">
+									<!-- 일감 있으면 table + rowspan -->
+									<table th:if="${!#lists.isEmpty(p.items)}" class="gantt-table">
+										<tbody>
+											<tr th:each="it, stat : ${p.items}"
+												th:attr="data-project=${p.projectCode},
+											             data-assigned=${it.assignedYn},
+											             data-registered=${it.registeredYn}">
 
-									<!-- 첫 번째 행에만 프로젝트명 -->
-									<div class="gantt-left"
-										th:text="${stat.index == 0 ? p.projectName : ''}">프로젝트</div>
+												<td th:if="${stat.index == 0}" class="gantt-left-cell"
+													th:rowspan="${#lists.size(p.items)}">
+													<div class="gantt-left-inner" th:text="${p.projectName}">프로젝트</div>
+												</td>
 
-									<div class="gantt-bars"
-										th:attr="data-week-start=${blockData['CALENDAR'].weekStart}">
+												<td class="gantt-bars-cell">
+													<div class="gantt-bars"
+														th:attr="data-week-start=${blockData['CALENDAR'].weekStart}">
+														<div class="gantt-gridlines" aria-hidden="true">
+															<i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+														</div>
 
-										<!-- bar는 이 행에 딱 1개 -->
-										<div class="gantt-bar"
-											th:attr="data-issue=${it.issueCode},
-                    							data-project=${it.projectCode},
-                    							data-project-name=${it.projectName},
-                    							data-title=${it.title},
-                    							data-start=${it.startAt != null ? #dates.format(it.startAt,'yyyy-MM-dd') : ''},
-                    							data-end=${it.endAt != null ? #dates.format(it.endAt,'yyyy-MM-dd') : ''}"
-											data-bs-toggle="tooltip" data-bs-html="false"
-											th:title="|${it.projectName} / ${it.title}|"></div>
+														<div class="gantt-bar"
+															th:attr="data-issue=${it.issueCode},
+                                      data-project=${it.projectCode},
+                                      data-project-name=${it.projectName},
+                                      data-title=${it.title},
+                                      data-start=${it.startAt != null ? #dates.format(it.startAt,'yyyy-MM-dd') : ''},
+                                      data-end=${it.endAt != null ? #dates.format(it.endAt,'yyyy-MM-dd') : ''}"
+															data-bs-toggle="tooltip" data-bs-html="false"
+															th:title="|${it.projectName} / ${it.title}|"></div>
 
-										<!-- (선택) 오른쪽에 제목을 텍스트로도 보여주고 싶으면 -->
-										<div class="gantt-label text-truncate" th:text="${it.title}">이슈
-											제목</div>
+														<div class="gantt-label text-truncate"
+															th:text="${it.title}">이슈 제목</div>
+													</div>
+												</td>
 
+											</tr>
+										</tbody>
+									</table>
+
+									<!-- ✅ 프로젝트에 아예 아이템 없으면(진짜 0개) 서버 렌더링으로 placeholder 1줄 -->
+									<div class="gantt-row" th:if="${#lists.isEmpty(p.items)}"
+										th:attr="data-project=${p.projectCode}">
+										<div class="gantt-left gantt-left--single"
+											th:text="${p.projectName}">프로젝트</div>
+										<div class="gantt-bars"
+											th:attr="data-week-start=${blockData['CALENDAR'].weekStart}">
+											<div class="gantt-gridlines" aria-hidden="true">
+												<i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+											</div>
+										</div>
 									</div>
+
 								</div>
 							</div>
 
 						</div>
 					</div>
 
-					<!-- WORKLOG -->
-					<div th:if="${b.blockType == 'WORKLOG'}" class="p-3">
+					<!-- WORKLOG : 내부 스크롤 -->
+					<div th:if="${b.blockType == 'WORKLOG'}"
+						class="p-3 block-inner worklog-inner">
 						<div th:if="${#maps.isEmpty(blockData['WORKLOG'])}"
 							class="text-muted">표시할 작업 내역이 없습니다.</div>
 
-						<div th:each="dayEntry : ${blockData['WORKLOG']}">
-							<div class="work-day-title" th:text="${dayEntry.key}">2026-02-12</div>
+						<div th:if="${!#maps.isEmpty(blockData['WORKLOG'])}"
+							class="worklog-scroll">
+							<div th:each="dayEntry : ${blockData['WORKLOG']}">
+								<div class="work-day-title" th:text="${dayEntry.key}">2026-02-12</div>
 
-							<div th:each="w : ${dayEntry.value}" class="work-card">
-								<div class="work-head">
-									<span class="work-time" th:text="${w.time}">17:06</span> <span
-										class="work-slash">/</span> <span class="work-action"
-										th:text="${w.actionLabel}">수정</span> <span class="work-slash">/</span>
-									<span class="work-actor" th:text="${w.actorName}">나</span>
+								<div th:each="w : ${dayEntry.value}" class="work-card">
+									<div class="work-head">
+										<span class="work-time" th:text="${w.time}">17:06</span> <span
+											class="work-slash">/</span> <span class="work-action"
+											th:text="${w.actionLabel}">수정</span> <span class="work-slash">/</span>
+										<span class="work-actor" th:text="${w.actorName}">나</span>
+									</div>
+
+									<div class="work-title"
+										th:text="|${w.projectName} / ${w.issueTitle != null ? w.issueTitle : '-'}|">
+										프로젝트/이슈</div>
+
+									<div class="work-detail" th:utext="${w.detailHtml}"></div>
 								</div>
-
-								<div class="work-title"
-									th:text="|${w.projectName} / ${w.issueTitle != null ? w.issueTitle : '-'}|">
-									프로젝트/이슈</div>
-
-								<div class="work-detail" th:utext="${w.detailHtml}"></div>
 							</div>
 						</div>
 					</div>
@@ -271,7 +338,6 @@
 				<!-- card-body -->
 			</div>
 			<!-- card -->
-
 		</div>
 		<!-- grid -->
 
@@ -297,7 +363,7 @@
 						</div>
 
 						<div class="text-muted small mt-2">블록은 자유롭게 추가/삭제할 수 있습니다.
-							(블록이 0개면 기본 블록이 자동 생성됩니다)</div>
+							(화면에 블록이 없을경우 기본 블럭이 자동생성)</div>
 					</div>
 				</div>
 			</div>
@@ -309,6 +375,8 @@
 	<th:block layout:fragment="pageScript">
 		<script
 			src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+		<script
+			src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/plugins/AutoScroll/AutoScroll.min.js"></script>
 		<script th:src="@{/js/mypage/my-page.js}"></script>
 	</th:block>
 

@@ -1,5 +1,7 @@
 package com.yedam.app.user.web;
 
+import java.util.List;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -8,8 +10,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.yedam.app.login.service.UserVO;
+import com.yedam.app.user.service.MyGroupProjectRoleVO;
 import com.yedam.app.user.service.MyInfoService;
 import com.yedam.app.user.service.MyInfoUpdateReqDTO;
+import com.yedam.app.user.service.MyProjectRoleVO;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
@@ -39,8 +43,14 @@ public class MyInfoController {
 	      return "redirect:/G2main";
 	    }
 	    
-	    // 모델에 user 넣기
+	    // 프로젝트/그룹 정보 조회
+	    List<MyProjectRoleVO> myProjects = myInfoService.findMyProjectsWithRoles(userCode);
+	    List<MyGroupProjectRoleVO> myGroups = myInfoService.findMyGroupsWithProjectRoles(userCode);
+	    
+	    // 모델에 넣기
 	    model.addAttribute("user", user);
+	    model.addAttribute("myProjects", myProjects);
+	    model.addAttribute("myGroups", myGroups);
 		
 		return "user/myInfo";
 	}

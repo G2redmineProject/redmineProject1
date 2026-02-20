@@ -32,7 +32,7 @@ public class MyPageController {
 	 * - 로그인 사용자 기준으로 blocks + blockData 구성
 	 */
 	@GetMapping("/my")
-	public String myPage(@RequestParam(defaultValue = "1") int days,
+	public String myPage(@RequestParam(defaultValue = "7") int days,
 						 HttpSession session,
 						 Model model) {
 

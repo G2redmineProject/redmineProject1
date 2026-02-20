@@ -1,45 +1,54 @@
+/* =========================================================
+   /static/css/mypage/my-page.css
+   - 뱃지 톤 통일 + row 높이 고정
+   - 페이징 안 잘리게 레이아웃 보강
+   - CALENDAR 체크박스 필터 UI
+   ========================================================= */
+
 /* =========================
    user-page 톤 통일
    ========================= */
-.x-page-title {
+.x-page-title{
   margin: 14px 0 12px;
   padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
-.x-page-title .page-title {
+
+.x-page-title-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.x-page-title-left{ min-width:0; }
+
+.x-page-title .page-title{
   margin: 0;
   font-size: 20px;
   font-weight: 800;
   color: #111827;
   letter-spacing: -0.2px;
 }
-.x-page-title .page-title-sub {
+
+.x-page-title .page-title-sub{
   margin-top: 4px;
   font-size: 12px;
   color: #6b7280;
 }
 
-/* 카드 */
-.card {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-
-/* =========================
-   툴바
-   ========================= */
-.my-toolbar{
+.x-page-title-right{
   display:flex;
   align-items:center;
   justify-content:flex-end;
-  gap:12px;
-  margin-bottom: 12px;
+  flex: 0 0 auto;
 }
-.my-toolbar .right{
-  display:flex;
-  align-items:center;
-  gap:8px;
+
+/* 카드(공통) */
+.card{
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
 }
 
 /* =========================
@@ -52,6 +61,29 @@
 }
 @media (max-width: 992px){
   .my-block-grid{ grid-template-columns: 1fr; }
+}
+
+/* =========================
+   블록 고정 높이
+   ========================= */
+:root{
+  --block-height: 420px;
+  --block-head-h: 48px;
+
+  /* ✅ 행 높이 고정(뱃지 커져도 row는 커지면 안됨) */
+  --row-h: 34px;
+  --row-pad-y: 6px;
+}
+
+.my-block{
+  height: var(--block-height);
+  display:flex;
+  flex-direction: column;
+}
+
+.my-block > .card-body{
+  flex:1;
+  min-height:0;
 }
 
 /* =========================
@@ -80,18 +112,15 @@
   color:#111827;
   text-decoration:none;
   user-select:none;
+  min-width:0;
 }
-.my-block-title:hover{ text-decoration: underline; }
 
-.drag-handle{
-  cursor: inherit;
-  color:#6b7280;
-}
+.drag-handle{ cursor: inherit; color:#6b7280; }
 
 .my-block-actions{
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:8px;
 }
 
 .worklog-range{
@@ -101,12 +130,178 @@
   margin-right: 6px;
 }
 
+/* ✅ CALENDAR 체크박스 */
+.cal-filter{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding-right: 2px;
+}
+.cal-check{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size:12px;
+  font-weight:800;
+  color:#374151;
+  margin:0;
+  cursor:pointer;
+}
+.cal-check input{
+  width:14px;
+  height:14px;
+  margin:0;
+  accent-color:#1f2a44;
+}
+
+/* 선택 방지 */
+.my-block-header,
+.my-block-header *{
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  user-select: none;
+}
+
 /* =========================
-   테이블
+   블록 내부 레이아웃(페이징 안 잘리게)
    ========================= */
+.block-inner{
+  height: 100%;
+  display:flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.block-inner > table,
+.block-inner > ul{
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.block-spacer{
+  flex: 0 0 8px;
+}
+
+/* =========================
+   페이저
+   ========================= */
+.block-pager{
+  flex: 0 0 auto;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:10px;
+  margin-top: 8px;
+  padding-bottom: 2px;
+}
+
+.block-pager .pager-pages{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+}
+
+.pager-pages .pager-page{
+  padding: 3px 9px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 8px;
+}
+
+.pager-pages .pager-page.is-active{
+  background: #111827;
+  color: #fff;
+  border-color: #111827;
+}
+
+/* =========================================================
+   ✅ 링크 뱃지 (모든 블록 공통)
+   - 글자/뱃지 크기 "조금" 키움
+   - 대신 row 높이는 고정(var --row-h)으로 안 커지게
+   ========================================================= */
+.x-badge-link,
+.x-badge-text{
+  display:inline-flex;
+  align-items:center;
+  max-width: 100%;
+  vertical-align: middle;
+
+  /* ✅ 살짝 키움 */
+  font-size: 13px;
+  font-weight: 900;
+
+  /* ✅ 높이를 고정해서 row가 커지지 않게 */
+  height: 22px;
+  line-height: 22px;
+
+  padding: 0 10px;
+  border-radius: 999px;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  border: 1px solid transparent;
+}
+
+.x-badge-link{
+  text-decoration:none;
+}
+
+.x-badge-issue{
+  background: #eef2ff;
+  color: #1f2a44;
+  border-color: #dbe3ff;
+}
+.x-badge-issue:hover{
+  filter: brightness(0.98);
+  text-decoration:none;
+}
+
+.x-badge-notice{
+  background: #eef7ff;
+  color: #12324a;
+  border-color: #d6eaff;
+}
+.x-badge-notice:hover{
+  filter: brightness(0.98);
+  text-decoration:none;
+}
+
+/* ✅ 최근공지 프로젝트명(배지)도 동일한 크기 베이스로 통일 */
+.x-badge-project{
+  background:#f3f4f6;
+  color:#111827;
+  border-color:#e5e7eb;
+}
+
+/* =========================
+   테이블(블록 내) - ✅ row 높이 고정
+   ========================= */
+.my-table{
+  table-layout: fixed;
+}
 .my-table th, .my-table td{
   vertical-align: middle;
+  padding-top: var(--row-pad-y);
+  padding-bottom: var(--row-pad-y);
+  line-height: 1.25;
+  height: var(--row-h);         /* ✅ 핵심: row 높이 고정 */
 }
+
+.my-table td{
+  overflow:hidden;              /* td 자체도 overflow 방지 */
+}
+
+/* cell 내 뱃지 */
+.my-table td .x-badge-link{
+  max-width: 100%;
+}
+
+/* 링크 아이콘 */
 .icon-link{
   color: inherit;
   text-decoration:none;
@@ -117,13 +312,34 @@
 }
 
 /* =========================
-   WORKLOG
+   NOTICE (list-group)도 행 높이 커지지 않게 고정
    ========================= */
+.list-group-item{
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+.list-group-item .text-truncate{
+  min-width: 0;
+}
+
+/* =========================
+   WORKLOG (내부 스크롤)
+   ========================= */
+.worklog-inner{ min-height:0; }
+
+.worklog-scroll{
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 6px;
+}
+
 .work-day-title{
   margin: 10px 0 6px;
   font-weight: 900;
   color:#111827;
 }
+
 .work-card{
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -131,21 +347,26 @@
   padding: 12px;
   margin-bottom: 10px;
 }
+
 .work-head{
   display:flex;
   align-items:center;
   gap:6px;
   font-weight:800;
   color:#111827;
-  font-size: 12px;
+  font-size: 16px;
 }
+
 .work-time{ font-weight: 900; }
 .work-slash{ color:#9ca3af; font-weight:700; }
+
 .work-title{
   margin-top: 6px;
   font-weight: 800;
   color:#111827;
+  font-size: 14px;
 }
+
 .work-detail{
   margin-top: 8px;
   font-size: 13px;
@@ -154,7 +375,7 @@
 }
 
 /* =========================
-   Modal 톤 통일
+   Modal
    ========================= */
 .modal-content{
   border-radius: 10px;
@@ -166,10 +387,22 @@
 }
 
 /* =========================
+   CALENDAR: 내부 스크롤
+   ========================= */
+.block-calendar{
+  height: 100%;
+  padding: 12px;
+}
+.my-block[data-block-type="CALENDAR"] > .card-body{
+  overflow: hidden;
+}
+.my-block[data-block-type="CALENDAR"] .gantt{
+  height: 100%;
+  overflow: auto;
+}
+
+/* =========================
    Gantt (주간)
-   - ✅ 1행 = 1일감
-   - ✅ 헤더 2줄(요일/날짜) + 프로젝트칸 테두리 정렬
-   - ✅ (수정) 프로젝트칸/바영역 행 높이 완전 동일
    ========================= */
 :root{
   --gantt-left-width: 180px;
@@ -177,12 +410,8 @@
   --gantt-row-height: 28px;
 }
 
-/* ✅ 간트 내부는 border 포함 계산 (높이 삐끗 방지) */
-.gantt, .gantt *{
-  box-sizing: border-box;
-}
+.gantt, .gantt *{ box-sizing: border-box; }
 
-/* 바깥 박스 */
 .gantt{
   border:1px solid #e5e7eb;
   border-radius:10px;
@@ -190,30 +419,28 @@
   background:#fff;
 }
 
-/* ===== 헤더 ===== */
 .gantt-head{
   display:grid;
   grid-template-columns: var(--gantt-left-width) 1fr;
-  align-items: stretch;                 /* ✅ 좌우 높이 동일 */
+  align-items: stretch;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background:#fff;
 }
 
-/* 헤더 왼쪽 프로젝트 */
 .gantt-head .gantt-left{
   display:flex;
   align-items:center;
   padding:0 12px;
-
   font-weight:800;
   color:#111827;
   background:#fff;
-
   min-height: var(--gantt-header-height);
-
   border-right:1px solid #e5e7eb;
   border-bottom:1px solid #e5e7eb;
 }
 
-/* 헤더 오른쪽 7일 */
 .gantt-days{
   display:grid;
   grid-template-columns: repeat(7, 1fr);
@@ -221,34 +448,23 @@
   border-bottom:1px solid #e5e7eb;
 }
 
-/* 날짜 셀(2줄) */
 .gantt-day{
   display:flex;
   flex-direction:column;
   align-items:center;
   justify-content:center;
   gap:4px;
-
   min-height: var(--gantt-header-height);
-
   background:#fff;
   border-right:1px solid #e5e7eb;
-
   font-weight:800;
   letter-spacing:-0.2px;
 }
 .gantt-day:last-child{ border-right:none; }
 
-.gantt-day .dow{
-  font-size:12px;
-  opacity:0.85;
-}
-.gantt-day .md{
-  font-size:14px;
-  font-weight:900;
-}
+.gantt-day .dow{ font-size:12px; opacity:0.85; }
+.gantt-day .md{ font-size:14px; font-weight:900; }
 
-/* 오늘 강조 */
 .gantt-day.is-today{
   background:#fff7d6;
   outline:2px solid #f2b705;
@@ -256,63 +472,96 @@
   border-radius:6px;
 }
 
-/* 주말 강조 */
-.gantt-day.is-weekend{
-  background:#f3f6ff;
-}
+.gantt-day.is-weekend{ background:#f3f6ff; }
 .gantt-day.is-weekend .dow,
 .gantt-day.is-weekend .md{
   color:#2b4cff;
   opacity:1;
 }
 
-/* ===== 바디 행 ===== */
 .gantt-row{
   display:grid;
   grid-template-columns: var(--gantt-left-width) 1fr;
   align-items: stretch;
 }
 
-/* ✅ 왼쪽 프로젝트 칸: 행 높이 고정 + 세로정렬 */
-.gantt-row .gantt-left{
-  height: var(--gantt-row-height);
-  padding: 0 12px;                 /* ✅ 세로 패딩 제거(높이 튀는 원인) */
+.gantt-left--single{
   display:flex;
   align-items:center;
-  line-height: 1;
-
+  justify-content:center;
+  text-align:center;
+  padding: 10px 12px;
   font-weight:800;
   font-size:14px;
+  color:#111827;
+  background:#fff;
   border-right:1px solid #e5e7eb;
   border-bottom:1px solid #e5e7eb;
-  background:#fff;
-  color:#111827;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
 }
 
-/* ✅ 오른쪽 바 영역도 행 높이 고정 */
+.gantt-table{
+  width:100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.gantt-left-cell{
+  width: var(--gantt-left-width);
+  padding:0;
+  background:#fff;
+  vertical-align: middle;
+  border-right:1px solid #e5e7eb;
+  border-bottom:1px solid #e5e7eb;
+}
+
+.gantt-left-inner{
+  padding: 10px 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  font-weight:800;
+  font-size:14px;
+  color:#111827;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.gantt-bars-cell{
+  padding:0;
+  border-bottom:1px solid #e5e7eb;
+}
+
 .gantt-bars{
   position:relative;
   height: var(--gantt-row-height);
   min-height: var(--gantt-row-height);
-  border-bottom:1px solid #e5e7eb;
   background:#fff;
 }
 
-/* bar */
+.gantt-gridlines{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-columns: repeat(7, 1fr);
+  pointer-events:none;
+  z-index: 0;
+}
+.gantt-gridlines > i{ border-left:1px solid #e5e7eb; }
+.gantt-gridlines > i:first-child{ border-left:none; }
+
 .gantt-bar{
   position:absolute;
   height:18px;
   border-radius:9px;
   opacity:0.92;
   cursor:pointer;
-  top: calc((var(--gantt-row-height) - 18px) / 2); /* ✅ 행 중앙 */
+  z-index: 1;
+  top: calc((var(--gantt-row-height) - 18px) / 2);
 }
 
-/* 제목 라벨(선택) */
 .gantt-label{
   position:absolute;
   left:10px;
@@ -323,13 +572,59 @@
   pointer-events:none;
   opacity:0.92;
   color:#111827;
-  top: calc((var(--gantt-row-height) - 18px) / 2); /* ✅ 행 중앙 */
+  z-index: 1;
+  top: calc((var(--gantt-row-height) - 18px) / 2);
 }
 
-/* 프로젝트별 색(파스텔) */
+/* gantt bar color */
 .gantt-bar.pcolor-0{ background:#93c5fd; }
 .gantt-bar.pcolor-1{ background:#a7f3d0; }
 .gantt-bar.pcolor-2{ background:#fcd34d; }
 .gantt-bar.pcolor-3{ background:#fca5a5; }
 .gantt-bar.pcolor-4{ background:#c4b5fd; }
 .gantt-bar.pcolor-5{ background:#fdba74; }
+
+.my-block.sortable-ghost { opacity: 0.3; }
+.my-block.sortable-chosen { box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
+.my-block.sortable-drag { cursor: grabbing; }
+
+/* ✅ 블록 삭제 버튼: 모달 X(btn-close) 스타일로 통일 */
+.my-block-actions .x-del.btn-close{
+  padding: 0;
+  margin: 0;
+  width: 1.1rem;
+  height: 1.1rem;
+
+  /* 헤더 배경 위에서 선명하게 */
+  opacity: .7;
+  filter: none;
+}
+
+.my-block-actions .x-del.btn-close:hover{
+  opacity: .95;
+}
+
+.my-block-actions .x-del.btn-close:focus{
+  box-shadow: none;
+  outline: none;
+}
+
+/* ✅ 페이징 빈칸 채우기용 더미(행 높이 유지) */
+.pager-dummy-row td{
+  height: var(--row-h);
+  padding-top: var(--row-pad-y);
+  padding-bottom: var(--row-pad-y);
+  border-color: transparent !important;  /* ✅ 선/hover 티 안나게 */
+  background: transparent !important;
+}
+
+.pager-dummy-row{
+  pointer-events: none; /* 클릭/hover 방지 */
+}
+
+.pager-dummy-li{
+  height: 40px; /* NOTICE는 table이 아니라서 적당히 */
+  border-color: transparent !important;
+  background: transparent !important;
+  pointer-events: none;
+}
