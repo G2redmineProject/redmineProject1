@@ -87,7 +87,7 @@
 			</div>
 			<div class="card-body">
 				<div class="table-responsive">
-					<table class="table table-hover align-middle" id="issueTypeTable"
+					<table class="table table-hover align-middle" id="issueTable"
 						style="table-layout: fixed; width: 100%;">
 						<thead class="table-light">
 							<tr>
@@ -122,7 +122,7 @@
 								</td>
 								<td>
 									<button class="btn btn-danger btn-sm delete-btn">
-									<i class="fa-solid fa-face-dizzy"></i>  삭제
+										<i class="fa-solid fa-face-dizzy"></i> 삭제
 									</button>
 								</td>
 							</tr>
@@ -168,16 +168,11 @@
 					<!-- 프로젝트 선택 (등록 시에만 활성화) -->
 					<div class="mb-3" id="projectSelectWrap">
 						<label class="form-label fw-bold">프로젝트 <span
-							class="text-danger">*</span></label>
-						<div class="input-group">
-							<input type="text" id="modalProjectText" class="form-control"
-								placeholder="프로젝트를 선택하세요" readonly> <input type="hidden"
-								id="modalProjectValue">
-							<button type="button" class="btn btn-secondary"
-								id="btnModalOpenProject">선택</button>
-						</div>
-						<div class="invalid-feedback d-block" id="projectError"
-							style="display: none !important;"></div>
+							class="text-danger">*</span></label> <select id="projectSelectBox"
+							class="form-select">
+							<option value="">-- 프로젝트 선택 --</option>
+						</select>
+						<div class="invalid-feedback" id="projectError">프로젝트를 선택하세요.</div>
 					</div>
 
 					<!-- 기간 -->
@@ -233,7 +228,7 @@
 		</div>
 	</div>
 
-	<!-- ============ 프로젝트 선택 모달 (모달 폼용) ============ -->
+	<!-- 	 ============ 프로젝트 선택 모달 (모달 폼용) ============ 
 	<div class="modal fade" id="projectSelectModal2" tabindex="-1"
 		aria-hidden="true">
 		<div class="modal-dialog modal-lg modal-dialog-scrollable">
@@ -250,7 +245,7 @@
 				</div>
 			</div>
 		</div>
-	</div>
+	</div> -->
 
 	<script th:src="@{/js/issuetype/issuetype.js}"></script>
 </body>
