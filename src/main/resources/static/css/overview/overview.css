@@ -9,132 +9,29 @@
 	border-bottom: 1px solid #e5e7eb;
 }
 
-.x-page-title .page-title {
+.page-title {
 	margin: 0;
 	font-size: 20px;
 	font-weight: 800;
 	color: #111827;
-	letter-spacing: -0.2px;
 }
 
-.x-page-title .page-title-sub {
+.page-title-sub {
 	margin-top: 4px;
 	font-size: 12px;
 	color: #6b7280;
 }
 
-/* ===== Main Grid ===== */
-.main-grid {
-	display: grid;
-	grid-template-columns: 1fr 1fr; /* 좌우 균형 */
-	gap: 16px;
-	margin-top: 12px;
-	align-items: stretch;
-}
-
-.main-grid>.full-width {
-	grid-column: span 2;
-}
-
-/* 모바일 대응 */
-@media ( max-width : 992px) {
-	.main-grid {
-		grid-template-columns: 1fr;
-	}
-	.main-grid>.full-width {
-		grid-column: span 1;
-	}
-}
-
-/* ===== 카드 공통 ===== */
-.main-card {
-	border-radius: 10px;
-	border: 1px solid #e5e7eb;
-	background: #fff;
-	display: flex;
-	flex-direction: column;
-	min-height: 200px;
-	overflow: hidden;
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
-}
-
-.main-card.full-width {
-	min-height: 240px;
-}
-
-.main-card .card-header {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	font-weight: 700;
-	gap: 8px;
+/* ✅ 카드 헤더만 팀 스타일 유지 */
+.card-header {
 	background-color: #e0e5f3;
-	color: #111827;
-	border-bottom: 1px solid #e5e7eb;
-	min-height: 52px;
-	padding: 12px 16px;
+	font-weight: 700;
 }
 
-.main-card .card-body {
-	flex: 1 1 auto;
-	min-height: 0;
-	padding: 8px 12px;
-	overflow: auto;
-	box-sizing: border-box;
-}
-
-/* ===== 테이블 스타일 ===== */
-#mainIssueTable {
-	width: 100%;
-	white-space: nowrap;
-	margin: 0;
-}
-
-#mainIssueTable thead th {
-	font-size: 14px;
-	font-weight: 800;
-	color: #111827;
-	border-bottom: 1px solid #e5e7eb;
-}
-
-#mainIssueTable tbody td {
-	font-size: 14px;
-	color: #111827;
-	border-color: #eeeeee;
-}
-
-#mainIssueTable tbody tr.no-data-row {
-	cursor: default !important;
-	pointer-events: none;
-}
-
-/* 클릭 가능한 행 */
-.click-row {
-	cursor: pointer;
-}
-
-/* 클릭 가능한 구성원/그룹 */
-.clickable-row {
-	cursor: pointer;
-	transition: background 0.2s;
-}
-
-.clickable-row:hover {
-	background: #f5f5f5;
-}
-
-/* 읽기 전용 구성원/그룹 */
-.readonly-row {
-	cursor: default;
-	pointer-events: none; /* 클릭 방지 */
-	background: #fff; /* hover 없어도 배경 유지 */
-}
-
-/* 공지사항 스타일 */
+/* 공지 */
 .notice-title {
 	font-weight: 800;
 	color: #111827;
-	margin-bottom: 2px;
 }
 
 .notice-meta {
@@ -149,18 +46,7 @@
 	font-weight: 900;
 }
 
-/* 구성원 / 그룹 리스트 */
-.member-list li, .notice-list a {
-	padding: 10px 12px;
-	border-radius: 8px;
-	margin-bottom: 6px;
-	transition: background 0.2s;
-}
-
-.member-list li:hover, .notice-list a:hover {
-	background: #f5f5f5;
-}
-
+/* 구성원 */
 .member-name {
 	font-weight: 600;
 	color: #111827;
@@ -169,11 +55,4 @@
 .member-email {
 	font-size: 13px;
 	color: #6b7280;
-}
-
-.member-list li {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	flex-wrap: wrap;
 }
