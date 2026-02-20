@@ -1,3 +1,4 @@
+// /static/js/issue/issue-insert.js
 (() => {
   const $ = (s) => document.querySelector(s);
 
@@ -15,7 +16,7 @@
 
   const typeText = $("#typeText");
   const typeCode = $("#typeCode");
-  const typeEndAtView = $("#typeEndAtView"); // HTML에 추가한 종료일 표시 영역
+  const typeEndAtView = $("#typeEndAtView");
 
   const parIssueText = $("#parIssueText");
   const parIssueCode = $("#parIssueCode");
@@ -45,11 +46,12 @@
   const typeModal = typeModalEl ? new bootstrap.Modal(typeModalEl) : null;
 
   const projectList = $("#projectModalList");
-  const assigneeList = $("#assigneeModalList");
-  const parIssueTbody = $("#parIssueModalList");
+  const assigneeBox = $("#assigneeModalTree");
 
-  // HTML은 table(tbody)이 아니라 div 트리 영역임
-  const typeTree = $("#typeModalTree");
+  // 상위일감: 트리 렌더
+  const parIssueTreeEl = $("#parIssueModalTree");
+
+  const typeTreeEl = $("#typeModalTree");
 
   const projectSearch = $("#projectModalSearch");
   const assigneeSearch = $("#assigneeModalSearch");
@@ -77,7 +79,89 @@
   const PRIORITY_DAYS = { OA1: 2, OA2: 7, OA3: 14, OA4: 21 };
   const getPriorityDays = () => PRIORITY_DAYS[priority?.value] ?? null;
 
-  /* ====== 유형 종료일 제한 상태 ====== */
+  /* =========================================================
+     Toast
+     ========================================================= */
+  const showToast = (message) => {
+    const toastId = "commonToast";
+    let toastEl = document.getElementById(toastId);
+
+    if (!toastEl) {
+      toastEl = document.createElement("div");
+      toastEl.id = toastId;
+      toastEl.className = "toast align-items-center text-bg-dark border-0";
+      toastEl.setAttribute("role", "alert");
+      toastEl.setAttribute("aria-live", "assertive");
+      toastEl.setAttribute("aria-atomic", "true");
+      toastEl.style.position = "fixed";
+      toastEl.style.right = "16px";
+      toastEl.style.bottom = "16px";
+      toastEl.style.zIndex = "1080";
+
+      toastEl.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body" id="commonToastBody"></div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+      `;
+      document.body.appendChild(toastEl);
+    }
+
+    const bodyEl = document.getElementById("commonToastBody");
+    if (bodyEl) bodyEl.textContent = message;
+
+    const t = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 1800 });
+    t.show();
+  };
+
+  let lastDueToastAt = 0;
+  const showDueAutoToast = () => {
+    const now = Date.now();
+    if (now - lastDueToastAt < 1200) return;
+    lastDueToastAt = now;
+    showToast(
+      "마감기한이 삭제되어 우선순위 기준으로 자동 설정되어 저장됩니다.",
+    );
+  };
+
+  const fetchJson = async (url, failMsg) => {
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) {
+      showToast(failMsg);
+      return null;
+    }
+    return res.json();
+  };
+
+  /* =========================================================
+     권한 상태
+     ========================================================= */
+  const setCanCreate = (canWrite) => {
+    if (!btnSubmit) return;
+    btnSubmit.dataset.canCreate = canWrite ? "true" : "false";
+  };
+
+  const refreshCanCreate = async (projCode) => {
+    if (!projCode) {
+      setCanCreate(false);
+      return;
+    }
+
+    const data = await fetchJson(
+      `/api/authority/issue/canWrite?projectCode=${encodeURIComponent(projCode)}`,
+      "권한 정보를 불러오지 못했습니다.",
+    );
+
+    if (!data || data.success !== true) {
+      setCanCreate(false);
+      return;
+    }
+    setCanCreate(!!data.canWrite);
+  };
+
+  /* =========================================================
+     날짜 / 마감기한 / 유형 종료일 제한
+     ========================================================= */
   let selectedTypeEndDate = ""; // "YYYY-MM-DD"
 
   const normalizeDateOnly = (v) => {
@@ -103,11 +187,8 @@
     }
 
     if (dueView) {
-      if (selectedTypeEndDate) {
-        dueView.max = selectedTypeEndDate;
-      } else {
-        dueView.removeAttribute("max");
-      }
+      if (selectedTypeEndDate) dueView.max = selectedTypeEndDate;
+      else dueView.removeAttribute("max");
     }
 
     if (
@@ -151,7 +232,6 @@
 
     if (!dueView.value) {
       if (!priority?.value) return;
-
       showDueAutoToast();
       setDueByPriority();
       return;
@@ -165,90 +245,22 @@
     dueAt.value = toDT(dueView.value);
   };
 
+  /* =========================================================
+     파일 표시
+     ========================================================= */
   const renderSelectedFileName = () => {
     if (!label) return;
     const f = fileInp?.files?.[0];
     label.textContent = f ? `선택된 파일: ${f.name}` : "선택된 파일 없음";
   };
 
-  const fetchJson = async (url, failMsg) => {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
-    if (!res.ok) {
-      showToast(failMsg);
-      return null;
-    }
-    return res.json();
-  };
-
-  /* ====== 토스트(공통) ====== */
-  const showToast = (message) => {
-    const toastId = "commonToast";
-    let toastEl = document.getElementById(toastId);
-
-    if (!toastEl) {
-      toastEl = document.createElement("div");
-      toastEl.id = toastId;
-      toastEl.className = "toast align-items-center text-bg-dark border-0";
-      toastEl.setAttribute("role", "alert");
-      toastEl.setAttribute("aria-live", "assertive");
-      toastEl.setAttribute("aria-atomic", "true");
-      toastEl.style.position = "fixed";
-      toastEl.style.right = "16px";
-      toastEl.style.bottom = "16px";
-      toastEl.style.zIndex = "1080";
-
-      toastEl.innerHTML = `
-        <div class="d-flex">
-          <div class="toast-body" id="commonToastBody"></div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-      `;
-      document.body.appendChild(toastEl);
-    }
-
-    const bodyEl = document.getElementById("commonToastBody");
-    if (bodyEl) bodyEl.textContent = message;
-
-    const t = bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 1800 });
-    t.show();
-  };
-
-  let lastDueToastAt = 0;
-  const showDueAutoToast = () => {
-    const now = Date.now();
-    if (now - lastDueToastAt < 1200) return;
-    lastDueToastAt = now;
-    showToast(
-      "마감기한이 삭제되어 우선순위 기준으로 자동 설정되어 저장됩니다.",
-    );
-  };
-
-  /* ====== 권한 상태 ====== */
-  const setCanCreate = (canWrite) => {
-    if (!btnSubmit) return;
-    btnSubmit.dataset.canCreate = canWrite ? "true" : "false";
-  };
-
-  const refreshCanCreate = async (projCode) => {
-    if (!projCode) {
-      setCanCreate(false);
-      return;
-    }
-
-    const data = await fetchJson(
-      `/api/authority/issue/canWrite?projectCode=${encodeURIComponent(projCode)}`,
-      "권한 정보를 불러오지 못했습니다.",
-    );
-    if (!data || data.success !== true) {
-      setCanCreate(false);
-      return;
-    }
-    setCanCreate(!!data.canWrite);
-  };
-
+  /* =========================================================
+     공용 렌더(프로젝트 리스트)
+     ========================================================= */
   const renderList = (listEl, items, onPick) => {
     if (!listEl) return;
     listEl.innerHTML = "";
+
     if (!items.length) {
       const empty = document.createElement("div");
       empty.className = "text-muted";
@@ -267,174 +279,196 @@
     });
   };
 
-  const renderParIssueTable = (tbodyEl, items, onPick) => {
-    tbodyEl.innerHTML = "";
+  /* =========================================================
+     담당자 렌더: 단일 프로젝트 헤더 + 참여자 리스트
+     ========================================================= */
+  const renderAssigneeBox = (container, projectName, users, onPick) => {
+    if (!container) return;
+    container.innerHTML = "";
 
-    if (!items.length) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 2;
-      td.className = "text-muted";
-      td.textContent = "결과가 없습니다.";
-      tr.appendChild(td);
-      tbodyEl.appendChild(tr);
-      return;
-    }
-
-    items.forEach((it) => {
-      const tr = document.createElement("tr");
-      tr.style.cursor = "pointer";
-
-      const tdTitle = document.createElement("td");
-      tdTitle.textContent = it.title;
-
-      const tdAssignee = document.createElement("td");
-      tdAssignee.textContent = it.assignee;
-
-      tr.appendChild(tdTitle);
-      tr.appendChild(tdAssignee);
-
-      tr.addEventListener("click", () => onPick(it));
-      tbodyEl.appendChild(tr);
-    });
-  };
-
-  /* ====== 유형 트리 렌더 (HTML: #typeModalTree) ====== */
-  const escapeHtml = (s) =>
-    String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
-
-  const normalizeTypeNodes = (data) => {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.list)) return data.list;
-    return [];
-  };
-
-  const getNodeName = (node) => (node?.typeName ?? "").trim();
-  const getNodeCode = (node) => node?.typeCode;
-
-  const filterTypeTree = (nodes, qLower) => {
-    if (!qLower) return nodes;
-
-    const out = [];
-    for (const n of nodes) {
-      const name = getNodeName(n).toLowerCase();
-      const kids = Array.isArray(n.children) ? n.children : [];
-      const filteredKids = filterTypeTree(kids, qLower);
-
-      if (name.includes(qLower) || filteredKids.length) {
-        out.push({
-          ...n,
-          children: filteredKids,
-        });
-      }
-    }
-    return out;
-  };
-
-  const buildTypeTreeDom = (nodes, depth = 0) => {
-    const wrap = document.createElement("div");
-
-    if (!nodes.length) {
+    if (!users || users.length === 0) {
       const empty = document.createElement("div");
       empty.className = "text-muted";
       empty.textContent = "결과가 없습니다.";
-      wrap.appendChild(empty);
-      return wrap;
+      container.appendChild(empty);
+      return;
     }
 
-    for (const n of nodes) {
-      const row = document.createElement("div");
-      row.className = "type-tree-row d-flex align-items-center";
-      row.style.padding = "6px 8px";
-      row.style.cursor = "pointer";
-      row.style.borderBottom = "1px solid rgba(0,0,0,0.06)";
-      row.style.paddingLeft = `${8 + depth * 16}px`;
+    const group = document.createElement("div");
+    group.className = "assignee-project-group";
 
-      const hasChildren = Array.isArray(n.children) && n.children.length > 0;
-      const caret = document.createElement("span");
-      caret.className = "me-2";
-      caret.style.width = "14px";
-      caret.style.display = "inline-block";
-      caret.textContent = hasChildren ? "▸" : "";
-      row.appendChild(caret);
+    const header = document.createElement("div");
+    header.className = "assignee-project-header";
+    header.textContent = projectName || "참여자 목록";
 
-      const name = document.createElement("span");
-      name.innerHTML = escapeHtml(getNodeName(n));
-      row.appendChild(name);
+    const content = document.createElement("div");
+    content.className = "assignee-project-content";
 
-      row.addEventListener("click", (e) => {
+    users.forEach((u) => {
+      const item = document.createElement("div");
+      item.className = "assignee-item";
+      item.textContent = u.userName;
+
+      item.addEventListener("click", () => onPick(u));
+      content.appendChild(item);
+    });
+
+    group.appendChild(header);
+    group.appendChild(content);
+    container.appendChild(group);
+  };
+
+  /* =========================================================
+     상위일감 선택/초기화 유틸
+     ========================================================= */
+  let parentTreeRootsCache = null; // 서버 원본 트리
+
+  const clearParentIssueSelection = () => {
+    if (parIssueText) parIssueText.value = "";
+    if (parIssueCode) parIssueCode.value = "";
+    if (parIssueSearch) parIssueSearch.value = "";
+    if (parIssueTreeEl) parIssueTreeEl.innerHTML = "";
+    parentTreeRootsCache = null;
+  };
+
+  const clearOnlyProjectDependents = () => {
+    // 상위일감
+    clearParentIssueSelection();
+
+    // 담당자
+    if (assigneeText) assigneeText.value = "";
+    if (assigneeCode) assigneeCode.value = "";
+    if (assigneeSearch) assigneeSearch.value = "";
+
+    // 담당자 캐시
+    assigneeCache = [];
+    assigneeCacheProjectCode = "";
+  };
+
+  /* =========================================================
+     유형 트리 렌더
+     - 등록: 프로젝트 선택 후, 해당 프로젝트만 by-project로 조회
+     ========================================================= */
+  const buildTypeTreeForJS = (serverData, pCode, pName) => {
+    const convert = (node) => ({
+      code: String(node.typeCode),
+      name: node.typeName,
+      endAt: node.endAt ?? node.end_at ?? node.typeEndAt ?? null,
+      children: (node.children || []).map(convert),
+    });
+
+    const roots = (serverData || []).map(convert);
+
+    return [
+      {
+        code: String(pCode || ""),
+        name: pName || "프로젝트",
+        children: roots,
+      },
+    ];
+  };
+
+  const renderTypeTree = (projects, container) => {
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!projects || projects.length === 0) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
+    }
+
+    const createNode = (type) => {
+      const li = document.createElement("li");
+      const div = document.createElement("div");
+
+      div.className = "type-item";
+      div.textContent = type.name;
+
+      div.addEventListener("click", (e) => {
         e.stopPropagation();
-        const code = getNodeCode(n);
-        if (!code) return;
 
-        if (typeText) typeText.value = getNodeName(n);
-        if (typeCode) typeCode.value = String(code);
+        const pickedTypeName = type.name;
+        const pickedTypeCode = String(type.code);
+        const pickedEndDate = normalizeDateOnly(type.endAt);
 
-        // 유형 종료일(endAt) 반영
-        const endDate = normalizeDateOnly(n.endAt);
-        applyTypeEndDateLimit(endDate);
+        // 프로젝트는 등록 화면에서 고정(사용자가 프로젝트를 먼저 선택)
+        typeText.value = pickedTypeName;
+        typeCode.value = pickedTypeCode;
 
-        // 우선순위가 이미 선택돼 있으면, 자동 마감일도 종료일 기준으로 클램프
+        // 유형 변경 -> 상위일감 초기화
+        clearParentIssueSelection();
+
+        applyTypeEndDateLimit(pickedEndDate);
         if (priority?.value) setDueByPriority();
 
         if (typeSearch) typeSearch.value = "";
         typeModal?.hide();
       });
 
-      wrap.appendChild(row);
+      li.appendChild(div);
 
-      if (hasChildren) {
-        const childWrap = buildTypeTreeDom(n.children, depth + 1);
-        childWrap.style.display = "none";
-
-        caret.style.cursor = "pointer";
-        caret.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const isOpen = childWrap.style.display !== "none";
-          childWrap.style.display = isOpen ? "none" : "block";
-          caret.textContent = isOpen ? "▸" : "▾";
-        });
-
-        wrap.appendChild(childWrap);
+      if (type.children && type.children.length > 0) {
+        const ul = document.createElement("ul");
+        type.children.forEach((c) => ul.appendChild(createNode(c)));
+        li.appendChild(ul);
       }
-    }
+      return li;
+    };
 
-    return wrap;
+    projects.forEach((p) => {
+      const groupWrapper = document.createElement("div");
+      groupWrapper.className = "type-project-group";
+
+      const header = document.createElement("div");
+      header.className = "type-project-header active";
+      header.textContent = p.name;
+
+      const content = document.createElement("div");
+      content.className = "type-project-content";
+      content.style.display = "block";
+
+      const rootUl = document.createElement("ul");
+      (p.children || []).forEach((t) => rootUl.appendChild(createNode(t)));
+      content.appendChild(rootUl);
+
+      groupWrapper.appendChild(header);
+      groupWrapper.appendChild(content);
+      container.appendChild(groupWrapper);
+    });
   };
 
-  const renderTypeTree = (nodes) => {
-    if (!typeTree) return;
-    typeTree.innerHTML = "";
-    typeTree.appendChild(buildTypeTreeDom(nodes, 0));
+  const filterTypeTree = (projects, q) => {
+    const query = (q || "").trim().toLowerCase();
+    if (!query) return projects;
+
+    const filterNode = (node) => {
+      const hit = (node.name || "").toLowerCase().includes(query);
+      const kids = (node.children || []).map(filterNode).filter(Boolean);
+      if (hit || kids.length) return { ...node, children: kids };
+      return null;
+    };
+
+    return (projects || [])
+      .map((p) => {
+        const children = (p.children || []).map(filterNode).filter(Boolean);
+        return { ...p, children };
+      })
+      .filter((p) => (p.children || []).length > 0);
   };
 
-  const filterBy = (items, q) => {
-    const qq = (q || "").trim().toLowerCase();
-    if (!qq) return items;
-    return items.filter((it) =>
-      String(it.title ?? it.label ?? "")
-        .toLowerCase()
-        .includes(qq),
-    );
-  };
-
+  /* =========================================================
+     캐시
+     ========================================================= */
   let projectCache = [];
-  let userCache = [];
 
-  // 유형: 프로젝트별 트리 캐시
-  let typeTreeCache = [];
+  // 유형: 프로젝트별 캐시
   let typeCacheProjectCode = "";
+  let typeRawCache = []; // 서버 원본 트리(프로젝트별)
 
-  // 프로젝트가 바뀌면 담당자 캐시는 다시 받아야 함
-  let userCacheProjectCode = "";
-
-  const parentIssueCacheByProject = new Map();
+  // 담당자: 프로젝트별 캐시
+  let assigneeCacheProjectCode = "";
+  let assigneeCache = [];
 
   const ensureProjects = async () => {
     if (projectCache.length) return true;
@@ -452,37 +486,29 @@
     return true;
   };
 
-  const ensureUsers = async () => {
-    const projCode = projectCode?.value?.trim();
-    if (!projCode) {
-      showToast("프로젝트를 먼저 선택해 주세요.");
-      return false;
-    }
+  const ensureAssigneesByProject = async (projCode) => {
+    if (!projCode) return false;
 
-    if (userCache.length && userCacheProjectCode === projCode) return true;
+    if (assigneeCache.length && assigneeCacheProjectCode === String(projCode))
+      return true;
 
     const data = await fetchJson(
       `/api/users/modal?projectCode=${encodeURIComponent(projCode)}`,
-      "사용자 목록을 불러오지 못했습니다.",
+      "담당자 목록을 불러오지 못했습니다.",
     );
     if (!data) return false;
 
-    userCache = data.map((u) => ({
-      value: String(u.userCode),
-      label: u.userName,
-    }));
-    userCacheProjectCode = projCode;
+    assigneeCache = Array.isArray(data) ? data : [];
+    assigneeCacheProjectCode = String(projCode);
     return true;
   };
 
-  const ensureTypes = async () => {
-    const projCode = projectCode?.value?.trim();
-    if (!projCode) {
-      showToast("프로젝트를 먼저 선택해 주세요.");
-      return false;
-    }
+  // 핵심: 등록 화면 유형은 by-project로만
+  const ensureTypesByProject = async (projCode) => {
+    if (!projCode) return false;
 
-    if (typeTreeCache.length && typeCacheProjectCode === projCode) return true;
+    if (typeRawCache.length && typeCacheProjectCode === String(projCode))
+      return true;
 
     const data = await fetchJson(
       `/api/types/modal/by-project?projectCode=${encodeURIComponent(projCode)}`,
@@ -490,61 +516,244 @@
     );
     if (!data) return false;
 
-    typeTreeCache = normalizeTypeNodes(data);
-    typeCacheProjectCode = projCode;
+    typeRawCache = Array.isArray(data) ? data : data.list || [];
+    typeCacheProjectCode = String(projCode);
     return true;
   };
 
-  const ensureParentIssues = async (projCode) => {
-    if (!projCode) return false;
-    if (parentIssueCacheByProject.has(projCode)) return true;
+  /* =========================================================
+     상위일감 모달 (수정화면과 동일: 유형모달 톤 + 아코디언)
+     ========================================================= */
+  const normalizeIssueTree = (roots) => {
+    const convert = (n) => ({
+      id: String(n.issueCode),
+      title: String(n.title ?? "").trim(),
+      assignee: String(n.name ?? "미지정").trim(),
+      children: (n.children || []).map(convert),
+    });
+    return (roots || []).map(convert);
+  };
 
-    const data = await fetchJson(
-      `/api/issues/parents?projectCode=${encodeURIComponent(projCode)}`,
+  const filterIssueTree = (nodes, q) => {
+    const query = (q || "").trim().toLowerCase();
+    if (!query) return nodes;
+
+    const filterNode = (node) => {
+      const hitTitle = (node.title || "").toLowerCase().includes(query);
+      const hitAssignee = (node.assignee || "").toLowerCase().includes(query);
+      const kids = (node.children || []).map(filterNode).filter(Boolean);
+
+      if (hitTitle || hitAssignee || kids.length)
+        return { ...node, children: kids };
+      return null;
+    };
+
+    return (nodes || []).map(filterNode).filter(Boolean);
+  };
+
+  const renderParIssueTreeLikeTypeModal = (treeRoots) => {
+    if (!parIssueTreeEl) return;
+
+    parIssueTreeEl.innerHTML = "";
+
+    if (!treeRoots || treeRoots.length === 0) {
+      parIssueTreeEl.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
+    }
+
+    const groupWrapper = document.createElement("div");
+    groupWrapper.className = "type-project-group";
+
+    // 헤더는 "유형명"이 있을 때만 표시
+    const typeName = String(typeText?.value || "").trim();
+    if (typeName) {
+      const header = document.createElement("div");
+      header.className = "type-project-header active";
+      header.textContent = typeName;
+      groupWrapper.appendChild(header);
+    }
+
+    const content = document.createElement("div");
+    content.className = "type-project-content";
+    content.style.display = "block";
+
+    const rootUl = document.createElement("ul");
+    rootUl.className = "pi-tree-root";
+
+    const makeArrow = (isParent) => {
+      const arrow = document.createElement("span");
+      arrow.className = isParent ? "pi-arrow is-parent" : "pi-arrow";
+      return arrow;
+    };
+
+    const createLeafRow = (node, depth) => {
+      const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "type-item pi-item";
+      row.dataset.depth = String(depth);
+
+      const arrow = makeArrow(false);
+
+      const title = document.createElement("span");
+      title.className = "pi-title";
+      title.textContent = node.title;
+
+      const meta = document.createElement("span");
+      meta.className = "pi-meta";
+      meta.textContent = node.assignee;
+
+      row.appendChild(arrow);
+      row.appendChild(title);
+      row.appendChild(meta);
+
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        if (parIssueText) parIssueText.value = node.title;
+        if (parIssueCode) parIssueCode.value = node.id;
+
+        if (parIssueSearch) parIssueSearch.value = "";
+        parIssueModal?.hide();
+      });
+
+      li.appendChild(row);
+      return li;
+    };
+
+    const createParentNode = (node, depth) => {
+      const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "type-item pi-item pi-parent-item";
+      row.dataset.depth = String(depth);
+
+      const arrow = makeArrow(true);
+
+      const title = document.createElement("span");
+      title.className = "pi-title";
+      title.textContent = node.title;
+
+      const meta = document.createElement("span");
+      meta.className = "pi-meta";
+      meta.textContent = node.assignee;
+
+      row.appendChild(arrow);
+      row.appendChild(title);
+      row.appendChild(meta);
+
+      const childUl = document.createElement("ul");
+      childUl.className = "pi-children-ul";
+
+      (node.children || []).forEach((c) => {
+        const hasKids = Array.isArray(c.children) && c.children.length > 0;
+        childUl.appendChild(
+          hasKids
+            ? createParentNode(c, depth + 1)
+            : createLeafRow(c, depth + 1),
+        );
+      });
+
+      // 기본 닫힘
+      row.classList.remove("is-open");
+      childUl.style.display = "none";
+
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = row.classList.toggle("is-open");
+        childUl.style.display = open ? "block" : "none";
+      });
+
+      li.appendChild(row);
+      li.appendChild(childUl);
+      return li;
+    };
+
+    treeRoots.forEach((n) => {
+      const hasKids = Array.isArray(n.children) && n.children.length > 0;
+      rootUl.appendChild(
+        hasKids ? createParentNode(n, 0) : createLeafRow(n, 0),
+      );
+    });
+
+    content.appendChild(rootUl);
+    groupWrapper.appendChild(content);
+    parIssueTreeEl.appendChild(groupWrapper);
+  };
+
+  const openParIssueModalTree = async () => {
+    if (!parIssueModal) return;
+
+    const projCode = projectCode?.value?.trim();
+    if (!projCode) {
+      showToast("프로젝트를 먼저 선택해 주세요.");
+      return;
+    }
+
+    const tCode = typeCode?.value?.trim();
+    if (!tCode) {
+      showToast("유형을 먼저 선택해 주세요.");
+      return;
+    }
+
+    const raw = await fetchJson(
+      `/api/issues/parents?projectCode=${encodeURIComponent(projCode)}&typeCode=${encodeURIComponent(tCode)}`,
       "상위일감 목록을 불러오지 못했습니다.",
     );
-    if (!data) return false;
+    if (!raw) return;
 
-    const list = data.map((i) => ({
-      value: String(i.issueCode),
-      title: i.title ?? "",
-      assignee: (i.name ?? "미지정").trim(),
-    }));
+    parentTreeRootsCache = raw;
 
-    parentIssueCacheByProject.set(projCode, list);
-    return true;
-  };
-
-  const clearProjectDependentFields = () => {
-    if (parIssueText) parIssueText.value = "";
-    if (parIssueCode) parIssueCode.value = "";
     if (parIssueSearch) parIssueSearch.value = "";
 
-    if (assigneeText) assigneeText.value = "";
-    if (assigneeCode) assigneeCode.value = "";
-    if (assigneeSearch) assigneeSearch.value = "";
+    const tree = normalizeIssueTree(parentTreeRootsCache);
+    renderParIssueTreeLikeTypeModal(tree);
 
+    parIssueModal.show();
+  };
+
+  const refreshParIssueTree = () => {
+    if (!parentTreeRootsCache) return;
+
+    const tree = normalizeIssueTree(parentTreeRootsCache);
+    const filtered = filterIssueTree(tree, parIssueSearch?.value);
+
+    renderParIssueTreeLikeTypeModal(filtered);
+  };
+
+  /* =========================================================
+     프로젝트 변경 시 의존 필드 초기화
+     ========================================================= */
+  const clearProjectDependentFields = () => {
+    clearOnlyProjectDependents();
+
+    // 유형
     if (typeText) typeText.value = "";
     if (typeCode) typeCode.value = "";
-    if (typeSearch) typeSearch.value = "";
-    if (typeTree) typeTree.innerHTML = "";
-
-    userCache = [];
-    userCacheProjectCode = "";
-
-    typeTreeCache = [];
-    typeCacheProjectCode = "";
 
     // 유형 종료일 제한 초기화
     applyTypeEndDateLimit("");
+
+    // 유형 캐시 초기화(프로젝트 바뀌면 by-project 재조회)
+    typeRawCache = [];
+    typeCacheProjectCode = "";
   };
 
+  /* =========================================================
+     모달 오픈/갱신
+     ========================================================= */
   const openProjectModal = async () => {
     if (!projectModal || !projectList) return;
     if (!(await ensureProjects())) return;
 
-    renderList(projectList, projectCache, async (picked) => {
-      const prev = projectCode.value;
+    const q = (projectSearch?.value || "").trim().toLowerCase();
+    const filtered = q
+      ? projectCache.filter((p) => p.label.toLowerCase().includes(q))
+      : projectCache;
+
+    renderList(projectList, filtered, async (picked) => {
+      const prev = projectCode?.value || "";
 
       projectText.value = picked.label;
       projectCode.value = picked.value;
@@ -562,101 +771,17 @@
     projectModal.show();
   };
 
-  const openAssigneeModal = async () => {
-    if (!assigneeModal || !assigneeList) return;
-
-    const projCode = projectCode?.value?.trim();
-    if (!projCode) {
-      showToast("프로젝트를 먼저 선택해 주세요.");
-      return;
-    }
-
-    if (!(await ensureUsers())) return;
-
-    renderList(assigneeList, userCache, (picked) => {
-      assigneeText.value = picked.label;
-      assigneeCode.value = picked.value;
-      if (assigneeSearch) assigneeSearch.value = "";
-      assigneeModal.hide();
-    });
-
-    assigneeModal.show();
-  };
-
-  const openParIssueModal = async () => {
-    if (!parIssueModal || !parIssueTbody) return;
-
-    const projCode = projectCode?.value?.trim();
-    if (!projCode) {
-      showToast("프로젝트를 먼저 선택해 주세요.");
-      return;
-    }
-
-    if (!(await ensureParentIssues(projCode))) return;
-
-    const list = parentIssueCacheByProject.get(projCode) || [];
-    const filtered = filterBy(list, parIssueSearch?.value);
-
-    renderParIssueTable(parIssueTbody, filtered, (picked) => {
-      parIssueText.value = picked.title;
-      parIssueCode.value = picked.value;
-      if (parIssueSearch) parIssueSearch.value = "";
-      parIssueModal.hide();
-    });
-
-    parIssueModal.show();
-  };
-
-  const openTypeModal = async () => {
-    if (!typeModal || !typeTree) return;
-
-    if (!projectCode?.value?.trim()) {
-      showToast("프로젝트를 먼저 선택해 주세요.");
-      return;
-    }
-
-    if (!(await ensureTypes())) return;
-
-    const q = (typeSearch?.value || "").trim().toLowerCase();
-    const filteredTree = filterTypeTree(typeTreeCache, q);
-    renderTypeTree(filteredTree);
-
-    typeModal.show();
-  };
-
-  const refreshTypeTree = async () => {
-    if (!typeTree) return;
-
-    if (!projectCode?.value?.trim()) {
-      typeTree.innerHTML = "";
-      const empty = document.createElement("div");
-      empty.className = "text-muted";
-      empty.textContent = "프로젝트를 먼저 선택해 주세요.";
-      typeTree.appendChild(empty);
-      return;
-    }
-
-    if (!(await ensureTypes())) return;
-
-    const q = (typeSearch?.value || "").trim().toLowerCase();
-    const filteredTree = filterTypeTree(typeTreeCache, q);
-    renderTypeTree(filteredTree);
-  };
-
   const refreshProjectList = async () => {
     if (!projectList) return;
     if (!(await ensureProjects())) return;
 
-    const filtered = projectSearch?.value
-      ? projectCache.filter((p) =>
-          p.label
-            .toLowerCase()
-            .includes(projectSearch.value.trim().toLowerCase()),
-        )
+    const q = (projectSearch?.value || "").trim().toLowerCase();
+    const filtered = q
+      ? projectCache.filter((p) => p.label.toLowerCase().includes(q))
       : projectCache;
 
     renderList(projectList, filtered, async (picked) => {
-      const prev = projectCode.value;
+      const prev = projectCode?.value || "";
 
       projectText.value = picked.label;
       projectCode.value = picked.value;
@@ -672,96 +797,113 @@
     });
   };
 
-  const refreshAssigneeList = async () => {
-    if (!assigneeList) return;
+  // 담당자 모달: 프로젝트 선택 필수
+  const openAssigneeModal = async () => {
+    if (!assigneeModal || !assigneeBox) return;
 
     const projCode = projectCode?.value?.trim();
     if (!projCode) {
-      assigneeList.innerHTML = "";
-      const empty = document.createElement("div");
-      empty.className = "text-muted";
-      empty.textContent = "프로젝트를 먼저 선택해 주세요.";
-      assigneeList.appendChild(empty);
+      showToast("프로젝트를 먼저 선택해 주세요.");
       return;
     }
 
-    if (!(await ensureUsers())) return;
+    if (assigneeSearch) assigneeSearch.value = "";
+    if (!(await ensureAssigneesByProject(projCode))) return;
 
-    const filtered = assigneeSearch?.value
-      ? userCache.filter((u) =>
-          u.label
-            .toLowerCase()
-            .includes(assigneeSearch.value.trim().toLowerCase()),
+    const projectName = projectText?.value?.trim() || "참여자 목록";
+    renderAssigneeBox(assigneeBox, projectName, assigneeCache, (u) => {
+      assigneeText.value = u.userName;
+      assigneeCode.value = u.userCode;
+      assigneeModal?.hide();
+    });
+
+    assigneeModal.show();
+  };
+
+  const refreshAssigneeBox = async () => {
+    if (!assigneeBox) return;
+
+    const projCode = projectCode?.value?.trim();
+    if (!projCode) {
+      assigneeBox.innerHTML = "";
+      const msg = document.createElement("div");
+      msg.className = "text-muted";
+      msg.textContent = "프로젝트를 먼저 선택해 주세요.";
+      assigneeBox.appendChild(msg);
+      return;
+    }
+
+    if (!(await ensureAssigneesByProject(projCode))) return;
+
+    const q = (assigneeSearch?.value || "").trim().toLowerCase();
+    const filtered = q
+      ? assigneeCache.filter((u) =>
+          (u.userName || "").toLowerCase().includes(q),
         )
-      : userCache;
+      : assigneeCache;
 
-    renderList(assigneeList, filtered, (picked) => {
-      assigneeText.value = picked.label;
-      assigneeCode.value = picked.value;
-      if (assigneeSearch) assigneeSearch.value = "";
+    const projectName = projectText?.value?.trim() || "참여자 목록";
+    renderAssigneeBox(assigneeBox, projectName, filtered, (u) => {
+      assigneeText.value = u.userName;
+      assigneeCode.value = u.userCode;
       assigneeModal?.hide();
     });
   };
 
-  const refreshParIssueTable = async () => {
-    if (!parIssueTbody) return;
+  // 유형 모달: 프로젝트 선택 필수 + by-project 호출
+  const openTypeModal = async () => {
+    if (!typeModal || !typeTreeEl) return;
 
     const projCode = projectCode?.value?.trim();
     if (!projCode) {
-      parIssueTbody.innerHTML = "";
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 2;
-      td.className = "text-muted";
-      td.textContent = "프로젝트를 먼저 선택해 주세요.";
-      tr.appendChild(td);
-      parIssueTbody.appendChild(tr);
-      return;
-    }
-
-    if (!(await ensureParentIssues(projCode))) return;
-
-    const list = parentIssueCacheByProject.get(projCode) || [];
-    const filtered = filterBy(list, parIssueSearch?.value);
-
-    renderParIssueTable(parIssueTbody, filtered, (picked) => {
-      parIssueText.value = picked.title;
-      parIssueCode.value = picked.value;
-      if (parIssueSearch) parIssueSearch.value = "";
-      parIssueModal?.hide();
-    });
-  };
-
-  btnProject?.addEventListener("click", () => {
-    if (projectSearch) projectSearch.value = "";
-    openProjectModal();
-  });
-
-  btnAssignee?.addEventListener("click", () => {
-    if (!projectCode?.value?.trim()) {
       showToast("프로젝트를 먼저 선택해 주세요.");
       return;
     }
-    if (assigneeSearch) assigneeSearch.value = "";
-    openAssigneeModal();
-  });
 
-  btnParIssue?.addEventListener("click", () => {
-    if (parIssueSearch) parIssueSearch.value = "";
-    openParIssueModal();
-  });
+    const projName = projectText?.value?.trim() || "";
 
-  btnType?.addEventListener("click", () => {
+    if (!(await ensureTypesByProject(projCode))) return;
+
     if (typeSearch) typeSearch.value = "";
-    openTypeModal();
-  });
 
-  projectSearch?.addEventListener("input", refreshProjectList);
-  assigneeSearch?.addEventListener("input", refreshAssigneeList);
-  parIssueSearch?.addEventListener("input", refreshParIssueTable);
+    const treeData = buildTypeTreeForJS(typeRawCache, projCode, projName);
+    renderTypeTree(treeData, typeTreeEl);
+    typeModal.show();
+  };
 
-  // 유형 검색은 트리 갱신
-  typeSearch?.addEventListener("input", refreshTypeTree);
+  const refreshTypeTree = async () => {
+    if (!typeTreeEl) return;
+
+    const projCode = projectCode?.value?.trim();
+    if (!projCode) {
+      typeTreeEl.innerHTML =
+        '<div class="p-4 text-center text-muted">프로젝트를 먼저 선택해 주세요.</div>';
+      return;
+    }
+
+    const projName = projectText?.value?.trim() || "";
+
+    if (!(await ensureTypesByProject(projCode))) return;
+
+    const treeData = buildTypeTreeForJS(typeRawCache, projCode, projName);
+    const filtered = filterTypeTree(treeData, typeSearch?.value);
+
+    renderTypeTree(filtered, typeTreeEl);
+  };
+
+  /* =========================================================
+     이벤트 바인딩
+     ========================================================= */
+  btnProject?.addEventListener("click", openProjectModal);
+  btnAssignee?.addEventListener("click", openAssigneeModal);
+  btnType?.addEventListener("click", openTypeModal);
+  btnParIssue?.addEventListener("click", openParIssueModalTree);
+
+  // 검색: 다시 모달 오픈하지 말고 내부 갱신만
+  projectSearch?.addEventListener("input", () => refreshProjectList());
+  assigneeSearch?.addEventListener("input", () => refreshAssigneeBox());
+  typeSearch?.addEventListener("input", () => refreshTypeTree());
+  parIssueSearch?.addEventListener("input", refreshParIssueTree);
 
   priority?.addEventListener("change", () => {
     setDueByPriority();
@@ -783,27 +925,7 @@
     if (projectText) projectText.value = "";
     if (projectCode) projectCode.value = "";
 
-    if (parIssueText) parIssueText.value = "";
-    if (parIssueCode) parIssueCode.value = "";
-    if (parIssueSearch) parIssueSearch.value = "";
-
-    if (assigneeText) assigneeText.value = "";
-    if (assigneeCode) assigneeCode.value = "";
-    if (assigneeSearch) assigneeSearch.value = "";
-
-    if (typeText) typeText.value = "";
-    if (typeCode) typeCode.value = "";
-    if (typeSearch) typeSearch.value = "";
-    if (typeTree) typeTree.innerHTML = "";
-
-    userCache = [];
-    userCacheProjectCode = "";
-
-    typeTreeCache = [];
-    typeCacheProjectCode = "";
-
-    // 종료일 표시 초기화 + max 제거
-    applyTypeEndDateLimit("");
+    clearProjectDependentFields();
 
     setCreatedToday();
     setDueByPriority();
@@ -844,7 +966,6 @@
       return;
     }
 
-    // 최종 방어(유형 종료일 제한)
     if (
       selectedTypeEndDate &&
       dueView?.value &&
@@ -863,12 +984,14 @@
     }
   });
 
+  /* =========================================================
+     초기화
+     ========================================================= */
   const init = async () => {
     setCreatedToday();
     renderSelectedFileName();
     setCanCreate(false);
 
-    // 최초 화면: 유형 종료일 표시 초기화(HTML에 strong가 있어도 '-'로)
     applyTypeEndDateLimit("");
 
     const p = projectCode?.value?.trim();

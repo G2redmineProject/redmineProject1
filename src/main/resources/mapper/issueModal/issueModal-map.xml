@@ -2,15 +2,18 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.yedam.app.issuemodal.mapper.IssueModalMapper">
   <select id="selectIssueModalList" resultType="IssueModalVO">
-    SELECT
-      i.issue_code,
-      i.project_code,
-      i.title,
-      u.name
-    FROM issues i
-    LEFT JOIN users u
-      ON u.user_code = i.assignee_code
-    WHERE i.project_code = #{projectCode}
-    ORDER BY i.issue_code
-  </select>
+     SELECT
+    i.issue_code     AS issueCode,
+    i.project_code   AS projectCode,
+    i.par_issue_code AS parIssueCode,
+    i.type_code      AS typeCode,
+    i.title          AS title,
+    u.name           AS name
+  FROM issues i
+  LEFT JOIN users u
+    ON u.user_code = i.assignee_code
+  WHERE i.project_code = #{projectCode}
+    AND i.type_code = #{typeCode}
+  ORDER BY i.issue_code
+</select>
 </mapper>

@@ -50,4 +50,27 @@ public class UserModalController {
 		Integer userCode = user.getUserCode();
 		return userModalService.findCreatorByMyProjects(userCode.longValue());
 	}
+	
+	// 공지 목록: 로그인 사용자가 참여한 프로젝트들의 공지 등록자들
+	@GetMapping("/api/users/modal/notices/creators")
+	public List<UserModalVO> getNoticeCreators(HttpSession session) {
+	  UserVO user = (UserVO) session.getAttribute("user");
+
+	  if (user == null || user.getUserCode() == null) {
+	    throw new IllegalStateException("로그인 정보가 없습니다.");
+	  }
+
+	  Integer userCode = user.getUserCode();
+	  return userModalService.findNoticeCreatorByMyProjects(userCode.longValue());
+	}
+	
+	// 작업내역
+	@GetMapping("/api/users/modal/my-projects")
+	public List<UserModalVO> getUsersInMyProjects(HttpSession session) {
+	  UserVO user = (UserVO) session.getAttribute("user");
+	  if (user == null || user.getUserCode() == null) {
+	    throw new IllegalStateException("로그인 정보가 없습니다.");
+	  }
+	  return userModalService.findUsersInMyProjects(user.getUserCode().longValue());
+	}
 }

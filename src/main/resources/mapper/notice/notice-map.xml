@@ -6,29 +6,32 @@
 
   <select id="selectNoticeList" resultType="NoticeVO">
     SELECT
-      n.notice_code   AS noticeCode,
-      n.project_code  AS projectCode,
-      p.project_name  AS projectName,
-      n.title         AS title,
-      n.user_code     AS userCode,
-      u.name          AS creatorName,
-      n.created_at    AS createdAt,
-      n.updated_at    AS updatedAt,
-      n.file_code     AS fileCode
-    FROM notices n
-    JOIN projects p
-      ON p.project_code = n.project_code
-    LEFT JOIN users u
-      ON u.user_code = n.user_code
-    /* 로그인 사용자가 속한 프로젝트만 */
-    JOIN vw_user_auth a
-      ON a.project_code = n.project_code
-     AND a.user_code = #{loginUserCode}
-     AND a.status = 'OD1'
-    WHERE 1=1
+    n.notice_code   AS noticeCode,
+    n.project_code  AS projectCode,
+    p.project_name  AS projectName,
+    n.title         AS title,
+    n.user_code     AS userCode,
+    u.name          AS creatorName,
+    n.created_at    AS createdAt,
+    n.updated_at    AS updatedAt,
+    n.file_code     AS fileCode
+  FROM notices n
+  JOIN projects p
+    ON p.project_code = n.project_code
+  LEFT JOIN users u
+    ON u.user_code = n.user_code
 
-    ORDER BY n.notice_code DESC
-  </select>
+  JOIN vw_user_auth a
+    ON a.project_code = n.project_code
+   AND a.user_code = #{loginUserCode}
+  WHERE 1=1
+    AND (
+          (a.admin_ck = 'Y' AND a.status IN ('OD1','OD3'))
+       OR (a.admin_ck = 'N' AND a.status = 'OD1')
+    )
+
+  ORDER BY n.notice_code DESC
+</select>
   
   <!-- 등록 -->
  <insert id="insertNotice" parameterType="NoticeVO">

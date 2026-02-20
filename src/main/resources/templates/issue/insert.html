@@ -333,6 +333,7 @@
       </div>
     </div>
 
+    <!-- 상위일감 선택 모달 -->
     <div
       class="modal fade"
       id="parIssueSelectModal"
@@ -350,27 +351,16 @@
               aria-label="Close"
             ></button>
           </div>
+
           <div class="modal-body">
-            <div class="mb-2 small text-muted">
-              프로젝트를 먼저 선택하면 해당 프로젝트의 일감만 표시됩니다.
-            </div>
             <input
               type="text"
               id="parIssueModalSearch"
               class="form-control mb-2"
-              placeholder="일감명 검색"
+              placeholder="일감명/담당자 검색"
             />
-            <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th style="width: 70%">일감명</th>
-                    <th style="width: 30%">담당자</th>
-                  </tr>
-                </thead>
-                <tbody id="parIssueModalList"></tbody>
-              </table>
-            </div>
+
+            <div id="parIssueModalTree" class="par-tree"></div>
           </div>
         </div>
       </div>
@@ -393,6 +383,7 @@
               aria-label="Close"
             ></button>
           </div>
+
           <div class="modal-body">
             <input
               type="text"
@@ -400,7 +391,7 @@
               class="form-control mb-2"
               placeholder="담당자명 검색"
             />
-            <div class="list-group" id="assigneeModalList"></div>
+            <div id="assigneeModalTree" class="type-tree"></div>
           </div>
         </div>
       </div>

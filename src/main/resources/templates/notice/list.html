@@ -173,9 +173,18 @@
                 <td class="col-no"></td>
                 <td th:text="${notice.projectName}"></td>
                 <td th:text="${notice.title}"></td>
-                <td
-                  th:text="${notice.creatorName != null ? notice.creatorName : ''}"
-                ></td>
+                <td>
+                  <a
+                    th:if="${notice.userCode != null}"
+                    th:href="@{/users/{userCode}(userCode=${notice.userCode})}"
+                    th:text="${notice.creatorName}"
+                    class="user-link text-decoration-none"
+                  ></a>
+                  <span
+                    th:if="${notice.userCode == null}"
+                    th:text="${notice.creatorName != null ? notice.creatorName : ''}"
+                  ></span>
+                </td>
                 <td
                   th:text="${notice.createdAt != null ? #temporals.format(notice.createdAt, 'yyyy-MM-dd') : ''}"
                 ></td>
@@ -244,7 +253,7 @@
               class="form-control mb-2"
               placeholder="등록자명 검색"
             />
-            <div class="list-group" id="creatorModalList"></div>
+            <div id="creatorModalTree" class="type-tree"></div>
           </div>
         </div>
       </div>

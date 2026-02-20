@@ -1,4 +1,4 @@
-// /static/js/log/log-list.js
+// /static/js/log/logs.js
 (() => {
   const $ = (s) => document.querySelector(s);
   const $$ = (s) => Array.from(document.querySelectorAll(s));
@@ -49,7 +49,6 @@
 
   const parseYmd = (ymd) => {
     if (!ymd) return null;
-    // local date
     const [y, m, d] = ymd.split("-").map((v) => parseInt(v, 10));
     if (!y || !m || !d) return null;
     return new Date(y, m - 1, d);
@@ -120,7 +119,6 @@
 
   const getItem = (el) => {
     const d = el.dataset;
-
     const metaDecoded = decodeHtmlEntities(d.meta ?? "");
 
     return {
@@ -149,7 +147,6 @@
     const types = getCheckedTypes();
     const typeAll = types.length === 0;
 
-    // 날짜 range 유효성(사용자 실수 방지)
     if (from && to && from.getTime() > to.getTime()) {
       showToast("시작일이 종료일보다 클 수 없습니다.");
       return [];
@@ -180,18 +177,15 @@
   };
 
   const shouldSkipLog = (it) => {
-    // CREATE는 meta가 null 표시
     if (it.actionType === "CREATE") return false;
 
     const metaStr = decodeHtmlEntities((it.meta ?? "").trim());
     if (!metaStr || metaStr === "null") return true;
 
-    // meta가 JSON이면 changes 비었는지 확인
     try {
       const obj = JSON.parse(metaStr);
       const changes = Array.isArray(obj.changes) ? obj.changes : [];
 
-      // {"changes":[]} 같은 케이스 제거
       if (changes.length === 0) return true;
 
       const hasRenderable = changes.some((c) => {
@@ -204,7 +198,7 @@
           after = formatLocalDateTime(after);
         }
 
-        if (fieldKey === "description") {
+        if (fieldKey === "description" || fieldKey === "content") {
           before = truncateText(stripHtml(before), 80);
           after = truncateText(stripHtml(after), 80);
         }
@@ -214,7 +208,6 @@
 
       return !hasRenderable;
     } catch {
-      // JSON 파싱 실패하면(meta가 그냥 문자열이면) 그냥 보여줌
       return false;
     }
   };
@@ -289,29 +282,29 @@
         const card = document.createElement("div");
         card.className = "history-item";
 
-        // 시간 / 뭐를 어떻게 / 누가
         const head = document.createElement("div");
         head.className = "history-head";
 
-        // 일감/공지/문서
         const targetKor = targetLabelMap[it.targetType] || it.targetType || "";
         head.innerHTML = `
-    <span class="head-line">
-      ${escapeHtml(timeOnly)} / ${escapeHtml(targetKor)} ${escapeHtml(actionKor)} / ${escapeHtml(user)}
-    </span>
-  `;
+          <span class="head-line">
+            ${escapeHtml(timeOnly)} / ${escapeHtml(targetKor)} ${escapeHtml(actionKor)} / ${escapeHtml(user)}
+          </span>
+        `;
 
-        //  프로젝트명
         const proj = document.createElement("div");
         proj.className = "history-project";
         const title = (it.title || "").trim();
 
         proj.innerHTML = `
-  <span class="project-name">${escapeHtml(project)}</span>
-  ${title ? `<a class="title-chip" href="${escapeHtml(buildDetailUrl(it))}">${escapeHtml(title)}</a>` : ""}
-`;
+          <span class="project-name">${escapeHtml(project)}</span>
+          ${
+            title
+              ? `<a class="title-chip" href="${escapeHtml(buildDetailUrl(it))}">${escapeHtml(title)}</a>`
+              : ""
+          }
+        `;
 
-        // meta(변경사항)
         const body = document.createElement("div");
         body.className = "history-body";
 
@@ -415,7 +408,7 @@
       .replaceAll("'", "&#39;");
   };
 
-  // 서버 제출용 hidden 동기화(나중에 submit로 바꾸고 싶을 때 대비)
+  // 서버 제출용 hidden 동기화
   const syncHiddenNames = () => {
     if (ui.projectNameHidden)
       ui.projectNameHidden.value = ui.projectText?.value?.trim() || "";
@@ -423,14 +416,24 @@
       ui.userNameHidden.value = ui.userText?.value?.trim() || "";
   };
 
-  // 클라이언트 필터 적용
   const applyFiltersClient = () => {
     syncHiddenNames();
     const list = filterItems();
     render(list);
   };
 
-  // 모달 공통
+  // -------------------------
+  // 모달
+  // -------------------------
+  const projectModal = ui.projectModalEl
+    ? new bootstrap.Modal(ui.projectModalEl)
+    : null;
+  const userModal = ui.userModalEl ? new bootstrap.Modal(ui.userModalEl) : null;
+
+  let projectCache = [];
+  let userCache = [];
+
+  // 프로젝트 모달: 평면 리스트 유지
   const renderListButtons = (listEl, items, onPick) => {
     if (!listEl) return;
     listEl.innerHTML = "";
@@ -453,14 +456,6 @@
     });
   };
 
-  const projectModal = ui.projectModalEl
-    ? new bootstrap.Modal(ui.projectModalEl)
-    : null;
-  const userModal = ui.userModalEl ? new bootstrap.Modal(ui.userModalEl) : null;
-
-  let projectCache = [];
-  let userCache = [];
-
   const ensureProjectCache = async () => {
     if (projectCache.length > 0) return true;
 
@@ -481,10 +476,99 @@
     return true;
   };
 
+  // 사용자 모달: 트리(프로젝트별) + 검색
+  const renderUserTree = (projects, container, pickHandler) => {
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!projects || projects.length === 0) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
+    }
+
+    projects.forEach((p) => {
+      const groupWrapper = document.createElement("div");
+      groupWrapper.className = "type-project-group";
+
+      const header = document.createElement("div");
+      header.className = "type-project-header";
+      header.textContent = p.projectName || "-";
+
+      const content = document.createElement("div");
+      content.className = "type-project-content";
+      content.style.display = "none";
+
+      header.addEventListener("click", () => {
+        const isOpen = content.style.display === "block";
+
+        const scope = container.closest(".modal-body") || container;
+
+        scope
+          .querySelectorAll(".type-project-content")
+          .forEach((el) => (el.style.display = "none"));
+        scope
+          .querySelectorAll(".type-project-header")
+          .forEach((el) => el.classList.remove("active"));
+
+        if (!isOpen) {
+          content.style.display = "block";
+          header.classList.add("active");
+        }
+      });
+
+      const ul = document.createElement("ul");
+
+      (p.children || []).forEach((u) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("div");
+
+        btn.className = "type-item";
+        btn.textContent = u.userName;
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          pickHandler(u, p.projectCode, p.projectName);
+        });
+
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+
+      content.appendChild(ul);
+      groupWrapper.appendChild(header);
+      groupWrapper.appendChild(content);
+      container.appendChild(groupWrapper);
+    });
+  };
+
+  const filterUserTree = (projects, keyword) => {
+    if (!keyword || !keyword.trim()) return projects;
+
+    const q = keyword.trim().toLowerCase();
+    const result = [];
+
+    (projects || []).forEach((p) => {
+      const matchedUsers = (p.children || []).filter((u) => {
+        const name = (u.userName || "").toLowerCase().trim();
+        return name.includes(q);
+      });
+
+      if (matchedUsers.length > 0) {
+        result.push({
+          projectCode: p.projectCode,
+          projectName: p.projectName,
+          children: matchedUsers,
+        });
+      }
+    });
+
+    return result;
+  };
+
   const ensureUserCache = async () => {
     if (userCache.length > 0) return true;
 
-    // 기존에 쓰던 엔드포인트 그대로 사용
     const res = await fetch("/api/users/modal/my-projects", {
       headers: { Accept: "application/json" },
     });
@@ -494,11 +578,7 @@
       return false;
     }
 
-    const data = await res.json();
-    userCache = data.map((u) => ({
-      code: String(u.userCode),
-      name: u.userName,
-    }));
+    userCache = await res.json(); // project -> children 트리
     return true;
   };
 
@@ -528,45 +608,35 @@
     const ok = await ensureUserCache();
     if (!ok) return;
 
-    renderListButtons(ui.userModalList, userCache, (picked) => {
-      ui.userText.value = picked.name;
-      ui.userValue.value = picked.code;
-      syncHiddenNames();
-      userModal.hide();
-    });
+    const selectedProjectCode = ui.projectValue?.value?.trim() || "";
+    const projectFiltered = selectedProjectCode
+      ? userCache.filter(
+          (p) => String(p.projectCode) === String(selectedProjectCode),
+        )
+      : userCache;
+
+    renderUserTree(
+      projectFiltered,
+      ui.userModalList,
+      (picked, pCode, pName) => {
+        ui.userText.value = picked.userName;
+        ui.userValue.value = picked.userCode;
+
+        // 프로젝트 미선택이면 자동 세팅(원하면 제거)
+        if (!ui.projectValue?.value && pCode) {
+          ui.projectValue.value = String(pCode);
+          ui.projectText.value = pName || "";
+        }
+
+        syncHiddenNames();
+        userModal.hide();
+      },
+    );
 
     userModal.show();
   };
 
-  // 이벤트 바인딩
-  ui.btnApply?.addEventListener("click", (e) => {
-    e.preventDefault();
-    applyFiltersClient();
-  });
-
-  ui.btnReset?.addEventListener("click", (e) => {
-    e.preventDefault();
-
-    if (ui.projectText) ui.projectText.value = "";
-    if (ui.projectValue) ui.projectValue.value = "";
-    if (ui.userText) ui.userText.value = "";
-    if (ui.userValue) ui.userValue.value = "";
-
-    // 타입 체크 해제
-    $$('input[name="types"]').forEach((c) => (c.checked = false));
-
-    // 날짜는 최근 7일 기본으로
-    if (ui.fromDate) ui.fromDate.value = "";
-    if (ui.toDate) ui.toDate.value = "";
-    setDefault7DaysIfEmpty();
-
-    syncHiddenNames();
-    applyFiltersClient();
-  });
-
-  ui.btnProjectModal?.addEventListener("click", openProjectModal);
-  ui.btnUserModal?.addEventListener("click", openUserModal);
-
+  // 검색 이벤트
   ui.projectModalSearch?.addEventListener("input", async () => {
     const ok = await ensureProjectCache();
     if (!ok) return;
@@ -586,16 +656,57 @@
     const ok = await ensureUserCache();
     if (!ok) return;
 
-    const q = ui.userModalSearch.value.trim().toLowerCase();
-    const list = userCache.filter((u) => u.name.toLowerCase().includes(q));
+    const q = ui.userModalSearch.value.trim();
+    const selectedProjectCode = ui.projectValue?.value?.trim() || "";
 
-    renderListButtons(ui.userModalList, list, (picked) => {
-      ui.userText.value = picked.name;
-      ui.userValue.value = picked.code;
+    const projectFiltered = selectedProjectCode
+      ? userCache.filter(
+          (p) => String(p.projectCode) === String(selectedProjectCode),
+        )
+      : userCache;
+
+    const filtered = filterUserTree(projectFiltered, q);
+
+    renderUserTree(filtered, ui.userModalList, (picked, pCode, pName) => {
+      ui.userText.value = picked.userName;
+      ui.userValue.value = picked.userCode;
+
+      if (!ui.projectValue?.value && pCode) {
+        ui.projectValue.value = String(pCode);
+        ui.projectText.value = pName || "";
+      }
+
       syncHiddenNames();
       userModal?.hide();
     });
   });
+
+  // 이벤트 바인딩
+  ui.btnApply?.addEventListener("click", (e) => {
+    e.preventDefault();
+    applyFiltersClient();
+  });
+
+  ui.btnReset?.addEventListener("click", (e) => {
+    e.preventDefault();
+
+    if (ui.projectText) ui.projectText.value = "";
+    if (ui.projectValue) ui.projectValue.value = "";
+    if (ui.userText) ui.userText.value = "";
+    if (ui.userValue) ui.userValue.value = "";
+
+    $$('input[name="types"]').forEach((c) => (c.checked = false));
+
+    if (ui.fromDate) ui.fromDate.value = "";
+    if (ui.toDate) ui.toDate.value = "";
+    setDefault7DaysIfEmpty();
+
+    syncHiddenNames();
+    applyFiltersClient();
+  });
+
+  ui.btnProjectModal?.addEventListener("click", openProjectModal);
+  ui.btnUserModal?.addEventListener("click", openUserModal);
 
   // Enter로 submit 방지
   [ui.projectText, ui.userText, ui.fromDate, ui.toDate].forEach((el) => {

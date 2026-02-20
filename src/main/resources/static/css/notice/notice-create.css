@@ -69,7 +69,7 @@
   white-space: nowrap;
 }
 
-/* invalid 시 살짝 더 눈에 띄게 */
+/* invalid */
 .is-invalid {
   border-color: #dc3545 !important;
 }
@@ -86,7 +86,7 @@
   font-size: 12px;
 }
 
-/* CKEditor 높이/톤 조정 */
+/* CKEditor */
 .ck-editor__editable {
   min-height: 260px;
 }
@@ -106,4 +106,63 @@
 .btn-dark:hover {
   background-color: #0b1220;
   border-color: #0b1220;
+}
+
+/* =========================================================
+   Project Modal (issue/kanban과 동일 톤)
+   ========================================================= */
+
+#projectSelectModal #projectModalList {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item,
+#projectSelectModal #projectModalList > button.list-group-item,
+#projectSelectModal #projectModalList > .list-group-item-action,
+#projectSelectModal #projectModalList > button.list-group-item-action {
+  width: 100%;
+  text-align: left;
+
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+
+  background: rgb(224, 229, 243) !important;
+  color: #111827 !important;
+
+  font-weight: 800;
+  font-size: 14px;
+
+  padding: 10px 14px !important;
+  margin-bottom: 10px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  box-shadow: none !important;
+}
+
+#projectSelectModal #projectModalList > :last-child {
+  margin-bottom: 0 !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item:hover,
+#projectSelectModal #projectModalList > button.list-group-item:hover {
+  background: #dee2e6 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08) !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item:focus,
+#projectSelectModal #projectModalList > button.list-group-item:focus,
+#projectSelectModal #projectModalList > .list-group-item:active,
+#projectSelectModal #projectModalList > button.list-group-item:active,
+#projectSelectModal #projectModalList > .list-group-item.active,
+#projectSelectModal #projectModalList > button.list-group-item.active {
+  outline: none !important;
+  background: #d5dbe3 !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.1) !important;
 }

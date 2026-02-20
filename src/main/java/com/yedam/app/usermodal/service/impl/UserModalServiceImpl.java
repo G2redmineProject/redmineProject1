@@ -57,4 +57,18 @@ public class UserModalServiceImpl implements UserModalService {
 		}
 		return new ArrayList<>(map.values());
 	}
+	
+	//공지
+	@Override
+	public List<UserModalVO> findNoticeCreatorByMyProjects(Long loginUserCode) {
+	  List<UserModalVO> flatList = userModalMapper.selectNoticeCreatorByMyProjects(loginUserCode);
+	  return buildProjectUserTree(flatList);
+	}
+	
+	//작업내역
+	@Override
+	public List<UserModalVO> findUsersInMyProjects(Long loginUserCode) {
+	  List<UserModalVO> flatList = userModalMapper.selectUsersInMyProjects(loginUserCode);
+	  return buildProjectUserTree(flatList);
+	}
 }

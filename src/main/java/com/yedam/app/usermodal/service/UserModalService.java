@@ -6,4 +6,9 @@ public interface UserModalService {
 	  List<UserModalVO> findUsersByProject(Long projectCode);
 	  List<UserModalVO> findAssigneeByMyProjects(Long loginUserCode);
 	  List<UserModalVO> findCreatorByMyProjects(Long loginUserCode);
+	  
+	  //공지
+	  List<UserModalVO> findNoticeCreatorByMyProjects(Long loginUserCode);
+	  //작업내역
+	  List<UserModalVO> findUsersInMyProjects(Long loginUserCode);
 }
