@@ -40,8 +40,8 @@
 	        WHERE v.user_code = #{loginUserCode}
 	          AND v.project_code = i.project_code
 	          AND (
-                    (v.role_code = 1 AND p.status IN ('OD1','OD3'))
-                 OR (v.role_code = 2 AND p.status = 'OD1')
+                    (v.admin_ck = 'Y' AND p.status IN ('OD1','OD3'))
+                 OR (v.admin_ck = 'N' AND p.status = 'OD1')
               )
 	  )
 	ORDER BY projectCode, userName
@@ -69,12 +69,67 @@
 	        WHERE v.user_code = #{loginUserCode}
 	          AND v.project_code = i.project_code
 	          AND (
-                    (v.role_code = 1 AND p.status IN ('OD1','OD3'))
-                 OR (v.role_code = 2 AND p.status = 'OD1')
+                    (v.admin_ck = 'Y' AND p.status IN ('OD1','OD3'))
+                 OR (v.admin_ck = 'N' AND p.status = 'OD1')
               )
 	  )
 	ORDER BY projectCode, userName
 
   </select>
 
+<!-- 공지용 -->
+<select id="selectNoticeCreatorByMyProjects"
+        parameterType="long"
+        resultType="UserModalVO">
+  SELECT DISTINCT
+         n.user_code     AS userCode,
+         u.name          AS userName,
+         n.project_code  AS projectCode,
+         p.project_name  AS projectName
+    FROM notices n
+    JOIN users u
+      ON u.user_code = n.user_code
+    JOIN projects p
+      ON p.project_code = n.project_code
+   WHERE u.is_lock != 1
+     AND EXISTS (
+          SELECT 1
+            FROM vw_user_auth v
+           WHERE v.user_code = #{loginUserCode}
+             AND v.project_code = n.project_code
+             AND (
+                   (v.admin_ck = 'Y' AND p.status IN ('OD1','OD3'))
+                OR (v.admin_ck = 'N' AND p.status = 'OD1')
+             )
+     )
+   ORDER BY projectCode, userName
+</select>
+
+<!-- 작업내역용 -->
+<select id="selectUsersInMyProjects"
+        parameterType="long"
+        resultType="UserModalVO">
+  SELECT DISTINCT
+         v2.user_code    AS userCode,
+         u.name          AS userName,
+         v2.project_code AS projectCode,
+         p.project_name  AS projectName
+    FROM vw_user_auth v2
+    JOIN users u
+      ON u.user_code = v2.user_code
+    JOIN projects p
+      ON p.project_code = v2.project_code
+   WHERE u.is_lock != 1
+     AND EXISTS (
+          SELECT 1
+            FROM vw_user_auth v
+           WHERE v.user_code = #{loginUserCode}
+             AND v.project_code = v2.project_code
+             AND (
+                   (v.admin_ck = 'Y' AND p.status IN ('OD1','OD3'))
+                OR (v.admin_ck = 'N' AND p.status = 'OD1')
+             )
+     )
+   ORDER BY projectCode, userName
+</select>
 </mapper>

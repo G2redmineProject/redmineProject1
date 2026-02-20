@@ -15,4 +15,10 @@ public interface UserModalMapper {
 
 	// 로그인 유저가 참여된 프로젝트의 등록자들 : 목록
 	List<UserModalVO> selectCreatorByMyProjects(@Param("loginUserCode") Long loginUserCode);
+	
+	// 공지용
+	List<UserModalVO> selectNoticeCreatorByMyProjects(@Param("loginUserCode") Long loginUserCode);
+	
+	// 작업내역용
+	List<UserModalVO> selectUsersInMyProjects(@Param("loginUserCode") Long loginUserCode);
 }

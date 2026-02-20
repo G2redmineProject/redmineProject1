@@ -47,7 +47,6 @@
   ORDER BY l.created_at DESC, l.log_code DESC
 </select>
 
-
 <select id="selectLogs" resultType="LogVO">
   SELECT
     l.log_code     AS logCode,
@@ -60,16 +59,14 @@
     l.target_code  AS targetCode,
     l.created_at   AS createdAt,
     l.meta         AS meta,
-    
     COALESCE(i.title, n.title) AS title
-    
   FROM logs l
   JOIN projects p
     ON p.project_code = l.project_code
   LEFT JOIN users u
     ON u.user_code = l.user_code
-    
-     LEFT JOIN issues i
+
+  LEFT JOIN issues i
     ON l.target_type = 'ISSUE'
    AND i.issue_code = l.target_code
 
@@ -77,14 +74,16 @@
     ON l.target_type = 'NOTICE'
    AND n.notice_code = l.target_code
 
-
-  /* 로그인 사용자가 속한 프로젝트만 */
+  /* 로그인 사용자가 속한 프로젝트만 (+ 관리자면 종료(OD3)까지) */
   JOIN vw_user_auth a
     ON a.project_code = l.project_code
    AND a.user_code = #{loginUserCode}
-   AND a.status = 'OD1'
 
   WHERE 1=1
+    AND (
+          (a.admin_ck = 'Y' AND a.status IN ('OD1','OD3'))
+       OR (a.admin_ck = 'N' AND a.status = 'OD1')
+    )
 
   <if test="cond.projectCode != null">
     AND l.project_code = #{cond.projectCode}

@@ -18,7 +18,8 @@ public class IssueModalController {
     private final IssueModalService issueModalService;
 
     @GetMapping("/api/issues/parents")
-    public List<IssueModalVO> issueModalList(@RequestParam("projectCode") Long projectCode) {
-        return issueModalService.findIssueModalList(projectCode);
+    public List<IssueModalVO> issueModalList(@RequestParam("projectCode") Long projectCode,
+                                            @RequestParam("typeCode") Long typeCode) {
+      return issueModalService.findIssueModalList(projectCode, typeCode);
     }
 }

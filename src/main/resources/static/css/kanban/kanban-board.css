@@ -1,9 +1,7 @@
 /* =========================================================
    Kanban Board - /static/css/kanban/kanban-board.css
-   (Issue List 상단 필터 UI와 동일 톤 + Kanban 영역 스타일)
    ========================================================= */
 
-/* ===== Page title (issue-list.css와 동일) ===== */
 .x-page-title {
   margin: 14px 0 12px;
   padding-bottom: 10px;
@@ -24,7 +22,7 @@
   color: #6b7280;
 }
 
-/* ===== Filter area (issue-list.css와 동일) ===== */
+/* ===== Filter area ===== */
 .issue-filters {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -49,7 +47,7 @@
 
 /* ===== Kanban board wrapper ===== */
 .kb-board {
-  border: 1px solid #e5e7eb; /* issue-list 카드 테두리 톤 */
+  border: 1px solid #e5e7eb;
   border-radius: 12px;
   background: #ffffff;
   padding: 10px;
@@ -100,8 +98,49 @@
 
 /* column body */
 .kan-col-body {
-  min-height: 460px;
   padding: 10px;
+
+  min-height: 460px;
+
+  max-height: 570px;
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* 스크롤 부드럽게 */
+  scroll-behavior: smooth;
+}
+
+/* 상태별 컬럼 스크롤바(크롬/엣지) */
+.kan-col-body::-webkit-scrollbar {
+  width: 10px;
+}
+.kan-col-body::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
+  border: 2px solid #f7f8fb; /* 컬럼 배경톤에 맞춤 */
+}
+.kan-col-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* 반응형: 화면 낮으면 컬럼 바디 높이 조금 줄이기 */
+@media (max-height: 820px) {
+  .kan-col-body {
+    max-height: 480px;
+  }
+}
+
+@media (max-height: 720px) {
+  .kan-col-body {
+    max-height: 420px;
+  }
+}
+
+/* 가로 스크롤 구간(1100px 이하)에서도 컬럼 바디 높이 안정적으로 */
+@media (max-width: 1100px) {
+  .kan-col-body {
+    max-height: 520px;
+  }
 }
 
 /* card */
@@ -167,7 +206,6 @@
 .kan-card.sortable-chosen {
   opacity: 0.85;
 }
-
 .kan-card.sortable-ghost {
   opacity: 0.3;
 }
@@ -188,7 +226,7 @@
 /* 마감기한 강조 */
 .kb-due {
   font-weight: 800;
-  color: #111827; /* 진하게 */
+  color: #111827;
 }
 
 /* 우선순위 배지 기본 */
@@ -226,19 +264,17 @@
 }
 
 /* ===== Kanban card state colors ===== */
-
 .kan-card.kb-due--1 {
-  background: #fff1e6; /* 주황 */
+  background: #fff1e6;
   border-color: #ffb37a;
 }
 
 .kan-card.kb-due--0,
 .kan-card.kb-due--over {
-  background: #ffe9e9; /* 빨강 */
+  background: #ffe9e9;
   border-color: #ff9c9c;
 }
 
-/* 마감 텍스트도 같이 강조(원하면) */
 .kan-card.kb-due--1 .kb-due,
 .kan-card.kb-due--0 .kb-due,
 .kan-card.kb-due--over .kb-due {
@@ -246,14 +282,13 @@
   color: #111827;
 }
 
-/* 완료(OB5) 카드: 회색 처리 + 살짝 흐리게 */
+/* 완료(OB5) 카드 */
 .kan-card.kb-done {
   background: #dfdfdfa6;
   border-color: #d1d5db;
   opacity: 0.9;
 }
 
-/* 완료는 마감 경고색보다 우선(회색이 최우선) */
 .kan-card.kb-done.kb-due--1,
 .kan-card.kb-done.kb-due--0,
 .kan-card.kb-done.kb-due--over {
@@ -264,34 +299,39 @@
 /* 카드 드래그할 때 글자 선택되는 현상 방지 */
 .kan-card,
 .kan-card * {
-  -webkit-user-select: none; /* Safari */
-  -ms-user-select: none; /* IE/Edge legacy */
-  user-select: none; /* Modern */
+  -webkit-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
 }
 
-/* 모바일에서 길게 눌러 선택/메뉴 뜨는 것도 완화 */
 .kan-card {
   -webkit-touch-callout: none;
 }
 
 /* =========================================================
-   Type Modal Tree (유형 선택 모달 - 트리)
+   Tree Modal (공통 트리 모달 스타일)
    ========================================================= */
 
-#typeModalTree {
+#typeModalTree,
+#assigneeModalTree,
+#creatorModalTree,
+.type-tree {
   padding: 0;
   border: none !important;
   background-color: #ffffff;
 }
 
+/* 프로젝트 그룹 wrapper (기존 정의와 충돌 방지 위해 공통으로 정리) */
 .type-project-group {
-  border: 1px solid #e5e7eb;
+  border: 1px solid #dee2e6;
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 12px;
-  background-color: #f9fafb;
+  background-color: #f8f9fa;
+  box-shadow: none;
 }
 
+/* 프로젝트 헤더 */
 .type-project-header {
   background-color: rgb(224, 229, 243);
   color: #111827;
@@ -299,14 +339,42 @@
   font-weight: 800;
   font-size: 14px;
   border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  transition: background-color 0.15s ease;
 }
 
-#typeModalTree ul {
+.type-project-header:hover {
+  background-color: #dee2e6;
+}
+
+/* ▶ 기본 (닫힘) */
+.type-project-header::before {
+  content: "▶";
+  font-size: 12px;
+  transition: transform 0.2s ease;
+}
+
+/* ▼ 열림 */
+.type-project-header.active::before {
+  content: "▼";
+}
+
+/* 리스트: li 동그라미 제거 */
+#typeModalTree ul,
+#assigneeModalTree ul,
+#creatorModalTree ul,
+.type-tree ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
+/* 트리 아이템 */
 .type-item {
   cursor: pointer;
   padding: 10px 14px;
@@ -320,9 +388,10 @@
 }
 
 .type-item:hover {
-  background-color: #f3f4f6;
+  background-color: #e2e6ea;
 }
 
+/* 마지막 아이템 border 제거 */
 .type-project-group li:last-child > .type-item {
   border-bottom: none;
 }
@@ -330,28 +399,103 @@
   border-bottom: none;
 }
 
-#typeModalTree ul ul .type-item {
+/* 계층 들여쓰기 */
+#typeModalTree ul ul .type-item,
+#assigneeModalTree ul ul .type-item,
+#creatorModalTree ul ul .type-item,
+.type-tree ul ul .type-item {
   padding-left: 28px;
 }
-#typeModalTree ul ul ul .type-item {
+
+#typeModalTree ul ul ul .type-item,
+#assigneeModalTree ul ul ul .type-item,
+#creatorModalTree ul ul ul .type-item,
+.type-tree ul ul ul .type-item {
   padding-left: 50px;
 }
-#typeModalTree ul ul ul ul .type-item {
+
+#typeModalTree ul ul ul ul .type-item,
+#assigneeModalTree ul ul ul ul .type-item,
+#creatorModalTree ul ul ul ul .type-item,
+.type-tree ul ul ul ul .type-item {
   padding-left: 72px;
 }
 
-/* ===== responsive ===== */
+/* =========================================================
+   responsive
+   ========================================================= */
 @media (max-width: 1100px) {
-  /* 필터 영역: 모바일에서 date 폭 때문에 깨지지 않게 */
   .issue-filters input[type="date"] {
     min-width: 0;
     width: 100%;
   }
 
-  /* 칸반은 가로 스크롤 */
   .kanban-wrap {
     grid-template-columns: repeat(5, minmax(220px, 260px));
     overflow-x: auto;
     padding-bottom: 6px;
   }
+}
+
+/* 컨테이너는 테두리/라운드 제거: 아이템들이 '각각' 보이게 */
+#projectSelectModal #projectModalList {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+/* list-group 기본 스타일 무력화 */
+#projectSelectModal #projectModalList.list-group {
+  border: 0;
+}
+
+/* 프로젝트 항목: 카드처럼 분리 */
+#projectSelectModal #projectModalList .list-group-item {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: rgb(224, 229, 243); /* 헤더톤 통일 */
+  color: #111827;
+
+  font-weight: 800;
+  font-size: 14px;
+
+  padding: 10px 14px;
+  margin-bottom: 10px; /* "각각 떨어져" 보이게 */
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.05s ease;
+}
+
+/* 마지막 아이템은 아래 여백 제거 */
+#projectSelectModal #projectModalList .list-group-item:last-child {
+  margin-bottom: 0;
+}
+
+/* hover */
+#projectSelectModal #projectModalList .list-group-item:hover {
+  background: #dee2e6;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08);
+}
+
+/* focus/active(파란 테두리/그림자 제거하고 톤 유지) */
+#projectSelectModal #projectModalList .list-group-item:focus,
+#projectSelectModal #projectModalList .list-group-item:active,
+#projectSelectModal #projectModalList .list-group-item.active {
+  outline: none;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.1);
+  background: #d5dbe3;
+  color: #111827;
+}
+
+/* 버튼/링크 기본색 튀는 거 방지 */
+#projectSelectModal #projectModalList .list-group-item a {
+  color: inherit;
+  text-decoration: none;
 }

@@ -38,8 +38,9 @@
     typeModalEl: $("#typeSelectModal"),
 
     projectModalList: $("#projectModalList"),
-    assigneeModalList: $("#assigneeModalList"),
-    creatorModalList: $("#creatorModalList"),
+    // NOTE: kanban-board.html 에서 id를 assigneeModalTree/creatorModalTree 로 바꿔야 함
+    assigneeModalList: $("#assigneeModalTree"),
+    creatorModalList: $("#creatorModalTree"),
 
     typeModalTree: $("#typeModalTree"),
 
@@ -329,11 +330,12 @@
   });
 
   // ------------------------------
-  // Modal data load / render
+  // Modal data load / render  (issue-list.js 방식으로 통일)
   // ------------------------------
   let projectCache = [];
-  let userCache = [];
-  let typeCache = [];
+  let assigneeCache = []; // 트리 형태: [{projectCode, projectName, children:[{userCode,userName}]}]
+  let creatorCache = []; // 트리 형태
+  let typeCache = []; // 서버 원본: projectCode/projectName 포함
 
   const renderListButtons = (listEl, items, onPick) => {
     if (!listEl) return;
@@ -358,7 +360,7 @@
   };
 
   const ensureProjectCache = async () => {
-    if (projectCache.length > 0) return true;
+    if (projectCache.length) return true;
     const res = await fetch("/api/projects/modal", {
       headers: { Accept: "application/json" },
     });
@@ -366,34 +368,37 @@
       showToast("프로젝트 목록을 불러오지 못했습니다.");
       return false;
     }
-    const data = await res.json().catch(() => []);
-    projectCache = (data || []).map((p) => ({
+    projectCache = (await res.json()).map((p) => ({
       code: String(p.projectCode),
       name: p.projectName,
     }));
     return true;
   };
 
-  const ensureUserCache = async () => {
-    if (userCache.length > 0) return true;
-    const res = await fetch("/api/users/modal/my-projects", {
-      headers: { Accept: "application/json" },
-    });
+  const ensureAssigneeCache = async () => {
+    if (assigneeCache.length) return true;
+    const res = await fetch("/api/users/modal/assignees");
     if (!res.ok) {
-      showToast("사용자 목록을 불러오지 못했습니다.");
+      showToast("담당자 목록을 불러오지 못했습니다.");
       return false;
     }
-    const data = await res.json().catch(() => []);
-    userCache = (data || []).map((u) => ({
-      code: String(u.userCode),
-      name: u.userName,
-    }));
+    assigneeCache = await res.json();
+    return true;
+  };
+
+  const ensureCreatorCache = async () => {
+    if (creatorCache.length) return true;
+    const res = await fetch("/api/users/modal/creators");
+    if (!res.ok) {
+      showToast("등록자 목록을 불러오지 못했습니다.");
+      return false;
+    }
+    creatorCache = await res.json();
     return true;
   };
 
   const ensureTypeCache = async () => {
-    if (typeCache.length > 0) return true;
-
+    if (typeCache.length) return true;
     const res = await fetch("/api/types/modal", {
       headers: { Accept: "application/json" },
     });
@@ -401,19 +406,278 @@
       showToast("유형 목록을 불러오지 못했습니다.");
       return false;
     }
-
-    typeCache = (await res.json().catch(() => [])) || [];
+    typeCache = await res.json();
     return true;
   };
 
-  // ---- Type tree helpers ----
+  // ---- Project modal ----
+  const openProjectModal = async () => {
+    if (!projectModal) return;
+
+    if (ui.projectModalSearch) ui.projectModalSearch.value = "";
+    const ok = await ensureProjectCache();
+    if (!ok) return;
+
+    renderListButtons(ui.projectModalList, projectCache, (picked) => {
+      ui.projectText.value = picked.name;
+      ui.projectValue.value = picked.code;
+
+      // 프로젝트 변경 시 의존 필드 초기화
+      ui.typeText.value = "";
+      ui.typeValue.value = "";
+      ui.assigneeText.value = "";
+      ui.assigneeValue.value = "";
+      ui.creatorText.value = "";
+      ui.creatorValue.value = "";
+
+      projectModal.hide();
+      setTimeout(cleanupModalBackdrops, 50);
+    });
+
+    projectModal.show();
+  };
+
+  ui.projectModalSearch?.addEventListener("input", async () => {
+    const ok = await ensureProjectCache();
+    if (!ok) return;
+
+    const q = ui.projectModalSearch.value.trim().toLowerCase();
+    renderListButtons(
+      ui.projectModalList,
+      projectCache.filter((p) => p.name.toLowerCase().includes(q)),
+      (picked) => {
+        ui.projectText.value = picked.name;
+        ui.projectValue.value = picked.code;
+
+        ui.typeText.value = "";
+        ui.typeValue.value = "";
+        ui.assigneeText.value = "";
+        ui.assigneeValue.value = "";
+        ui.creatorText.value = "";
+        ui.creatorValue.value = "";
+
+        projectModal?.hide();
+        setTimeout(cleanupModalBackdrops, 50);
+      },
+    );
+  });
+
+  // ---- User(assignee/creator) tree ----
+  const renderUserTree = (projects, container, pickHandler) => {
+    if (!container) return;
+    container.innerHTML = "";
+
+    if (!projects || projects.length === 0) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
+    }
+
+    projects.forEach((p) => {
+      const groupWrapper = document.createElement("div");
+      groupWrapper.className = "type-project-group";
+
+      const header = document.createElement("div");
+      header.className = "type-project-header";
+      header.textContent = p.projectName;
+
+      const content = document.createElement("div");
+      content.className = "type-project-content";
+      content.style.display = "none";
+
+      header.addEventListener("click", () => {
+        const isOpen = content.style.display === "block";
+
+        document
+          .querySelectorAll(".type-project-content")
+          .forEach((el) => (el.style.display = "none"));
+        document
+          .querySelectorAll(".type-project-header")
+          .forEach((el) => el.classList.remove("active"));
+
+        if (!isOpen) {
+          content.style.display = "block";
+          header.classList.add("active");
+        }
+      });
+
+      const ul = document.createElement("ul");
+
+      (p.children || []).forEach((u) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("div");
+
+        btn.className = "type-item";
+        btn.textContent = u.userName;
+
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          pickHandler(u, p.projectCode, p.projectName);
+        });
+
+        li.appendChild(btn);
+        ul.appendChild(li);
+      });
+
+      content.appendChild(ul);
+      groupWrapper.appendChild(header);
+      groupWrapper.appendChild(content);
+      container.appendChild(groupWrapper);
+    });
+  };
+
+  const filterUserTree = (projects, keyword) => {
+    if (!keyword || !keyword.trim()) return projects;
+
+    const q = keyword.trim().toLowerCase();
+    const result = [];
+
+    projects.forEach((p) => {
+      const matchedUsers = (p.children || []).filter((u) => {
+        const name = (u.userName || "").toLowerCase().trim();
+        return name.includes(q);
+      });
+
+      if (matchedUsers.length > 0) {
+        result.push({
+          projectCode: p.projectCode,
+          projectName: p.projectName,
+          children: matchedUsers,
+        });
+      }
+    });
+
+    return result;
+  };
+
+  const openUserModal = async (mode) => {
+    const modal = mode === "assignee" ? assigneeModal : creatorModal;
+    const listEl =
+      mode === "assignee" ? ui.assigneeModalList : ui.creatorModalList;
+    const searchEl =
+      mode === "assignee" ? ui.assigneeModalSearch : ui.creatorModalSearch;
+
+    if (!modal) return;
+    if (searchEl) searchEl.value = "";
+
+    const ok =
+      mode === "assignee"
+        ? await ensureAssigneeCache()
+        : await ensureCreatorCache();
+    if (!ok) return;
+
+    const cache = mode === "assignee" ? assigneeCache : creatorCache;
+
+    const selectedProjectCode = ui.projectValue?.value || "";
+    const projectFiltered = selectedProjectCode
+      ? cache.filter(
+          (p) => String(p.projectCode) === String(selectedProjectCode),
+        )
+      : cache;
+
+    renderUserTree(
+      projectFiltered,
+      listEl,
+      (picked, projectCode, projectName) => {
+        if (mode === "assignee") {
+          ui.assigneeText.value = picked.userName;
+          ui.assigneeValue.value = picked.userCode;
+        } else {
+          ui.creatorText.value = picked.userName;
+          ui.creatorValue.value = picked.userCode;
+        }
+
+        if (!ui.projectValue?.value && projectCode) {
+          ui.projectValue.value = projectCode;
+          ui.projectText.value = projectName || "";
+        }
+
+        modal.hide();
+        setTimeout(cleanupModalBackdrops, 50);
+      },
+    );
+
+    modal.show();
+  };
+
+  ui.assigneeModalSearch?.addEventListener("input", async () => {
+    const ok = await ensureAssigneeCache();
+    if (!ok) return;
+
+    const q = ui.assigneeModalSearch.value.trim().toLowerCase();
+    const selectedProjectCode = ui.projectValue?.value || "";
+
+    const projectFiltered = selectedProjectCode
+      ? assigneeCache.filter(
+          (p) => String(p.projectCode) === String(selectedProjectCode),
+        )
+      : assigneeCache;
+
+    const filtered = filterUserTree(projectFiltered, q);
+
+    renderUserTree(
+      filtered,
+      ui.assigneeModalList,
+      (picked, projectCode, projectName) => {
+        ui.assigneeText.value = picked.userName;
+        ui.assigneeValue.value = picked.userCode;
+
+        if (!ui.projectValue?.value && projectCode) {
+          ui.projectValue.value = projectCode;
+          ui.projectText.value = projectName || "";
+        }
+
+        assigneeModal?.hide();
+        setTimeout(cleanupModalBackdrops, 50);
+      },
+    );
+  });
+
+  ui.creatorModalSearch?.addEventListener("input", async () => {
+    const ok = await ensureCreatorCache();
+    if (!ok) return;
+
+    const q = ui.creatorModalSearch.value.trim().toLowerCase();
+    const selectedProjectCode = ui.projectValue?.value || "";
+
+    const projectFiltered = selectedProjectCode
+      ? creatorCache.filter(
+          (p) => String(p.projectCode) === String(selectedProjectCode),
+        )
+      : creatorCache;
+
+    const filtered = filterUserTree(projectFiltered, q);
+
+    renderUserTree(
+      filtered,
+      ui.creatorModalList,
+      (picked, projectCode, projectName) => {
+        ui.creatorText.value = picked.userName;
+        ui.creatorValue.value = picked.userCode;
+
+        if (!ui.projectValue?.value && projectCode) {
+          ui.projectValue.value = projectCode;
+          ui.projectText.value = projectName || "";
+        }
+
+        creatorModal?.hide();
+        setTimeout(cleanupModalBackdrops, 50);
+      },
+    );
+  });
+
+  // ---- Type modal tree (project accordion + tree + search) ----
   const buildTypeTreeForJS = (serverData) => {
     const projectMap = {};
 
-    const convertType = (type) => ({
+    const convertType = (type, projectCode, projectName) => ({
       code: String(type.typeCode),
       name: type.typeName,
-      children: (type.children || []).map(convertType),
+      projectCode,
+      projectName,
+      children: (type.children || []).map((child) =>
+        convertType(child, projectCode, projectName),
+      ),
     });
 
     (serverData || []).forEach((type) => {
@@ -425,7 +689,7 @@
       }
 
       if (!type.parTypeCode) {
-        projectMap[pCode].children.push(convertType(type));
+        projectMap[pCode].children.push(convertType(type, pCode, pName));
       }
     });
 
@@ -438,16 +702,20 @@
 
     const createNode = (type) => {
       const li = document.createElement("li");
-
       const div = document.createElement("div");
+
       div.className = "type-item";
       div.textContent = type.name;
 
       div.addEventListener("click", (e) => {
         e.stopPropagation();
+        ui.typeText.value = type.name;
+        ui.typeValue.value = type.code;
 
-        if (ui.typeText) ui.typeText.value = type.name;
-        if (ui.typeValue) ui.typeValue.value = type.code;
+        if (type.projectCode && type.projectName) {
+          ui.projectValue.value = type.projectCode;
+          ui.projectText.value = type.projectName;
+        }
 
         typeModal?.hide();
         setTimeout(cleanupModalBackdrops, 50);
@@ -465,10 +733,8 @@
     };
 
     if (!items || items.length === 0) {
-      const div = document.createElement("div");
-      div.className = "p-4 text-center text-muted";
-      div.textContent = "결과가 없습니다.";
-      container.appendChild(div);
+      container.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
       return;
     }
 
@@ -481,84 +747,38 @@
       projHeader.textContent = p.name;
       groupWrapper.appendChild(projHeader);
 
-      const rootUl = document.createElement("ul");
-      (p.children || []).forEach((t) => rootUl.appendChild(createNode(t)));
-      groupWrapper.appendChild(rootUl);
+      const contentWrapper = document.createElement("div");
+      contentWrapper.className = "type-project-content";
+      contentWrapper.style.display = "none";
 
+      projHeader.addEventListener("click", () => {
+        const isOpen = contentWrapper.style.display === "block";
+
+        document
+          .querySelectorAll(".type-project-content")
+          .forEach((el) => (el.style.display = "none"));
+        document
+          .querySelectorAll(".type-project-header")
+          .forEach((el) => el.classList.remove("active"));
+
+        if (!isOpen) {
+          contentWrapper.style.display = "block";
+          projHeader.classList.add("active");
+        } else {
+          contentWrapper.style.display = "none";
+          projHeader.classList.remove("active");
+        }
+      });
+
+      if (p.children && p.children.length > 0) {
+        const rootUl = document.createElement("ul");
+        p.children.forEach((t) => rootUl.appendChild(createNode(t)));
+        contentWrapper.appendChild(rootUl);
+      }
+
+      groupWrapper.appendChild(contentWrapper);
       container.appendChild(groupWrapper);
     });
-  };
-
-  const filterTypeServerTree = (data, qLower) => {
-    if (!qLower) return data || [];
-
-    const walk = (node) => {
-      const name = String(node.typeName || "").toLowerCase();
-      const children = node.children || [];
-      const filteredChildren = children.map(walk).filter(Boolean);
-
-      const matched = name.includes(qLower);
-
-      if (matched) {
-        return node;
-      }
-
-      if (filteredChildren.length > 0) {
-        return { ...node, children: filteredChildren };
-      }
-
-      return null;
-    };
-
-    return (data || []).map(walk).filter(Boolean);
-  };
-
-  // ---- open modals ----
-  const openProjectModal = async () => {
-    if (!projectModal) return;
-    if (ui.projectModalSearch) ui.projectModalSearch.value = "";
-
-    const ok = await ensureProjectCache();
-    if (!ok) return;
-
-    renderListButtons(ui.projectModalList, projectCache, (picked) => {
-      if (ui.projectText) ui.projectText.value = picked.name;
-      if (ui.projectValue) ui.projectValue.value = picked.code;
-
-      projectModal.hide();
-      setTimeout(cleanupModalBackdrops, 50);
-    });
-
-    projectModal.show();
-  };
-
-  const openUserModal = async (kind) => {
-    const modal = kind === "assignee" ? assigneeModal : creatorModal;
-    const listEl =
-      kind === "assignee" ? ui.assigneeModalList : ui.creatorModalList;
-    const searchEl =
-      kind === "assignee" ? ui.assigneeModalSearch : ui.creatorModalSearch;
-
-    if (!modal) return;
-    if (searchEl) searchEl.value = "";
-
-    const ok = await ensureUserCache();
-    if (!ok) return;
-
-    renderListButtons(listEl, userCache, (picked) => {
-      if (kind === "assignee") {
-        if (ui.assigneeText) ui.assigneeText.value = picked.name;
-        if (ui.assigneeValue) ui.assigneeValue.value = picked.code;
-      } else {
-        if (ui.creatorText) ui.creatorText.value = picked.name;
-        if (ui.creatorValue) ui.creatorValue.value = picked.code;
-      }
-
-      modal.hide();
-      setTimeout(cleanupModalBackdrops, 50);
-    });
-
-    modal.show();
   };
 
   const openTypeModal = async () => {
@@ -568,66 +788,16 @@
     const ok = await ensureTypeCache();
     if (!ok) return;
 
+    const selectedProjectCode = ui.projectValue?.value || "";
     const treeData = buildTypeTreeForJS(typeCache);
-    renderTypeTree(treeData, ui.typeModalTree);
 
+    const filteredTreeData = selectedProjectCode
+      ? treeData.filter((p) => String(p.code) === String(selectedProjectCode))
+      : treeData;
+
+    renderTypeTree(filteredTreeData, ui.typeModalTree);
     typeModal.show();
   };
-
-  ui.btnProjectModal?.addEventListener("click", openProjectModal);
-  ui.btnAssigneeModal?.addEventListener("click", () =>
-    openUserModal("assignee"),
-  );
-  ui.btnCreatorModal?.addEventListener("click", () => openUserModal("creator"));
-  ui.btnTypeModal?.addEventListener("click", openTypeModal);
-
-  ui.projectModalSearch?.addEventListener("input", async () => {
-    const ok = await ensureProjectCache();
-    if (!ok) return;
-
-    const q = ui.projectModalSearch.value.trim().toLowerCase();
-    const list = projectCache.filter((p) => p.name.toLowerCase().includes(q));
-
-    renderListButtons(ui.projectModalList, list, (picked) => {
-      if (ui.projectText) ui.projectText.value = picked.name;
-      if (ui.projectValue) ui.projectValue.value = picked.code;
-
-      projectModal?.hide();
-      setTimeout(cleanupModalBackdrops, 50);
-    });
-  });
-
-  ui.assigneeModalSearch?.addEventListener("input", async () => {
-    const ok = await ensureUserCache();
-    if (!ok) return;
-
-    const q = ui.assigneeModalSearch.value.trim().toLowerCase();
-    const list = userCache.filter((u) => u.name.toLowerCase().includes(q));
-
-    renderListButtons(ui.assigneeModalList, list, (picked) => {
-      if (ui.assigneeText) ui.assigneeText.value = picked.name;
-      if (ui.assigneeValue) ui.assigneeValue.value = picked.code;
-
-      assigneeModal?.hide();
-      setTimeout(cleanupModalBackdrops, 50);
-    });
-  });
-
-  ui.creatorModalSearch?.addEventListener("input", async () => {
-    const ok = await ensureUserCache();
-    if (!ok) return;
-
-    const q = ui.creatorModalSearch.value.trim().toLowerCase();
-    const list = userCache.filter((u) => u.name.toLowerCase().includes(q));
-
-    renderListButtons(ui.creatorModalList, list, (picked) => {
-      if (ui.creatorText) ui.creatorText.value = picked.name;
-      if (ui.creatorValue) ui.creatorValue.value = picked.code;
-
-      creatorModal?.hide();
-      setTimeout(cleanupModalBackdrops, 50);
-    });
-  });
 
   ui.typeModalSearch?.addEventListener("input", async () => {
     const ok = await ensureTypeCache();
@@ -635,10 +805,43 @@
 
     const q = ui.typeModalSearch.value.trim().toLowerCase();
 
-    const filteredServerTree = filterTypeServerTree(typeCache, q);
-    const treeData = buildTypeTreeForJS(filteredServerTree);
-    renderTypeTree(treeData, ui.typeModalTree);
+    const selectedProjectCode = ui.projectValue?.value || "";
+    const treeData = buildTypeTreeForJS(typeCache);
+
+    const projectFiltered = selectedProjectCode
+      ? treeData.filter((p) => String(p.code) === String(selectedProjectCode))
+      : treeData;
+
+    if (!q) {
+      renderTypeTree(projectFiltered, ui.typeModalTree);
+      return;
+    }
+
+    const searchInTree = (nodes) =>
+      (nodes || [])
+        .map((node) => {
+          const nameHit = (node.name || "").toLowerCase().includes(q);
+          const childHits = searchInTree(node.children || []);
+          if (nameHit || childHits.length > 0)
+            return { ...node, children: childHits };
+          return null;
+        })
+        .filter(Boolean);
+
+    const filtered = projectFiltered
+      .map((proj) => ({ ...proj, children: searchInTree(proj.children || []) }))
+      .filter((proj) => (proj.children || []).length > 0);
+
+    renderTypeTree(filtered, ui.typeModalTree);
   });
+
+  // ---- bind open buttons ----
+  ui.btnProjectModal?.addEventListener("click", openProjectModal);
+  ui.btnAssigneeModal?.addEventListener("click", () =>
+    openUserModal("assignee"),
+  );
+  ui.btnCreatorModal?.addEventListener("click", () => openUserModal("creator"));
+  ui.btnTypeModal?.addEventListener("click", openTypeModal);
 
   // ------------------------------
   // Kanban drag + click
@@ -884,7 +1087,7 @@
       return;
     }
 
-    const { issueCode, projectCode, card } = pendingProgress;
+    const { projectCode, card } = pendingProgress;
 
     let v = Number(ui.progressInput?.value);
     if (Number.isNaN(v)) v = 0;
@@ -904,7 +1107,11 @@
           Accept: "application/json",
           "X-Requested-With": "XMLHttpRequest",
         },
-        body: JSON.stringify({ projectCode, issueCode, progress: v }),
+        body: JSON.stringify({
+          projectCode,
+          issueCode: Number(card.dataset.issueCode || 0),
+          progress: v,
+        }),
       })
         .then((r) => r.json())
         .catch(() => null);
@@ -944,7 +1151,6 @@
     }
 
     pendingReject = { item, fromCol, oldIndex, issueCode };
-
     if (ui.rejectReason) ui.rejectReason.value = "";
 
     rejectModal.show();
@@ -1176,7 +1382,7 @@
         const fromStatusCode = fromCol?.dataset?.status || "";
         const toStatusCode = toCol?.dataset?.status || "";
 
-        //반려, 완료는 관리자만 가능
+        // 반려, 완료는 관리자만 가능
         if (toStatusCode === "OB4" || toStatusCode === "OB5") {
           let isAdmin = isAdminCache.get(projectCode);
 

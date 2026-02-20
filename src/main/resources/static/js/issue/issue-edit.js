@@ -1,4 +1,4 @@
-// /js/issue/issue-edit.js
+// /static/js/issue/issue-edit.js
 (() => {
   const $ = (s) => document.querySelector(s);
 
@@ -43,13 +43,13 @@
     ? new bootstrap.Modal(parIssueModalEl)
     : null;
   const parIssueSearchEl = $("#parIssueModalSearch");
-  const parIssueTbody = $("#parIssueModalList");
+  const parIssueTreeEl = $("#parIssueModalTree");
 
   const toDT = (d) => (d ? `${d}T00:00` : "");
 
-  // -------------------------
-  // Toast
-  // -------------------------
+  /* =========================================================
+     Toast
+     ========================================================= */
   const showToast = (message) => {
     const toastId = "commonToast";
     let toastEl = document.getElementById(toastId);
@@ -92,9 +92,9 @@
     );
   };
 
-  // -------------------------
-  // 날짜/우선순위 유틸
-  // -------------------------
+  /* =========================================================
+     날짜/우선순위 유틸
+     ========================================================= */
   const pad2 = (n) => String(n).padStart(2, "0");
   const toDate = (d) =>
     `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
@@ -108,7 +108,6 @@
   const PRIORITY_DAYS = { OA1: 2, OA2: 7, OA3: 14, OA4: 21 };
   const getPriorityDays = () => PRIORITY_DAYS[prioritySel?.value] ?? null;
 
-  // 날짜 비교
   const isBefore = (a, b) => {
     if (!a || !b) return false;
     const da = new Date(`${a}T00:00:00`);
@@ -118,7 +117,9 @@
 
   const todayYmd = () => {
     const now = new Date();
-    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`;
+    return `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(
+      now.getDate(),
+    )}`;
   };
 
   const isOverdue = () => {
@@ -127,9 +128,9 @@
     return isBefore(due, todayYmd());
   };
 
-  // -------------------------
-  // 공통 fetch
-  // -------------------------
+  /* =========================================================
+     공통 fetch
+     ========================================================= */
   const fetchJson = async (url, failMsg) => {
     const res = await fetch(url, { headers: { Accept: "application/json" } });
     if (!res.ok) {
@@ -139,9 +140,9 @@
     return res.json();
   };
 
-  // -------------------------
-  // 유형 종료일 제한
-  // -------------------------
+  /* =========================================================
+     유형 종료일 제한
+     ========================================================= */
   const typeEndAtView = $("#typeEndAtView");
   let selectedTypeEndDate = ""; // "YYYY-MM-DD"
 
@@ -216,9 +217,17 @@
     dueAt.value = toDT(dueView.value);
   };
 
-  // -------------------------
-  // 초기값 백업
-  // -------------------------
+  /* =========================================================
+     초기값 백업
+     ========================================================= */
+  const typeText = $("#typeText");
+  const getTypeCodeInput = () => {
+    const list = document.querySelectorAll('input[name="typeCode"]');
+    if (list.length === 0) return $("#typeCode");
+    return list[list.length - 1];
+  };
+  const typeCode = getTypeCodeInput();
+
   const initial = {
     title: titleInp?.value || "",
     description: descInp?.value || "",
@@ -233,19 +242,15 @@
     parIssueText: parIssueText?.value || "",
     parIssueCode: parIssueCode?.value || "",
     parIssueNameEnabled: parIssueCode?.getAttribute("name") === "parIssueCode",
-    typeText: $("#typeText")?.value || "",
-    typeCode: (() => {
-      const list = document.querySelectorAll('input[name="typeCode"]');
-      const el = list.length ? list[list.length - 1] : $("#typeCode");
-      return el?.value || "";
-    })(),
+    typeText: typeText?.value || "",
+    typeCode: typeCode?.value || "",
     projectCode: projectCodeEl?.value || "",
     projectText: projectTextEl?.value || "",
   };
 
-  // -------------------------
-  // hidden 날짜 동기화
-  // -------------------------
+  /* =========================================================
+     hidden 날짜 동기화
+     ========================================================= */
   const syncHiddenDates = () => {
     if (createdAt && createdView) createdAt.value = toDT(createdView.value);
     syncDueWithPriority();
@@ -257,9 +262,9 @@
     }
   };
 
-  // -------------------------
-  // 상태 UI 제어 (완료일: OB5에서만 입력 가능)
-  // -------------------------
+  /* =========================================================
+     상태 UI 제어 (완료일: OB5에서만 입력 가능)
+     ========================================================= */
   const toggleResolvedByStatus = () => {
     if (!resolvedView) return;
     const isDone = statusSel?.value === "OB5";
@@ -368,104 +373,63 @@
     syncHiddenDates();
   };
 
-  // -------------------------
-  // 유형 모달 (등록 화면과 동일: 트리 렌더)
-  // -------------------------
+  /* =========================================================
+     유형 모달 (프로젝트 고정)
+     ========================================================= */
   const typeModalEl = $("#typeSelectModal");
   const typeModal = typeModalEl ? new bootstrap.Modal(typeModalEl) : null;
 
-  const typeText = $("#typeText");
-  const typeTree = $("#typeModalTree");
+  const typeTreeEl = $("#typeModalTree");
   const typeSearchEl = $("#typeModalSearch");
   const btnOpenTypeModal = $("#btnOpenTypeModal");
   const btnClearType = $("#btnClearType"); // HTML에 없으면 null이어도 OK
 
-  const getTypeCodeInput = () => {
-    const list = document.querySelectorAll('input[name="typeCode"]');
-    if (list.length === 0) return $("#typeCode");
-    return list[list.length - 1];
-  };
-  const typeCode = getTypeCodeInput();
-
-  let typeTreeCache = [];
+  let typeRawCache = []; // 서버 원본(트리)
   let typeCacheProjectCode = "";
 
-  const escapeHtml = (s) =>
-    String(s ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#39;");
+  const buildTypeTreeForJS = (serverData, projectCode, projectName) => {
+    const convert = (node) => ({
+      code: String(node.typeCode),
+      name: node.typeName,
+      endAt: node.endAt ?? node.end_at ?? node.typeEndAt ?? null,
+      children: (node.children || []).map(convert),
+    });
 
-  const normalizeTypeNodes = (data) => {
-    if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data.list)) return data.list;
-    return [];
+    const roots = (serverData || []).map(convert);
+
+    return [
+      {
+        code: String(projectCode || ""),
+        name: projectName || "프로젝트",
+        children: roots,
+      },
+    ];
   };
 
-  const getNodeName = (node) => (node?.typeName ?? "").trim();
-  const getNodeCode = (node) => node?.typeCode;
+  const renderTypeTree = (projects, container) => {
+    if (!container) return;
+    container.innerHTML = "";
 
-  const filterTypeTree = (nodes, qLower) => {
-    if (!qLower) return nodes;
-
-    const out = [];
-    for (const n of nodes) {
-      const name = getNodeName(n).toLowerCase();
-      const kids = Array.isArray(n.children) ? n.children : [];
-      const filteredKids = filterTypeTree(kids, qLower);
-
-      if (name.includes(qLower) || filteredKids.length) {
-        out.push({ ...n, children: filteredKids });
-      }
-    }
-    return out;
-  };
-
-  const buildTypeTreeDom = (nodes, depth = 0) => {
-    const wrap = document.createElement("div");
-
-    if (!nodes.length) {
-      const empty = document.createElement("div");
-      empty.className = "text-muted";
-      empty.textContent = "결과가 없습니다.";
-      wrap.appendChild(empty);
-      return wrap;
+    if (!projects || projects.length === 0) {
+      container.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
     }
 
-    for (const n of nodes) {
-      const row = document.createElement("div");
-      row.className = "type-tree-row d-flex align-items-center";
-      row.style.padding = "6px 8px";
-      row.style.cursor = "pointer";
-      row.style.borderBottom = "1px solid rgba(0,0,0,0.06)";
-      row.style.paddingLeft = `${8 + depth * 16}px`;
+    const createNode = (type) => {
+      const li = document.createElement("li");
 
-      const hasChildren = Array.isArray(n.children) && n.children.length > 0;
+      const div = document.createElement("div");
+      div.className = "type-item";
+      div.textContent = type.name;
 
-      const caret = document.createElement("span");
-      caret.className = "me-2";
-      caret.style.width = "14px";
-      caret.style.display = "inline-block";
-      caret.textContent = hasChildren ? "▸" : "";
-      row.appendChild(caret);
-
-      const name = document.createElement("span");
-      name.innerHTML = escapeHtml(getNodeName(n));
-      row.appendChild(name);
-
-      row.addEventListener("click", (e) => {
+      div.addEventListener("click", (e) => {
         e.stopPropagation();
 
-        const code = getNodeCode(n);
-        if (!code) return;
+        if (typeText) typeText.value = type.name;
+        if (typeCode) typeCode.value = type.code;
 
-        if (typeText) typeText.value = getNodeName(n);
-        if (typeCode) typeCode.value = String(code);
-
-        const endDate = normalizeDateOnly(n.endAt ?? n.end_at);
+        const endDate = normalizeDateOnly(type.endAt);
         applyTypeEndDateLimit(endDate);
 
         if (prioritySel?.value && !dueView?.value) setDueByPriority();
@@ -475,55 +439,68 @@
         typeModal?.hide();
       });
 
-      wrap.appendChild(row);
+      li.appendChild(div);
 
-      if (hasChildren) {
-        const childWrap = buildTypeTreeDom(n.children, depth + 1);
-        childWrap.style.display = "none";
-
-        caret.style.cursor = "pointer";
-        caret.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const isOpen = childWrap.style.display !== "none";
-          childWrap.style.display = isOpen ? "none" : "block";
-          caret.textContent = isOpen ? "▸" : "▾";
-        });
-
-        wrap.appendChild(childWrap);
+      if (type.children && type.children.length > 0) {
+        const ul = document.createElement("ul");
+        type.children.forEach((c) => ul.appendChild(createNode(c)));
+        li.appendChild(ul);
       }
-    }
 
-    return wrap;
+      return li;
+    };
+
+    projects.forEach((p) => {
+      const groupWrapper = document.createElement("div");
+      groupWrapper.className = "type-project-group";
+
+      const header = document.createElement("div");
+      header.className = "type-project-header";
+      header.textContent = p.name;
+
+      const content = document.createElement("div");
+      content.className = "type-project-content";
+      content.style.display = "block"; // edit는 프로젝트 고정이라 기본 펼침
+
+      header.classList.add("active");
+
+      const rootUl = document.createElement("ul");
+      (p.children || []).forEach((t) => rootUl.appendChild(createNode(t)));
+      content.appendChild(rootUl);
+
+      groupWrapper.appendChild(header);
+      groupWrapper.appendChild(content);
+      container.appendChild(groupWrapper);
+    });
   };
 
-  const renderTypeTree = (nodes) => {
-    if (!typeTree) return;
-    typeTree.innerHTML = "";
-    typeTree.appendChild(buildTypeTreeDom(nodes, 0));
-  };
+  const filterTypeTree = (projects, q) => {
+    const query = (q || "").trim().toLowerCase();
+    if (!query) return projects;
 
-  const getProjectCodeSafe = () => {
-    const v1 = String(projectCodeEl?.value || "").trim();
-    if (v1) return v1;
+    const filterNode = (node) => {
+      const hit = (node.name || "").toLowerCase().includes(query);
+      const kids = (node.children || []).map(filterNode).filter(Boolean);
+      if (hit || kids.length) return { ...node, children: kids };
+      return null;
+    };
 
-    const byName = document.querySelector('input[name="projectCode"]');
-    const v2 = String(byName?.value || "").trim();
-    if (v2) return v2;
-
-    const v3 = String(form?.dataset?.projectCode || "").trim();
-    if (v3) return v3;
-
-    return "";
+    return (projects || [])
+      .map((p) => {
+        const children = (p.children || []).map(filterNode).filter(Boolean);
+        return { ...p, children };
+      })
+      .filter((p) => (p.children || []).length > 0);
   };
 
   const ensureTypes = async () => {
-    const projCode = getProjectCodeSafe();
+    const projCode = String(projectCodeEl?.value || "").trim();
     if (!projCode) {
-      showToast("프로젝트 코드가 없어 유형을 불러올 수 없습니다.");
+      showToast("프로젝트 정보가 없어 유형을 불러올 수 없습니다.");
       return false;
     }
 
-    if (typeTreeCache.length && typeCacheProjectCode === projCode) return true;
+    if (typeRawCache.length && typeCacheProjectCode === projCode) return true;
 
     const data = await fetchJson(
       `/api/types/modal/by-project?projectCode=${encodeURIComponent(projCode)}`,
@@ -531,20 +508,24 @@
     );
     if (!data) return false;
 
-    typeTreeCache = normalizeTypeNodes(data);
+    typeRawCache = Array.isArray(data) ? data : data.list || [];
     typeCacheProjectCode = projCode;
     return true;
   };
 
   const refreshTypeTree = async () => {
-    if (!typeTree) return;
+    if (!typeTreeEl) return;
 
     const ok = await ensureTypes();
     if (!ok) return;
 
-    const q = (typeSearchEl?.value || "").trim().toLowerCase();
-    const filtered = filterTypeTree(typeTreeCache, q);
-    renderTypeTree(filtered);
+    const projCode = String(projectCodeEl?.value || "").trim();
+    const projName = String(projectTextEl?.value || "").trim();
+
+    const treeData = buildTypeTreeForJS(typeRawCache, projCode, projName);
+    const filtered = filterTypeTree(treeData, typeSearchEl?.value);
+
+    renderTypeTree(filtered, typeTreeEl);
   };
 
   const openTypeModal = async () => {
@@ -567,7 +548,7 @@
       const n = stack.shift();
       if (!n) continue;
 
-      const code = String(getNodeCode(n) ?? "");
+      const code = String(n.typeCode ?? n.code ?? "");
       if (code && code === codeStr) return n;
 
       const kids = Array.isArray(n.children) ? n.children : [];
@@ -586,8 +567,10 @@
     const ok = await ensureTypes();
     if (!ok) return;
 
-    const node = findTypeNodeByCode(typeTreeCache, cur);
-    const endDate = normalizeDateOnly(node?.endAt ?? node?.end_at);
+    const node = findTypeNodeByCode(typeRawCache, cur);
+    const endDate = normalizeDateOnly(
+      node?.endAt ?? node?.end_at ?? node?.typeEndAt,
+    );
     applyTypeEndDateLimit(endDate);
 
     syncHiddenDates();
@@ -602,20 +585,20 @@
     const ok = await ensureTypes();
     if (!ok) return;
 
-    const node = findTypeNodeByCode(typeTreeCache, cur);
-    if (node) typeText.value = getNodeName(node);
+    const node = findTypeNodeByCode(typeRawCache, cur);
+    if (node) typeText.value = String(node.typeName || "").trim();
   };
 
-  // -------------------------
-  // 담당자 모달
-  // -------------------------
+  /* =========================================================
+     담당자 모달 (리스트 렌더)
+     ========================================================= */
   const assigneeModalEl = $("#assigneeSelectModal");
   const assigneeModal = assigneeModalEl
     ? new bootstrap.Modal(assigneeModalEl)
     : null;
 
-  const assigneeText = $("#assigneeText");
-  const assigneeCode = $("#assigneeCode");
+  const assigneeTextEl = $("#assigneeText");
+  const assigneeCodeEl = $("#assigneeCode");
   const btnOpenAssigneeModal = $("#btnOpenAssigneeModal");
   const assigneeListEl = $("#assigneeModalList");
   const assigneeSearchEl = $("#assigneeModalSearch");
@@ -632,19 +615,13 @@
 
     if (userCache.length && userCacheProjectCode === projCode) return true;
 
-    const res = await fetch(
+    const data = await fetchJson(
       `/api/users/modal?projectCode=${encodeURIComponent(projCode)}`,
-      { headers: { Accept: "application/json" } },
+      "사용자 목록을 불러오지 못했습니다.",
     );
+    if (!data) return false;
 
-    if (!res.ok) {
-      showToast("사용자 목록을 불러오지 못했습니다.");
-      return false;
-    }
-
-    const data = await res.json();
-
-    userCache = data.map((u) => ({
+    userCache = (Array.isArray(data) ? data : []).map((u) => ({
       value: String(u.userCode),
       label: u.userName,
     }));
@@ -663,19 +640,34 @@
       return;
     }
 
+    const group = document.createElement("div");
+    group.className = "assignee-project-group";
+
+    const header = document.createElement("div");
+    header.className = "assignee-project-header";
+    header.textContent = projectTextEl?.value?.trim() || "참여자 목록";
+
+    const content = document.createElement("div");
+    content.className = "assignee-project-content";
+
     items.forEach((u) => {
-      const b = document.createElement("button");
-      b.type = "button";
-      b.className = "list-group-item list-group-item-action";
-      b.textContent = u.label;
-      b.addEventListener("click", () => {
-        if (assigneeText) assigneeText.value = u.label;
-        if (assigneeCode) assigneeCode.value = u.value;
+      const item = document.createElement("div");
+      item.className = "assignee-item";
+      item.textContent = u.label;
+
+      item.addEventListener("click", () => {
+        if (assigneeTextEl) assigneeTextEl.value = u.label;
+        if (assigneeCodeEl) assigneeCodeEl.value = u.value;
         if (assigneeSearchEl) assigneeSearchEl.value = "";
         assigneeModal?.hide();
       });
-      assigneeListEl.appendChild(b);
+
+      content.appendChild(item);
     });
+
+    group.appendChild(header);
+    group.appendChild(content);
+    assigneeListEl.appendChild(group);
   };
 
   const openAssigneeModal = async () => {
@@ -695,102 +687,266 @@
     assigneeModal.show();
   };
 
-  // -------------------------
-  // 상위일감 모달
-  // -------------------------
-  const parentIssueCacheByProject = new Map();
+  /* =========================================================
+     상위일감 모달 (유형모달 톤 + 아코디언 + 정렬 고정)
+     ========================================================= */
+  let parentTreeRootsCache = null;
 
-  const ensureParentIssues = async (projectCode) => {
-    if (!projectCode) return false;
-    if (parentIssueCacheByProject.has(projectCode)) return true;
+  const childrenSetFromTree = (roots, selfId) => {
+    const set = new Set();
+    if (!selfId) return set;
 
-    const data = await fetchJson(
-      `/api/issues/parents?projectCode=${encodeURIComponent(projectCode)}`,
-      "상위일감 목록을 불러오지 못했습니다.",
-    );
-    if (!data) return false;
+    const stack = Array.isArray(roots) ? [...roots] : [];
+    let selfNode = null;
 
-    const list = data.map((i) => ({
-      issueCode: Number(i.issueCode),
-      title: i.title ?? "",
-      assignee: (i.name ?? "미지정").trim(),
-    }));
+    while (stack.length) {
+      const n = stack.shift();
+      if (!n) continue;
 
-    parentIssueCacheByProject.set(projectCode, list);
-    return true;
+      if (Number(n.issueCode) === Number(selfId)) {
+        selfNode = n;
+        break;
+      }
+      const kids = Array.isArray(n.children) ? n.children : [];
+      if (kids.length) stack.unshift(...kids);
+    }
+
+    const walk = (node) => {
+      const kids = Array.isArray(node?.children) ? node.children : [];
+      kids.forEach((c) => {
+        set.add(Number(c.issueCode));
+        walk(c);
+      });
+    };
+
+    if (selfNode) walk(selfNode);
+    return set;
   };
 
-  const renderParIssueTable = (items) => {
-    if (!parIssueTbody) return;
-    parIssueTbody.innerHTML = "";
+  const buildForbiddenSet = (rawRoots, selfIdNum) => {
+    const set = new Set();
+    if (!selfIdNum) return set;
 
-    if (!items.length) {
-      const tr = document.createElement("tr");
-      const td = document.createElement("td");
-      td.colSpan = 2;
-      td.className = "text-muted";
-      td.textContent = "결과가 없습니다.";
-      tr.appendChild(td);
-      parIssueTbody.appendChild(tr);
+    set.add(Number(selfIdNum));
+    const kids = childrenSetFromTree(rawRoots, selfIdNum);
+    kids.forEach((v) => set.add(Number(v)));
+    return set;
+  };
+
+  const normalizeIssueTree = (roots) => {
+    const convert = (n) => ({
+      id: String(n.issueCode),
+      title: String(n.title ?? "").trim(),
+      assignee: String(n.name ?? "미지정").trim(),
+      children: (n.children || []).map(convert),
+    });
+    return (roots || []).map(convert);
+  };
+
+  const filterIssueTree = (nodes, q) => {
+    const query = (q || "").trim().toLowerCase();
+    if (!query) return nodes;
+
+    const filterNode = (node) => {
+      const hitTitle = (node.title || "").toLowerCase().includes(query);
+      const hitAssignee = (node.assignee || "").toLowerCase().includes(query);
+      const kids = (node.children || []).map(filterNode).filter(Boolean);
+
+      if (hitTitle || hitAssignee || kids.length)
+        return { ...node, children: kids };
+      return null;
+    };
+
+    return (nodes || []).map(filterNode).filter(Boolean);
+  };
+
+  const renderParIssueTreeLikeTypeModal = (treeRoots, forbiddenSet) => {
+    if (!parIssueTreeEl) return;
+
+    parIssueTreeEl.innerHTML = "";
+
+    if (!treeRoots || treeRoots.length === 0) {
+      parIssueTreeEl.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
       return;
     }
 
-    items.forEach((it) => {
-      const tr = document.createElement("tr");
-      tr.style.cursor = "pointer";
+    const groupWrapper = document.createElement("div");
+    groupWrapper.className = "type-project-group";
 
-      const tdTitle = document.createElement("td");
-      tdTitle.textContent = it.title;
+    // 헤더는 "유형명"이 있을 때만 표시(프로젝트명 안 뜨게)
+    const typeName = String(typeText?.value || "").trim();
+    if (typeName) {
+      const header = document.createElement("div");
+      header.className = "type-project-header active";
+      header.textContent = typeName;
+      groupWrapper.appendChild(header);
+    }
 
-      const tdAssignee = document.createElement("td");
-      tdAssignee.textContent = it.assignee;
+    const content = document.createElement("div");
+    content.className = "type-project-content";
+    content.style.display = "block";
 
-      tr.appendChild(tdTitle);
-      tr.appendChild(tdAssignee);
+    const rootUl = document.createElement("ul");
+    rootUl.className = "pi-tree-root";
 
-      tr.addEventListener("click", () => {
-        const selfId = Number(issueCodeEl?.value);
-        if (!Number.isNaN(selfId) && it.issueCode === selfId) {
-          showToast("자기 자신을 상위일감으로 선택할 수 없습니다.");
+    const makeArrow = (isParent) => {
+      const arrow = document.createElement("span");
+      arrow.className = isParent ? "pi-arrow is-parent" : "pi-arrow";
+      return arrow;
+    };
+
+    const createLeafRow = (node, depth) => {
+      const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "type-item pi-item";
+      row.dataset.depth = String(depth);
+
+      const arrow = makeArrow(false);
+
+      const title = document.createElement("span");
+      title.className = "pi-title";
+      title.textContent = node.title;
+
+      const meta = document.createElement("span");
+      meta.className = "pi-meta";
+      meta.textContent = node.assignee;
+
+      row.appendChild(arrow);
+      row.appendChild(title);
+      row.appendChild(meta);
+
+      const isForbidden = forbiddenSet?.has(Number(node.id));
+      if (isForbidden) row.classList.add("pi-disabled");
+
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+
+        if (isForbidden) {
+          showToast(
+            "자기 자신 또는 하위 일감은 상위일감으로 선택할 수 없습니다.",
+          );
           return;
         }
 
-        if (parIssueCode) parIssueCode.setAttribute("name", "parIssueCode");
+        if (parIssueText) parIssueText.value = node.title;
+        if (parIssueCode) {
+          parIssueCode.value = node.id;
+          parIssueCode.setAttribute("name", "parIssueCode");
+        }
 
-        if (parIssueText) parIssueText.value = it.title;
-        if (parIssueCode) parIssueCode.value = String(it.issueCode);
-
-        if (parIssueSearchEl) parIssueSearchEl.value = "";
         parIssueModal?.hide();
       });
 
-      parIssueTbody.appendChild(tr);
-    });
-  };
+      li.appendChild(row);
+      return li;
+    };
 
-  const filterParIssue = (items, q) => {
-    const qq = (q || "").trim().toLowerCase();
-    if (!qq) return items;
-    return items.filter((it) => (it.title || "").toLowerCase().includes(qq));
+    const createParentNode = (node, depth) => {
+      const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "type-item pi-item pi-parent-item";
+      row.dataset.depth = String(depth);
+
+      const arrow = makeArrow(true);
+
+      const title = document.createElement("span");
+      title.className = "pi-title";
+      title.textContent = node.title;
+
+      const meta = document.createElement("span");
+      meta.className = "pi-meta";
+      meta.textContent = node.assignee;
+
+      row.appendChild(arrow);
+      row.appendChild(title);
+      row.appendChild(meta);
+
+      const childUl = document.createElement("ul");
+      childUl.className = "pi-children-ul";
+
+      (node.children || []).forEach((c) => {
+        const hasKids = Array.isArray(c.children) && c.children.length > 0;
+        childUl.appendChild(
+          hasKids
+            ? createParentNode(c, depth + 1)
+            : createLeafRow(c, depth + 1),
+        );
+      });
+
+      // 기본 닫힘
+      row.classList.remove("is-open");
+      childUl.style.display = "none";
+
+      row.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const open = row.classList.toggle("is-open");
+        childUl.style.display = open ? "block" : "none";
+      });
+
+      li.appendChild(row);
+      li.appendChild(childUl);
+      return li;
+    };
+
+    treeRoots.forEach((n) => {
+      const hasKids = Array.isArray(n.children) && n.children.length > 0;
+      rootUl.appendChild(
+        hasKids ? createParentNode(n, 0) : createLeafRow(n, 0),
+      );
+    });
+
+    content.appendChild(rootUl);
+    groupWrapper.appendChild(content);
+    parIssueTreeEl.appendChild(groupWrapper);
   };
 
   const openParIssueModal = async () => {
     if (!parIssueModal) return;
 
-    const projectCode = projectCodeEl?.value;
+    const projectCode = String(projectCodeEl?.value || "").trim();
     if (!projectCode) {
       showToast("프로젝트 정보가 없습니다.");
       return;
     }
 
-    const ok = await ensureParentIssues(projectCode);
-    if (!ok) return;
+    const tCode = String(typeCode?.value || "").trim();
+    if (!tCode) {
+      showToast("유형을 먼저 선택해 주세요.");
+      return;
+    }
 
-    const list = parentIssueCacheByProject.get(projectCode) || [];
+    const raw = await fetchJson(
+      `/api/issues/parents?projectCode=${encodeURIComponent(projectCode)}&typeCode=${encodeURIComponent(tCode)}`,
+      "상위일감 목록을 불러오지 못했습니다.",
+    );
+    if (!raw) return;
+
+    parentTreeRootsCache = raw;
+
+    const selfId = Number(issueCodeEl?.value);
+    const forbidden = buildForbiddenSet(parentTreeRootsCache, selfId);
+
     if (parIssueSearchEl) parIssueSearchEl.value = "";
-    renderParIssueTable(list);
+
+    const tree = normalizeIssueTree(parentTreeRootsCache);
+    renderParIssueTreeLikeTypeModal(tree, forbidden);
 
     parIssueModal.show();
+  };
+
+  const refreshParIssueTree = () => {
+    if (!parentTreeRootsCache) return;
+
+    const selfId = Number(issueCodeEl?.value);
+    const forbidden = buildForbiddenSet(parentTreeRootsCache, selfId);
+
+    const tree = normalizeIssueTree(parentTreeRootsCache);
+    const filtered = filterIssueTree(tree, parIssueSearchEl?.value);
+
+    renderParIssueTreeLikeTypeModal(filtered, forbidden);
   };
 
   const clearParIssue = () => {
@@ -801,9 +957,9 @@
     parIssueCode.removeAttribute("name");
   };
 
-  // -------------------------
-  // 검증
-  // -------------------------
+  /* =========================================================
+     검증
+     ========================================================= */
   const validateBeforeSubmit = () => {
     const s = statusSel?.value || "";
 
@@ -869,9 +1025,9 @@
     return true;
   };
 
-  // -------------------------
-  // bind
-  // -------------------------
+  /* =========================================================
+     bind
+     ========================================================= */
   statusSel?.addEventListener("change", onStatusChange);
 
   prioritySel?.addEventListener("change", () => {
@@ -928,18 +1084,7 @@
 
   btnOpenParIssueModal?.addEventListener("click", openParIssueModal);
   btnClearParIssue?.addEventListener("click", clearParIssue);
-
-  parIssueSearchEl?.addEventListener("input", async () => {
-    const projectCode = projectCodeEl?.value;
-    if (!projectCode) return;
-
-    const ok = await ensureParentIssues(projectCode);
-    if (!ok) return;
-
-    const list = parentIssueCacheByProject.get(projectCode) || [];
-    const q = parIssueSearchEl.value || "";
-    renderParIssueTable(filterParIssue(list, q));
-  });
+  parIssueSearchEl?.addEventListener("input", refreshParIssueTree);
 
   btnOpenTypeModal?.addEventListener("click", openTypeModal);
   btnClearType?.addEventListener("click", clearType);
@@ -959,8 +1104,10 @@
     if (startedView) startedView.value = initial.started;
     if (resolvedView) resolvedView.value = initial.resolved;
 
-    if (assigneeText) assigneeText.value = initial.assigneeName;
-    if (assigneeCode) assigneeCode.value = initial.assigneeCode;
+    const assigneeText2 = $("#assigneeText");
+    const assigneeCode2 = $("#assigneeCode");
+    if (assigneeText2) assigneeText2.value = initial.assigneeName;
+    if (assigneeCode2) assigneeCode2.value = initial.assigneeCode;
 
     if (parIssueText) parIssueText.value = initial.parIssueText;
     if (parIssueCode) parIssueCode.value = initial.parIssueCode;
@@ -973,8 +1120,9 @@
 
     userCache = [];
     userCacheProjectCode = "";
-    typeTreeCache = [];
+    typeRawCache = [];
     typeCacheProjectCode = "";
+    parentTreeRootsCache = null;
 
     if (parIssueCode) {
       if (initial.parIssueNameEnabled && initial.parIssueCode)
@@ -993,9 +1141,9 @@
     if (!validateBeforeSubmit()) e.preventDefault();
   });
 
-  // -------------------------
-  // init
-  // -------------------------
+  /* =========================================================
+     init
+     ========================================================= */
   const init = async () => {
     setProgressByStatus();
     toggleResolvedByStatus();

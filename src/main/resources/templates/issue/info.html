@@ -82,12 +82,29 @@
             <td th:text="${issue.priorityName}"></td>
 
             <th>담당자</th>
-            <td th:text="${issue.assigneeName}"></td>
+            <td>
+              <span th:if="${issue.assigneeCode == null}">미할당</span>
+
+              <a
+                th:if="${issue.assigneeCode != null}"
+                th:href="@{/users/{userCode}(userCode=${issue.assigneeCode})}"
+                th:text="${issue.assigneeName}"
+                class="user-link text-decoration-none"
+              ></a>
+            </td>
           </tr>
 
           <tr>
             <th>등록자</th>
-            <td th:text="${issue.creatorName}"></td>
+            <td>
+              <a
+                th:if="${issue.createdByCode != null}"
+                th:href="@{/users/{userCode}(userCode=${issue.createdByCode})}"
+                th:text="${issue.creatorName}"
+                class="user-link text-decoration-none"
+              ></a>
+              <span th:if="${issue.createdByCode == null}"></span>
+            </td>
 
             <th>진척도</th>
             <td><span th:text="${issue.progress}"></span><span>%</span></td>

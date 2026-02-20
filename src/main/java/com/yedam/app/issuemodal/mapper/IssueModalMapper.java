@@ -7,5 +7,6 @@ import org.apache.ibatis.annotations.Param;
 import com.yedam.app.issuemodal.service.IssueModalVO;
 
 public interface IssueModalMapper {
-	public List<IssueModalVO> selectIssueModalList(@Param("projectCode") Long projectCode);
+	List<IssueModalVO> selectIssueModalList(@Param("projectCode") Long projectCode,
+            @Param("typeCode") Long typeCode);
 }

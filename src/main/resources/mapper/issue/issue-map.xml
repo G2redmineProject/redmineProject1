@@ -255,7 +255,7 @@
 				AND TRUNC(#{dueAt, jdbcType=TIMESTAMP}) &lt; TRUNC(SYSDATE)
 				THEN 100
 				ELSE #{progress}
-				END
+				END,
 			</if>
 
 

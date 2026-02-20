@@ -2,38 +2,28 @@
    Issue List - /static/css/issue/issue-list.css
    ========================================================= */
 
-.page-title {
-  margin: 0 0 12px;
-  font-weight: 700;
-  font-size: 22px;
-  color: #111827;
-}
-
-/* 카드 */
-.card.mb-4 {
-  border-radius: 10px;
-  overflow: hidden;
-  border: 1px solid #e5e7eb;
-}
-
-/* 카드 헤더(회색 톤) */
-.card-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 700;
-
-  background-color: rgb(224, 229, 243);
-  color: #111827;
+/* page title */
+.x-page-title {
+  margin: 14px 0 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.card-body {
-  padding: 0;
-  overflow-x: auto;
+.x-page-title .page-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.2px;
 }
 
-/* 검색 영역(회색 톤) */
+.x-page-title .page-title-sub {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* filter */
 .issue-filters {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
@@ -55,32 +45,60 @@
   white-space: nowrap;
 }
 
-/* 등록일/마감기한 넓이 */
 .issue-filters input[type="date"] {
   min-width: 210px;
 }
 
-/* 테이블 */
-#issueTable {
-  width: 100%;
-  white-space: nowrap;
-
-  /* 카드바디 패딩을 0으로 쓸 때도 자연스럽게 보이게 */
-  margin: 0;
+/* card / table container */
+.card.mb-4 {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
 }
 
-/* 테이블 헤더(회색 통일) */
-#issueTable thead th {
-  font-size: 14px;
-  font-weight: 700;
-  vertical-align: middle;
-
-  background-color: rgb(224, 229, 243); /* table-light보다 회색감 */
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  padding: 10px 12px;
+  background-color: rgb(224, 229, 243);
   color: #111827;
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* 바디 */
+/* dropdown을 body로 떼서 fixed로 띄우기 때문에 overflow visible */
+.card {
+  overflow: visible;
+}
+
+.card-body {
+  padding: 0;
+  overflow: visible;
+}
+
+.table-responsive {
+  overflow-x: auto;
+  overflow-y: visible !important;
+}
+
+/* table */
+#issueTable {
+  width: 100%;
+  white-space: nowrap;
+  margin: 0;
+}
+
+#issueTable thead th {
+  font-size: 14px;
+  font-weight: 800;
+  vertical-align: middle;
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 #issueTable tbody td {
   font-size: 14px;
   vertical-align: middle;
@@ -88,155 +106,136 @@
   border-color: #eeeeee;
 }
 
-/* hover (회색) */
 #issueTable.table-hover > tbody > tr:hover > * {
-  background-color: #ffffff;
+  background-color: #f9fafb;
 }
 
-/* 현재 테이블 컬럼 순서 기준 폭
-   1: 번호
-   2: 프로젝트명
-   3: 일감명
-   4: 유형
-   5: 상태
-   6: 우선순위
-   7: 담당자
-   8: 등록자
-   9: 생성일
-   10: 마감기한
-*/
+/* widths */
 #issueTable th:nth-child(1),
 #issueTable td:nth-child(1) {
   width: 70px;
 }
-
 #issueTable th:nth-child(2),
 #issueTable td:nth-child(2) {
   min-width: 160px;
 }
-
 #issueTable th:nth-child(3),
 #issueTable td:nth-child(3) {
   min-width: 260px;
 }
-
 #issueTable th:nth-child(4),
 #issueTable td:nth-child(4) {
   width: 140px;
 }
-
 #issueTable th:nth-child(5),
 #issueTable td:nth-child(5) {
   width: 120px;
 }
-
 #issueTable th:nth-child(6),
 #issueTable td:nth-child(6) {
   width: 120px;
 }
-
 #issueTable th:nth-child(7),
 #issueTable td:nth-child(7) {
   width: 140px;
 }
-
 #issueTable th:nth-child(8),
 #issueTable td:nth-child(8) {
   width: 140px;
 }
-
 #issueTable th:nth-child(9),
 #issueTable td:nth-child(9) {
   width: 140px;
 }
-
 #issueTable th:nth-child(10),
 #issueTable td:nth-child(10) {
   width: 140px;
 }
 
-/* 일감명 줄임표 */
 #issueTable td:nth-child(3) {
   max-width: 520px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-/* 페이지네이션(회색 톤으로) */
+/* pagination */
 .pagination .page-link {
   color: #111827;
   border-color: #e5e7eb;
 }
-
 .pagination .page-link:hover {
   background-color: #f3f4f6;
 }
-
 .pagination .page-item.active .page-link {
   background-color: #111827;
   border-color: #111827;
   color: #ffffff;
 }
 
-.x-page-title {
-  margin: 14px 0 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.x-page-title .page-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.2px;
-}
-
-.x-page-title .page-title-sub {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #6b7280;
-}
-
 /* =========================================================
-   Type Modal Tree (유형 선택 모달 - 트리)
-   - issue-list.html 의 #typeModalTree 렌더링 영역 전용
+   Tree modal (type/assignee/creator)
    ========================================================= */
 
-/* 유형 모달 전체 컨테이너 */
-#typeModalTree {
+#typeModalTree,
+#assigneeModalTree,
+#creatorModalTree,
+.type-tree {
   padding: 0;
   border: none !important;
   background-color: #ffffff;
 }
 
-/* 프로젝트 그룹 wrapper */
-.type-project-group {
-  border: 1px solid #e5e7eb;
-  border-radius: 10px; /* issue 카드 라운딩 톤 맞춤 */
-  overflow: hidden;
-  margin-bottom: 12px;
-  background-color: #f9fafb; /* 검색영역 톤과 맞춤 */
-}
-
-/* 프로젝트 헤더 */
-.type-project-header {
-  background-color: rgb(224, 229, 243); /* 카드 헤더 톤과 맞춤 */
-  color: #111827;
-  padding: 10px 14px;
-  font-weight: 700;
-  font-size: 15px;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* 트리 구조 ul 기본 스타일 제거 */
-#typeModalTree ul {
+#typeModalTree ul,
+#assigneeModalTree ul,
+#creatorModalTree ul,
+.type-tree ul {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-/* 유형 아이템 */
+.type-project-group {
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background-color: #f8f9fa;
+  box-shadow: none;
+}
+
+.type-project-header {
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  transition: background-color 0.15s ease;
+}
+
+.type-project-header:hover {
+  background-color: #dee2e6;
+}
+
+.type-project-header::before {
+  content: "▶";
+  font-size: 12px;
+}
+
+.type-project-header.active::before {
+  content: "▼";
+}
+
+.type-project-header.active {
+  filter: brightness(0.98);
+}
+
 .type-item {
   cursor: pointer;
   padding: 10px 14px;
@@ -249,12 +248,10 @@
   text-decoration: none;
 }
 
-/* hover 효과 */
 .type-item:hover {
-  background-color: #f3f4f6;
+  background-color: #e2e6ea;
 }
 
-/* 마지막 항목 하단선 제거 (깊이 어느 정도 있어도 안전하게) */
 .type-project-group li:last-child > .type-item {
   border-bottom: none;
 }
@@ -262,18 +259,198 @@
   border-bottom: none;
 }
 
-/* 계층별 들여쓰기 */
-#typeModalTree ul ul .type-item {
+#typeModalTree ul ul .type-item,
+#assigneeModalTree ul ul .type-item,
+#creatorModalTree ul ul .type-item,
+.type-tree ul ul .type-item {
   padding-left: 28px;
 }
-#typeModalTree ul ul ul .type-item {
+
+#typeModalTree ul ul ul .type-item,
+#assigneeModalTree ul ul ul .type-item,
+#creatorModalTree ul ul ul .type-item,
+.type-tree ul ul ul .type-item {
   padding-left: 50px;
 }
-#typeModalTree ul ul ul ul .type-item {
+
+#typeModalTree ul ul ul ul .type-item,
+#assigneeModalTree ul ul ul ul .type-item,
+#creatorModalTree ul ul ul ul .type-item,
+.type-tree ul ul ul ul .type-item {
   padding-left: 72px;
 }
 
-/* 검색 결과 없을 때 메시지(렌더링 시 div 사용) */
-#typeModalTree .text-muted {
+#typeModalTree .text-muted,
+#assigneeModalTree .text-muted,
+#creatorModalTree .text-muted {
   padding: 14px;
+}
+
+/* =========================================================
+   Project modal list-group override
+   ========================================================= */
+
+#projectSelectModal #projectModalList {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item,
+#projectSelectModal #projectModalList > button.list-group-item,
+#projectSelectModal #projectModalList > .list-group-item-action,
+#projectSelectModal #projectModalList > button.list-group-item-action {
+  width: 100%;
+  text-align: left;
+
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+
+  background: rgb(224, 229, 243) !important;
+  color: #111827 !important;
+
+  font-weight: 800;
+  font-size: 14px;
+
+  padding: 10px 14px !important;
+  margin-bottom: 10px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  box-shadow: none !important;
+}
+
+#projectSelectModal #projectModalList > :last-child {
+  margin-bottom: 0 !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item:hover,
+#projectSelectModal #projectModalList > button.list-group-item:hover {
+  background: #dee2e6 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08) !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item:focus,
+#projectSelectModal #projectModalList > button.list-group-item:focus,
+#projectSelectModal #projectModalList > .list-group-item:active,
+#projectSelectModal #projectModalList > button.list-group-item:active,
+#projectSelectModal #projectModalList > .list-group-item.active,
+#projectSelectModal #projectModalList > button.list-group-item.active {
+  outline: none !important;
+  background: #d5dbe3 !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.1) !important;
+}
+
+/* =========================================================
+   Issue dropdown / submenu (fixed menus moved to body)
+   ========================================================= */
+
+.issue-actions {
+  white-space: nowrap;
+  position: relative;
+}
+
+.issue-menu-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  transition:
+    background-color 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.issue-menu-btn:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+}
+
+.issue-menu-btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+
+.issue-dropdown-menu,
+.issue-submenu-menu {
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 8px;
+  box-shadow: 0 20px 50px rgba(17, 24, 39, 0.18);
+}
+
+.issue-dropdown-menu .dropdown-item,
+.issue-submenu-menu .dropdown-item {
+  border-radius: 10px;
+  padding: 9px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  display: flex;
+  align-items: center;
+  transition:
+    background-color 0.12s ease,
+    transform 0.12s ease;
+}
+
+.issue-dropdown-menu .dropdown-item:hover,
+.issue-submenu-menu .dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.issue-dropdown-menu .dropdown-item:active,
+.issue-submenu-menu .dropdown-item:active {
+  background: #e5e7eb;
+}
+
+.issue-dropdown-menu .dropdown-divider {
+  margin: 8px 6px;
+  opacity: 0.4;
+}
+
+/* submenu toggle layout */
+.issue-submenu-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.issue-submenu-toggle .ms-auto {
+  margin-left: auto;
+}
+
+/* submenu show/hide (JS가 class show 제어) */
+.issue-submenu-menu {
+  display: none;
+  visibility: hidden;
+}
+
+.issue-submenu-menu.show {
+  display: block !important;
+  visibility: visible !important;
+}
+
+/* 행 높이/패딩 슬림하게 */
+#issueTable thead th {
+  padding: 10px 10px;
+}
+
+#issueTable tbody td {
+  padding: 8px 10px;
+}
+
+/* 드롭다운 메뉴 아이템도 너무 두꺼우면 */
+.issue-dropdown-menu .dropdown-item,
+.issue-submenu-menu .dropdown-item {
+  padding: 7px 10px;
 }

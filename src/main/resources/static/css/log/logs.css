@@ -344,3 +344,162 @@ ol {
     max-width: 100%;
   }
 }
+
+/* =========================================================
+   logs.css - 모달(프로젝트/사용자) 스타일을 issue-list.css 톤으로 통일
+   (기존 logs.css 맨 아래 "Modal Tree (Project/User)" 블록을 이걸로 교체)
+   ========================================================= */
+
+/* ===== Tree modal 공통: userSelectModal(트리), projectSelectModal(리스트) ===== */
+
+/* 사용자 트리 컨테이너(#userModalList가 트리 렌더 타겟) */
+#userSelectModal #userModalList {
+  padding: 0;
+  border: none !important;
+  background-color: #ffffff;
+}
+
+/* ul reset */
+#userSelectModal #userModalList ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* 프로젝트 그룹 카드 */
+#userSelectModal .type-project-group {
+  border: 1px solid #dee2e6;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background-color: #f8f9fa;
+  box-shadow: none;
+}
+
+/* 프로젝트 헤더 (issue-list의 type-project-header와 동일 톤) */
+#userSelectModal .type-project-header {
+  background-color: rgb(224, 229, 243);
+  color: #111827;
+  padding: 10px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  border-bottom: 1px solid #e5e7eb;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  transition: background-color 0.15s ease;
+}
+
+#userSelectModal .type-project-header:hover {
+  background-color: #dee2e6;
+}
+
+#userSelectModal .type-project-header::before {
+  content: "▶";
+  font-size: 12px;
+}
+
+#userSelectModal .type-project-header.active::before {
+  content: "▼";
+}
+
+#userSelectModal .type-project-header.active {
+  filter: brightness(0.98);
+}
+
+/* 프로젝트 내용(ul 감싸는 div) */
+#userSelectModal .type-project-content {
+  padding: 0;
+  background: #ffffff;
+}
+
+/* 사용자 항목 */
+#userSelectModal .type-item {
+  cursor: pointer;
+  padding: 10px 14px;
+  display: block;
+  font-size: 14px;
+  color: #111827;
+  background-color: #ffffff;
+  border-bottom: 1px solid #eeeeee;
+  transition: background-color 0.15s ease;
+  text-decoration: none;
+}
+
+#userSelectModal .type-item:hover {
+  background-color: #e2e6ea;
+}
+
+/* 마지막 border 제거 */
+#userSelectModal .type-project-group li:last-child > .type-item {
+  border-bottom: none;
+}
+
+/* 결과 없음 문구 */
+#userSelectModal #userModalList .text-muted {
+  padding: 14px;
+}
+
+/* =========================================================
+   Project modal (list-group 카드형) - issue-list.css와 동일 오버라이드
+   ========================================================= */
+
+#projectSelectModal #projectModalList {
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 !important;
+}
+
+/* JS가 button.list-group-item 로 만들기 때문에 button까지 잡아줌 */
+#projectSelectModal #projectModalList > .list-group-item,
+#projectSelectModal #projectModalList > button.list-group-item,
+#projectSelectModal #projectModalList > .list-group-item-action,
+#projectSelectModal #projectModalList > button.list-group-item-action {
+  width: 100%;
+  text-align: left;
+
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+
+  background: rgb(224, 229, 243) !important;
+  color: #111827 !important;
+
+  font-weight: 800;
+  font-size: 14px;
+
+  padding: 10px 14px !important;
+  margin-bottom: 10px !important;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  box-shadow: none !important;
+}
+
+#projectSelectModal #projectModalList > :last-child {
+  margin-bottom: 0 !important;
+}
+
+#projectSelectModal #projectModalList > .list-group-item:hover,
+#projectSelectModal #projectModalList > button.list-group-item:hover {
+  background: #dee2e6 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.08) !important;
+}
+
+/* bootstrap active/focus 파란색 제거 */
+#projectSelectModal #projectModalList > .list-group-item:focus,
+#projectSelectModal #projectModalList > button.list-group-item:focus,
+#projectSelectModal #projectModalList > .list-group-item:active,
+#projectSelectModal #projectModalList > button.list-group-item:active,
+#projectSelectModal #projectModalList > .list-group-item.active,
+#projectSelectModal #projectModalList > button.list-group-item.active {
+  outline: none !important;
+  background: #d5dbe3 !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.1) !important;
+}
