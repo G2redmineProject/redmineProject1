@@ -33,6 +33,7 @@
 			headerToolbar: headerToolbar,
 			locale: 'ko',
 			contentHeight: 'auto',
+			dayMaxEvents: 3,
 
 			// 공휴일 날짜 셀에 클래스 추가
 			dayCellClassNames: function(arg) {
@@ -201,6 +202,13 @@
 		});
 
 		calendar.render();
+		
+		// 사이드바 토글시 달력 리사이즈
+		document.getElementById('sidebarToggle')?.addEventListener('click', () => {
+		    setTimeout(() => {
+		        calendar.updateSize();
+		    }, 300);
+		});
 
 		const legendHtml = `
 		    <div class="calendar-legend">
