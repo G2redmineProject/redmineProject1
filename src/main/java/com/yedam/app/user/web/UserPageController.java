@@ -21,7 +21,7 @@ public class UserPageController {
 	@GetMapping("/users/{userCode}")
 	public String userPage(
 						@PathVariable Integer userCode,
-		      			@RequestParam(defaultValue = "1") int days,
+		      			@RequestParam(defaultValue = "7") int days,
 		      			HttpSession session,
 		      			Model model) {
 		// 로그인 체크

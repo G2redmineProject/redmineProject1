@@ -89,25 +89,89 @@
 
 		</form>
 
+		<!-- 내 프로젝트/그룹 정보 -->
+		<div class="row g-3 mb-4">
 
-		<!-- ✅ 카드(일감목록 카드랑 톤 동일) -->
-		<div class="card mb-4">
-			<div
-				class="card-header d-flex align-items-center justify-content-between">
-				<div>
-					<i class="fas fa-user me-1"></i> 내 정보 안내
+			<!-- 내 프로젝트 -->
+			<div class="col-12">
+				<div class="card">
+					<div
+						class="card-header d-flex align-items-center justify-content-between">
+						<div>
+							<i class="fas fa-briefcase me-1"></i> 내 프로젝트
+						</div>
+						<div class="text-muted small">내가 속한 프로젝트와 역할</div>
+					</div>
+
+					<div class="card-body p-0">
+						<div class="table-responsive">
+							<table class="table table-sm mb-0 align-middle">
+								<thead class="table-light">
+									<tr>
+										<th style="width: 55%;">프로젝트</th>
+										<th>역할</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:if="${myProjects == null || #lists.isEmpty(myProjects)}">
+										<td colspan="2" class="text-center text-muted py-3">소속
+											프로젝트가 없습니다.</td>
+									</tr>
+
+									<tr th:each="p : ${myProjects}">
+										<td th:text="${p.projectName}">프로젝트명</td>
+										<td><span th:text="${p.roles != null ? p.roles : '-'}">역할</span>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
 				</div>
-				<div class="text-muted small">수정 가능한 항목: 이메일 · 전화번호</div>
 			</div>
 
-			<div class="card-body myinfo-card-body">
-				<ul class="mb-0 myinfo-hint">
-					<li>사원번호/이름/직책/등록날짜는 변경할 수 없습니다.</li>
-					<li>이메일/전화번호 변경 후 “저장”을 누르면 즉시 반영됩니다.</li>
-					<li>이메일/전화번호는 공백을 저장 할 수 없습니다.</li>
-					<li>비밀번호 변경은 “비밀번호 변경” 버튼에서 진행합니다.</li>
-				</ul>
+			<!-- 내 그룹 -->
+			<div class="col-12">
+				<div class="card">
+					<div
+						class="card-header d-flex align-items-center justify-content-between">
+						<div>
+							<i class="fas fa-users me-1"></i> 내 그룹
+						</div>
+						<div class="text-muted small">그룹 기반 프로젝트 권한</div>
+					</div>
+
+					<div class="card-body p-0">
+						<div class="table-responsive">
+							<table class="table table-sm mb-0 align-middle">
+								<thead class="table-light">
+									<tr>
+										<th style="width: 25%;">그룹</th>
+										<th style="width: 45%;">프로젝트</th>
+										<th>역할</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr th:if="${myGroups == null || #lists.isEmpty(myGroups)}">
+										<td colspan="3" class="text-center text-muted py-3">소속
+											그룹이 없습니다.</td>
+									</tr>
+
+									<tr th:each="g : ${myGroups}">
+										<td th:text="${g.groupName}">그룹명</td>
+										<td th:text="${g.projectName}">프로젝트명</td>
+										<td><span th:text="${g.roles != null ? g.roles : '-'}">역할</span>
+										</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+				</div>
 			</div>
+
 		</div>
 
 	</div>

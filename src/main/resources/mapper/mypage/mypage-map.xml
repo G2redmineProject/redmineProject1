@@ -132,7 +132,7 @@
 		#{limit}
 	</select>
 
-	<!-- ======================= 최근공지: 내가 참여중인 프로젝트의 notices 최신 ======================= -->
+	<!-- ======================= 최근공지 ======================= -->
 	<select id="selectRecentNotices" resultType="MyNoticeDTO">
 		SELECT *
 		FROM (
@@ -208,73 +208,86 @@
 	<!-- ======================= 작업내역(logs) ======================= -->
 	<select id="selectWorkLogs" resultType="UserWorkLogVO">
 		SELECT
-		l.log_code AS logCode,
-		l.project_code AS projectCode,
-		p.project_name AS projectName,
+			l.log_code AS logCode,
+			l.project_code AS projectCode,
+			p.project_name AS projectName,
 
-		l.action_type AS actionType,
-		l.target_type AS targetType,
-		l.target_code AS targetCode,
+			l.action_type AS actionType,
+			l.target_type AS targetType,
+			l.target_code AS targetCode,
 
-		CASE WHEN l.target_type = 'ISSUE' THEN i.title ELSE NULL END AS
-		issueTitle,
+			CASE 
+				WHEN l.target_type = 'ISSUE' THEN i.title
+				WHEN l.target_type = 'NOTICE' THEN n.title
+				WHEN l.target_type = 'DOC' THEN da.original_name
+				ELSE NULL
+			END AS targetTitle,
 
-		l.created_at AS createdAt,
-		l.meta AS meta
+			l.created_at AS createdAt,
+			l.meta AS meta
 		FROM logs l
-
 		JOIN projects p
-		ON p.project_code = l.project_code
+			ON p.project_code = l.project_code
 
 		LEFT JOIN issues i
-		ON l.target_type = 'ISSUE'
-		AND i.issue_code = l.target_code
+			ON l.target_type = 'ISSUE'
+			AND i.issue_code = l.target_code
+
+		LEFT JOIN notices n
+			ON l.target_type = 'NOTICE'
+			AND n.notice_code = l.target_code
+
+		LEFT JOIN documents_attachments da
+			ON l.target_type = 'DOC'
+			AND da.file_code = l.target_code
 
 		WHERE l.user_code = #{userCode}
-		AND l.created_at <![CDATA[ >= ]]>
-		#{from}
-		AND l.created_at <![CDATA[ <= ]]>
-		#{to}
-
+		AND l.created_at <![CDATA[ >= ]]> #{from}
+		AND l.created_at <![CDATA[ <= ]]> #{to}
+		AND (
+      		   (l.target_type = 'ISSUE'  AND i.issue_code IS NOT NULL)
+   			OR (l.target_type = 'NOTICE' AND n.notice_code IS NOT NULL)
+   			OR (l.target_type = 'DOC'    AND da.file_code IS NOT NULL)
+   			OR (l.target_type NOT IN ('ISSUE','NOTICE','DOC'))
+)
 		ORDER BY l.created_at DESC
 	</select>
 
-	<!-- 주간간트 -->
-	<select id="selectWeekGanttIssues"
-		resultType="WeekGanttIssueDTO">
+	<!-- ======================= 주간간트 : 할당/등록만 (프론트 체크 필터용 플래그 포함) ======================= -->
+	<select id="selectWeekGanttIssues" resultType="WeekGanttIssueDTO">
 		SELECT
 			i.issue_code AS issueCode,
 			i.project_code AS projectCode,
 			p.project_name AS projectName,
 			i.title AS title,
+
 			NVL(i.started_at, i.created_at) AS startAt,
-			NVL(i.resolved_at, i.due_at) AS endAt
+			NVL(i.resolved_at, i.due_at) AS endAt,
+
+			CASE WHEN i.assignee_code = #{userCode} THEN 'Y' END AS assignedYn,
+			CASE WHEN i.created_by_code = #{userCode} THEN 'Y' END AS registeredYn
 		FROM projects p
 		JOIN (
-			SELECT pru.project_code FROM project_role_user pru WHERE pru.user_code =
-				#{userCode}
-				
+			SELECT pru.project_code FROM project_role_user pru WHERE pru.user_code = #{userCode}
 			UNION
-			
 			SELECT gpr.project_code
 			FROM "GROUP_MEMBER" gm
-			JOIN "GR_PRO_ROLE" gpr 
-			ON gpr.gr_code = gm.gr_code
-			
+			JOIN "GR_PRO_ROLE" gpr
+				ON gpr.gr_code = gm.gr_code
 			WHERE gm.user_code = #{userCode}
 		) up ON up.project_code = p.project_code
-		
-		JOIN issues i 
-		ON i.project_code = p.project_code
-		
+		JOIN issues i
+			ON i.project_code = p.project_code
+
 		WHERE p.status = 'OD1'
-		AND NVL(i.started_at, i.created_at) <![CDATA[ < ]]>
-		#{to}
-		AND NVL(NVL(i.resolved_at, i.due_at), NVL(i.started_at, i.created_at)) <![CDATA[ >= ]]>
-		#{from}
-		
-		ORDER BY p.project_name ASC, NVL(i.started_at, i.created_at) ASC,
-		i.issue_code ASC
+
+		<!-- 내 달력엔 "할당 or 등록"만 보이게 -->
+		AND (i.assignee_code = #{userCode} OR i.created_by_code = #{userCode})
+
+		AND NVL(i.started_at, i.created_at) <![CDATA[ < ]]> #{to}
+		AND NVL(NVL(i.resolved_at, i.due_at), NVL(i.started_at, i.created_at)) <![CDATA[ >= ]]> #{from}
+
+		ORDER BY p.project_name ASC, NVL(i.started_at, i.created_at) ASC, i.issue_code ASC
 	</select>
 
 </mapper>

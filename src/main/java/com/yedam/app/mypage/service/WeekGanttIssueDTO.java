@@ -13,4 +13,8 @@ public class WeekGanttIssueDTO {
 
 	private Date startAt; // NVL(started_at, created_at)
 	private Date endAt;   // NVL(resolved_at, due_at)
+	
+	// 체크박스 필터링용
+    private String assignedYn;    // 'Y' / null
+    private String registeredYn;  // 'Y' / null
 }

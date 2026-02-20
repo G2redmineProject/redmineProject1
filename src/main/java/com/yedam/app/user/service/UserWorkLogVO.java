@@ -14,6 +14,8 @@ public class UserWorkLogVO {
 	  private String targetType;   // ISSUE...
 	  private Long targetCode;     // issue_code
 	  private String issueTitle;   // 조인으로 가져올 것
+	  
+	  private String targetTitle; // ISSUE/NOTICE/DOC 공통 제목
 
 	  private Date createdAt;
 	  private String meta;
