@@ -246,10 +246,16 @@
 		if (lockBtn) {
 			e.stopPropagation();
 			toggleLock(lockBtn.dataset.usercode, lockBtn.dataset.islock, lockBtn);
+			return;
 		}
 		if (deleteBtn) {
 			e.stopPropagation();
 			deleteUser(deleteBtn.dataset.usercode, deleteBtn.dataset.username, deleteBtn);
+			return;
+		}
+		const row = e.target.closest(".userRow");
+		if (row) {
+			window.location.href = `/users/${row.dataset.usercode}`;
 		}
 	});
 

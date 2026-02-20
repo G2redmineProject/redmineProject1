@@ -265,7 +265,9 @@
 		projectCache = data.map((p) => ({
 			code: String(p.projectCode),
 			name: p.projectName,
+			day: p.createdOn,
 		}));
+		//console.log(data);
 
 		return true;
 	};
@@ -308,7 +310,8 @@
 		projectCache.forEach(p => {
 			const option = document.createElement("option");
 			option.value = p.code;
-			option.textContent = p.name;
+			const dateDisplay = p.day ? `(${p.day.substring(0, 10)})` : "";
+			option.textContent = `${p.name || '이름 없음'} ${dateDisplay}`;
 			ui.projectSelectBox.appendChild(option);
 		});
 	};

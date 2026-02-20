@@ -93,8 +93,7 @@
 							<tr class="userRow" th:each="info, status : ${users}"
 								th:data-usercode="${info.userCode}"
 								th:data-islock="${info.isLock}" th:data-name="${info.name}"
-								th:data-created="${info.createdAt != null ? #dates.format(info.createdAt,'yyyy-MM-dd') : ''}"
-								th:onclick="|location.href='@{/users/{userCode}(userCode=${info.userCode})}'|">
+								th:data-created="${info.createdAt != null ? #dates.format(info.createdAt,'yyyy-MM-dd') : ''}">
 								<td class="col-no">[[ ${status.index + 1} ]]</td>
 								<td>[[ ${info.employeeNo} ]]</td>
 								<td>[[ ${info.name} ]]</td>
@@ -108,8 +107,7 @@
 									<button class="btn btn-sm lock-btn"
 										th:classappend="${info.isLock == '1'} ? ' btn-danger' : ' btn-success'"
 										th:data-usercode="${info.userCode}"
-										th:data-islock="${info.isLock}"
-										th:onclick="event.stopPropagation()">
+										th:data-islock="${info.isLock}">
 										<i
 											th:class="${info.isLock == '1'} ? 'fa-solid fa-lock' : 'fa-solid fa-lock-open'"></i>
 									</button>
@@ -117,8 +115,7 @@
 								<td>
 									<button class="btn btn-danger btn-sm delete-btn"
 										th:data-usercode="${info.userCode}"
-										th:data-username="${info.name}"
-										th:onclick="event.stopPropagation()">
+										th:data-username="${info.name}">
 										<i class="fa-solid fa-face-dizzy"></i> 삭제
 									</button>
 								</td>
