@@ -253,7 +253,7 @@
 		if (projectCache.length > 0) return true;
 
 		const res = await fetch("/api/projects/modal", {
-			headers: { Accept: "application/json" },
+			headers: { Accept: "application/json",'X-Requested-With': 'XMLHttpRequest' },
 		});
 
 		if (!res.ok) {
@@ -590,10 +590,13 @@
 		try {
 			const res = await fetch(url, {
 				method: "POST",
-				headers: { "Content-Type": "application/json" },
+				headers: { "Content-Type": "application/json",'X-Requested-With': 'XMLHttpRequest' },
 				body: JSON.stringify(body),
 			});
-
+			if (res.status === 403) {
+			    showToast('권한이 없습니다.', true);
+			    return;
+			}
 			const data = await res.json();
 
 			if (data.success) {
@@ -617,8 +620,12 @@
 		try {
 			const res = await fetch(`/api/issuetype/${typeCode}/delete`, {
 				method: "POST",
+				headers:{'X-Requested-With': 'XMLHttpRequest'},
 			});
-
+			if (res.status === 403) {
+			    showToast('권한이 없습니다.', true);
+			    return;
+			}
 			const data = await res.json();
 
 			if (data.success) {

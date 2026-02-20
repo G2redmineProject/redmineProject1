@@ -55,7 +55,7 @@ public class GroupController {
 	}
 
 	// 그룹 등록 처리
-	@PostMapping("groupmgrs")
+	@PostMapping("groupmgrsadd")
 	@ResponseBody
 	public Map<String, Object> groupInsert(@RequestBody GroupDTO groupDTO) {
 		Map<String, Object> response = new HashMap<>();

@@ -10,3 +10,14 @@ a {
 		display: none;
 	}
 }
+.memberRow {
+    cursor: pointer;
+}
+
+.memberRow:hover {
+    background-color: #f8f9fa; 
+}
+
+.memberRow button {
+    cursor: default;
+}
