@@ -7,11 +7,11 @@
 <head>
 <meta charset="UTF-8" />
 <title>일정 달력</title>
-
 <!-- FullCalendar -->
 <script
 	src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.14/index.global.min.js"></script>
 <link rel="stylesheet" th:href="@{/css/calendar/list.css}">
+<link rel="stylesheet" th:href="@{/css/gantt/search.css}" />
 </head>
 
 <body>
@@ -29,10 +29,10 @@
 		<!-- ===================== -->
 		<!-- 캘린더 카드 -->
 		<!-- ===================== -->
-		<div class="card border-0 shadow-sm rounded-4">
+		<div class="card border-0">
 
 			<!-- 카드 헤더 -->
-			<div class="card-body pb-2">
+			<div class="card-body pb-2 px-0">
 
 				<!-- 범례 -->
 				<div id="calendarLegend"

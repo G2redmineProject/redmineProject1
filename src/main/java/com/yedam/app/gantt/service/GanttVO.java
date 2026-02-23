@@ -42,6 +42,8 @@ public class GanttVO {
 	private Integer progress; // 진척도
 	private Integer assigneeCode; // 작업자 코드
 	private String assigneeName; // 작업자명
+	private Integer createdByCode; // 등록자 코드
+	private String createdByName; // 등록자명
 	 @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")
 	private LocalDateTime createdAt; // 일감 등록일
 	 @JsonFormat(pattern = "yyyy-MM-dd", timezone = "Asia/Seoul")

@@ -120,10 +120,6 @@
 	background-color: #475569 !important;
 }
 
-.issue-clickable {
-	cursor: pointer;
-}
-
 .gantt_tree_content, .gantt_cell {
 	overflow: hidden;
 	white-space: nowrap;
@@ -193,8 +189,4 @@
 	border-color: #b91c1c !important;
 	background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0
 		, 0, 0.1) 4px, rgba(0, 0, 0, 0.1) 8px) !important;
-}
-
-.gantt_cell_hidden {
-    display: none !important;
 }

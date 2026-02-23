@@ -41,48 +41,67 @@
 }
 
 .fc .fc-more-link:hover {
-    color: #111827 !important;
+	color: #111827 !important;
 }
 
 /* 셀 최소 높이 고정 */
 .fc .fc-daygrid-day-frame {
-    min-height: 120px !important;
+	min-height: 120px !important;
 }
 
 /* 네비게이션 버튼 - 비즈니스 톤 */
 .fc .fc-button {
-    background-color: #ffffff !important;
-    border: 1px solid #d1d5db !important;
-    color: #374151 !important;
-    border-radius: 4px !important;
-    font-weight: 500 !important;
-    font-size: 0.83rem !important;
-    padding: 5px 11px !important;
-    transition: all 0.1s ease !important;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05) !important;
+	background-color: #ffffff !important;
+	border: 1px solid #d1d5db !important;
+	color: #374151 !important;
+	border-radius: 4px !important;
+	font-weight: 500 !important;
+	font-size: 0.83rem !important;
+	padding: 5px 11px !important;
+	transition: all 0.1s ease !important;
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
 }
 
 .fc .fc-button:hover {
-    background-color: #f9fafb !important;
-    border-color: #9ca3af !important;
-    color: #111827 !important;
+	background-color: #f9fafb !important;
+	border-color: #9ca3af !important;
+	color: #111827 !important;
 }
 
 /* today / 활성 버튼 */
-.fc .fc-button-primary:not(:disabled).fc-button-active,
-.fc .fc-today-button {
-    background-color: #1e3a5f !important;
-    border-color: #1e3a5f !important;
-    color: #fff !important;
+.fc .fc-button-primary:not(:disabled).fc-button-active, .fc .fc-today-button
+	{
+	background-color: #1e3a5f !important;
+	border-color: #1e3a5f !important;
+	color: #fff !important;
 }
 
 /* month/week/day 그룹 */
 .fc .fc-button-group .fc-button {
-    border-radius: 0 !important;
+	border-radius: 0 !important;
 }
+
 .fc .fc-button-group .fc-button:first-child {
-    border-radius: 4px 0 0 4px !important;
+	border-radius: 4px 0 0 4px !important;
 }
+
 .fc .fc-button-group .fc-button:last-child {
-    border-radius: 0 4px 4px 0 !important;
+	border-radius: 0 4px 4px 0 !important;
+}
+
+#calendarLegend {
+	display: flex;
+	gap: 16px;
+	align-items: center;
+	margin: 6px 0 10px 4px;
+	font-size: 1rem;
+}
+
+/* 🔥 원(뱃지) 크기 줄이기 */
+#calendarLegend .badge {
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  margin-right: 4px;
+  display: inline-block;
 }
