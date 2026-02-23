@@ -47,6 +47,12 @@ public class GanttController {
 
 	@GetMapping("ganttChart")
 	public String ganttList(HttpSession session, Model model) {
+
+		// 로그인 사용자 정보
+		UserVO user = (UserVO) session.getAttribute("user");
+		if (user == null) {
+			return "login/login"; // 로그인 안 되어 있으면 로그인 페이지로
+		}
 		return "gantt/list";
 	}
 

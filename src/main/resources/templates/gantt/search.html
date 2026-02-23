@@ -4,11 +4,13 @@
 <div th:fragment="searchCondition">
 	<!-- 검색조건 토글 버튼 -->
 	<button type="button" class="btn btn-outline-secondary mb-2"
-		id="btnToggleSearch">검색조건 열기</button>
+		id="btnToggleSearch"
+		data-bs-toggle="collapse"
+        data-bs-target="#searchConditionWrapper">검색조건 열기</button>
 
 	<!-- 검색조건 전체 wrapper (기본 닫힘) -->
 	<form id="issueFilterForm" th:action="@{/issueList}" method="get">
-		<div id="searchConditionWrapper" style="display: none;">
+		<div id="searchConditionWrapper" class="collapse">
 			<div class="search-filters mb-3 mt-3">
 				<div class="row g-2 align-items-end">
 					<!-- 프로젝트 -->

@@ -190,3 +190,19 @@
 	background-image: repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0, 0
 		, 0, 0.1) 4px, rgba(0, 0, 0, 0.1) 8px) !important;
 }
+
+/* 프로젝트/일감 클릭 가능한 행 커서 */
+.issue-clickable {
+	cursor: pointer;
+}
+
+/* 부모 컨테이너에 기준점 설정 */
+.d-flex.flex-column.h-100 {
+	position: relative;
+}
+
+/* 로딩 스피너 배경을 조금 더 불투명하게 하여 렌더링 지연을 가려줌 */
+#ganttLoadingSpinner {
+	background: rgba(255, 255, 255, 0.8) !important;
+	pointer-events: all; /* 로딩 중 클릭 방지 */
+}
