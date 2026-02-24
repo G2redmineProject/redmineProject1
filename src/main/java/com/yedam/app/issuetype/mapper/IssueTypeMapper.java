@@ -4,12 +4,16 @@ import java.util.List;
 
 import org.apache.ibatis.annotations.Param;
 
+import com.yedam.app.issuetype.service.IssueTypeListVO;
 import com.yedam.app.issuetype.service.IssueTypeVO;
 
 public interface IssueTypeMapper {
 
 	// 유형 타입 조회
 	public List<IssueTypeVO> selectAllIssueType();
+	
+	// 유형 타입 수정/삭제 유효성 체크
+	public int countIssuesByTypeCode(int typeCode);
 
 	// 유형 타입 추가
 	public int addIssueType(IssueTypeVO issueTypeVO);
@@ -19,4 +23,8 @@ public interface IssueTypeMapper {
 
 	// 유형 타입 삭제
 	public int deleteIssueType(@Param("typeCode") int typeCode);
+	
+	
+	// 유형에 속한 일감 리스트
+	public List<IssueTypeListVO> selectListIssueType(@Param("typeCode") int typeCode);
 }

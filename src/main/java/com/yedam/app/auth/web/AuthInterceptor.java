@@ -63,7 +63,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 		
 	    UserVO user = (UserVO) session.getAttribute("user"); // 세션에서 유저 객체 꺼내기
 
-	    if (user != null && user.getSysCk().equals("Y")) {
+	    if (user != null && "Y".equals(user.getSysCk())) {
 	        System.out.println("관리자 접근 허용: " + requestUri);
 	        return true;
 	    }
@@ -81,12 +81,12 @@ public class AuthInterceptor implements HandlerInterceptor {
 
 		// 4. 사용자의 해당 카테고리 권한 찾기
 		UserProjectAuthVO userAuth = findUserAuthByCategory(userAuths, uriInfo.getCategory());
-		UserVO findUser = usermgrService.userFindInfo(userAuth.getUserCode());
 		if (userAuth == null) {
 			System.out.println("해당 카테고리에 대한 권한이 없음!");
 			response.sendRedirect("/accessDenied");
 			return false;
 		}
+		UserVO findUser = usermgrService.userFindInfo(userAuth.getUserCode());
 
 		// 5. 상세 권한(읽기/쓰기 등) 체크
 		boolean hasPermission = checkPermission(uriInfo.getType(), userAuth,findUser);
@@ -138,7 +138,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 	// 권한 체크
 	private boolean checkPermission(String type, UserProjectAuthVO userAuth, UserVO userVO) {
 	
-		if(userVO.getSysCk().equals('Y')) {
+		if("Y".equals(userVO.getSysCk())) {
 			return true;
 		}
 		
@@ -156,6 +156,8 @@ public class AuthInterceptor implements HandlerInterceptor {
 			return "Y".equals(userAuth.getMoRol());
 		case "delete":
 			return "Y".equals(userAuth.getDelRol());
+		case "admin":
+			return "Y".equals(userVO.getSysCk());
 		default:
 			return false;
 		}

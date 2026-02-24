@@ -26,6 +26,9 @@
 						id="filterTitle" class="form-control" placeholder="프로젝트명 입력">
 				</div>
 
+				<div>[[ ${auth} ]]</div>
+				<div th:text="${session.userAuth}"></div>
+				<div>관리자 권한 : [[ ${session.user.sysCk} ]]</div>
 				<!-- 셀렉트 옵션 검색 -->
 				<div class="col-12 col-md-2">
 					<label class="form-label">상태</label> <select id="filterPriority"
@@ -35,7 +38,8 @@
 					</select>
 				</div>
 
-				<!-- 모달 담당자 선택 검색 <- 이거 셀렉트문으로 변경? -->
+				<!-- 모달 담당자 선택 검색 -->
+
 				<div class="col-12 col-md-3" style="display: none">
 					<label class="form-label">담당자</label>
 					<div class="input-group">
@@ -52,7 +56,7 @@
 				<div class="d-flex gap-2"
 					th:if="${auth.wrRol == 'Y'|| session.user.sysCk == 'Y'}">
 					<button type="button" class="btn btn-success">
-						<a th:href="@{/projectadd}"> <i class="fas fa-plus me-1"></i>
+						<a th:href="@{/projectadd}"> <i class="fas fa-check me-1"></i>
 							프로젝트 등록
 						</a>
 					</button>
@@ -98,8 +102,9 @@
 							<th>관리자메일</th>
 							<th style="width: 80px;">진행 상태</th>
 							<th style="width: 150px;">진척률(예상, 실제)</th>
-							<!-- <th style="width: 80px;">종료</th>
-								<th style="width: 80px;">삭제</th> -->
+							<th style="width: 80px;">복사</th>
+							<th style="width: 80px;">종료</th>
+							<th style="width: 80px;">삭제</th>
 						</tr>
 					</thead>
 
@@ -154,20 +159,27 @@
 									<i class="fas fa-info-circle me-1"></i> 프로젝트 개발이 진행 전입니다.
 								</div>
 							</td>
-							<!-- <td>
-									종료 버튼: 관리자이거나 수정 권한이 있을 때만 활성화
-									<button class="btn btn-success btn-sm"
-										th:disabled="${auth.admin != 1 and auth.moRol != 'Y'}">
-										<i class="fa-regular fa-face-meh"></i> 종료
-									</button>
-								</td>
-								<td>
-									삭제 버튼: 관리자이거나 삭제 권한이 있을 때만 활성화
-									<button class="btn btn-danger btn-sm"
-										th:disabled="${auth.admin != 1 and auth.delRol != 'Y'}">
-										<i class="fa-solid fa-minus me-1"></i>삭제
-									</button>
-								</td> -->
+							<td>
+								<!-- 복사 버튼: 프로젝트 복사 -->
+								<button class="btn btn-primary btn-sm copy-project-btn"
+									th:disabled="${auth.admin != 1 and auth.moRol != 'Y'}">
+									<i class="fa-solid fa-clone"></i> 복사
+								</button>
+							</td>
+							<td>
+								<!-- 종료 버튼: 관리자이거나 수정 권한이 있을 때만 활성화 -->
+								<button class="btn btn-success btn-sm"
+									th:disabled="${auth.admin != 1 and auth.moRol != 'Y'}">
+									<i class="fa-regular fa-face-meh"></i> 종료
+								</button>
+							</td>
+							<td>
+								<!-- 삭제 버튼: 관리자이거나 삭제 권한이 있을 때만 활성화 -->
+								<button class="btn btn-danger btn-sm"
+									th:disabled="${auth.admin != 1 and auth.delRol != 'Y'}">
+									<i class="fa-solid fa-minus me-1"></i> 삭제
+								</button>
+							</td>
 						</tr>
 					</tbody>
 				</table>
@@ -199,7 +211,6 @@
 			</div>
 		</div>
 
-
-		<script th:src="@{/js/project/project.js}"></script>
+		<script th:src="@{/js/project/projectmgr.js}"></script>
 </body>
 </html>

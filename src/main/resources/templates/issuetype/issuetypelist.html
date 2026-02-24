@@ -9,6 +9,9 @@
 <title>일감 유형 관리</title>
 <link rel="stylesheet" th:href="@{/css/issue/issue-list.css}">
 <link rel="stylesheet" th:href="@{/css/issuetype/issuetype.css}">
+<!-- flatpickr: 날짜 선택 달력 (특정 날짜 disabled 지원) -->
+<link rel="stylesheet"
+	href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 
 <body>
@@ -20,12 +23,6 @@
 
 		<div class="issue-filters mb-3 mt-3">
 			<div class="row g-3 align-items-end">
-
-				<div class="col-auto" style="min-width: 200px;">
-					<label class="form-label fw-bold">유형명</label> <input type="text"
-						id="filterTitle" class="form-control" placeholder="유형명 입력">
-				</div>
-
 				<div class="col-auto" style="min-width: 250px;">
 					<label class="form-label fw-bold">프로젝트</label>
 					<div class="input-group">
@@ -38,7 +35,23 @@
 					</div>
 				</div>
 
-				<!-- 상태(시작일/종료일) + 기간: 하나의 기능 -->
+				<div class="col-auto" style="min-width: 200px;">
+					<label class="form-label fw-bold">유형명</label> <input type="text"
+						id="filterTitle" class="form-control" placeholder="유형명 입력">
+				</div>
+
+				<div class="col-12 col-md-2">
+					<label class="form-label">유형</label>
+					<div class="input-group">
+						<input type="text" id="filterTypeText" class="form-control"
+							placeholder="유형 선택" readonly th:value="${typeLabel}" /> <input
+							type="hidden" id="filterTypeValue" name="typeCode"
+							th:value="${param.typeCode}" />
+						<button type="button" class="btn btn-secondary"
+							id="btnOpenTypeModal">선택</button>
+					</div>
+				</div>
+
 				<div class="col-auto" style="min-width: 140px;">
 					<label class="form-label fw-bold">기간 기준</label> <select
 						id="filterDateType" class="form-select">
@@ -61,7 +74,7 @@
 					class="col-12 d-flex justify-content-between align-items-center mt-4">
 					<div class="d-flex gap-2">
 						<button type="button" class="btn btn-success" id="btnRegisterType">
-							<i class="fas fa-check me-1"></i> 일감유형 등록
+							<i class="fas fa-plus me-1"></i> 일감유형 등록
 						</button>
 					</div>
 					<div class="d-flex gap-2">
@@ -91,13 +104,15 @@
 						style="table-layout: fixed; width: 100%;">
 						<thead class="table-light">
 							<tr>
-								<th style="width: 60px;">번호</th>
-								<th style="width: 180px;">프로젝트</th>
-								<th style="width: 160px;">일감 유형</th>
-								<th style="width: 160px;">시작일</th>
-								<th style="width: 160px;">종료일</th>
-								<th style="width: 80px;">수정</th>
-								<th style="width: 80px;">삭제</th>
+								<th style="width: 50px;">번호</th>
+								<th style="width: 160px;">프로젝트</th>
+								<th style="width: 150px;">유형명</th>
+								<th style="width: 150px;">상위 유형</th>
+								<th style="width: 120px;">시작일</th>
+								<th style="width: 120px;">종료일</th>
+								<th style="width: 70px;">일감 목록</th>
+								<th style="width: 70px;">수정</th>
+								<th style="width: 70px;">삭제</th>
 							</tr>
 						</thead>
 						<tbody id="typeTbody">
@@ -106,28 +121,41 @@
 								th:data-typename="${info.typeName}"
 								th:data-projectcode="${info.projectCode}"
 								th:data-projectname="${info.projectName}"
+								th:data-partypecode="${info.parTypeCode != null ? info.parTypeCode : ''}"
+								th:data-partypename="${info.parTypeName != null ? info.parTypeName : ''}"
 								th:data-startat="${info.startAt != null ? #dates.format(info.startAt,'yyyy-MM-dd') : ''}"
 								th:data-endat="${info.endAt != null ? #dates.format(info.endAt,'yyyy-MM-dd') : ''}">
 								<td class="col-no">[[ ${status.index + 1} ]]</td>
 								<td>[[ ${info.projectName} ]]</td>
-								<td>[[ ${info.typeName} ]]</td>
+								<td><span th:if="${info.parTypeCode != null}"
+									style="margin-left: 12px; color: #888;">└ </span> [[
+									${info.typeName} ]]</td>
+								<td><span th:if="${info.parTypeCode == null}"
+									class="badge bg-secondary">최상위</span> <span
+									th:if="${info.parTypeCode != null}"
+									th:text="${info.parTypeName}"></span></td>
 								<td>[[ ${info.startAt != null ?
 									#dates.format(info.startAt,'yyyy-MM-dd') : '-'} ]]</td>
-								<td>[[ ${info.endAt != null ?
-									#dates.format(info.endAt,'yyyy-MM-dd') : '-'} ]]</td>
+								<td>[[ ${info.endAt != null ? #dates.format(info.endAt,
+									'yyyy-MM-dd') : '-'} ]]</td>
+								<td>
+									<button class="btn btn-primary btn-sm issueList-btn">
+										<i class="fa-solid fa-list-check"></i> 일감 목록
+									</button>
+								</td>
 								<td>
 									<button class="btn btn-success btn-sm edit-btn">
-										<i class="fa-regular fa-face-meh"></i> 수정
+										<i class="fa-regular fa-pen-to-square"></i> 수정
 									</button>
 								</td>
 								<td>
 									<button class="btn btn-danger btn-sm delete-btn">
-										<i class="fa-solid fa-face-dizzy"></i> 삭제
+										<i class="fa-solid fa-minus me-1"></i> 삭제
 									</button>
 								</td>
 							</tr>
 							<tr th:if="${#lists.isEmpty(types)}" id="emptyRow">
-								<td colspan="7" class="text-center text-muted py-4">등록된
+								<td colspan="8" class="text-center text-muted py-4">등록된
 									유형타입이 없습니다.</td>
 							</tr>
 						</tbody>
@@ -165,7 +193,7 @@
 						<div class="invalid-feedback" id="typeNameError"></div>
 					</div>
 
-					<!-- 프로젝트 선택 (등록 시에만 활성화) -->
+					<!-- 프로젝트 선택 -->
 					<div class="mb-3" id="projectSelectWrap">
 						<label class="form-label fw-bold">프로젝트 <span
 							class="text-danger">*</span></label> <select id="projectSelectBox"
@@ -175,17 +203,45 @@
 						<div class="invalid-feedback" id="projectError">프로젝트를 선택하세요.</div>
 					</div>
 
+					<!-- 상위 유형 선택 -->
+					<div class="mb-3">
+						<label class="form-label fw-bold">상위 유형</label>
+						<div class="input-group">
+							<input type="text" id="modalParTypeText" class="form-control"
+								placeholder="선택 안 함 → 최상위 유형으로 등록됩니다" readonly /> <input
+								type="hidden" id="modalParTypeValue" />
+							<button type="button" class="btn btn-secondary"
+								id="btnOpenModalTypeModal">선택</button>
+							<button type="button" class="btn btn-outline-secondary"
+								id="btnClearModalType" title="최상위로 변경">
+								<i class="fas fa-redo me-1"></i>
+							</button>
+						</div>
+						<div id="topLevelBadge" class="mt-1" style="display: none;">
+							<span class="badge bg-secondary"> <i
+								class="fas fa-star me-1"></i>최상위 유형으로 등록됩니다
+							</span>
+						</div>
+					</div>
+
+					<!-- 기간 안내 -->
+					<div class="alert alert-info py-2 mb-2" id="dateRangeHint"
+						style="display: none; font-size: 0.85rem;">
+						<i class="fas fa-calendar-alt me-1"></i> <span
+							id="dateRangeHintMsg"></span>
+					</div>
+
 					<!-- 기간 -->
 					<div class="mb-3">
 						<label class="form-label fw-bold">시작일 <span
-							class="text-danger">*</span></label> <input type="date" id="modalStartAt"
-							class="form-control">
+							class="text-danger">*</span></label> <input type="text" id="modalStartAt"
+							class="form-control" placeholder="날짜 선택" readonly>
 						<div class="invalid-feedback" id="startAtError"></div>
 					</div>
 					<div class="mb-3">
 						<label class="form-label fw-bold">종료일 <span
-							class="text-danger">*</span></label> <input type="date" id="modalEndAt"
-							class="form-control">
+							class="text-danger">*</span></label> <input type="text" id="modalEndAt"
+							class="form-control" placeholder="날짜 선택" readonly>
 						<div class="invalid-feedback" id="endAtError"></div>
 					</div>
 
@@ -228,25 +284,117 @@
 		</div>
 	</div>
 
-	<!-- 	 ============ 프로젝트 선택 모달 (모달 폼용) ============ 
-	<div class="modal fade" id="projectSelectModal2" tabindex="-1"
+	<!-- ============ 필터용 유형 선택 모달 ============ -->
+	<div class="modal fade" id="typeSelectModal" tabindex="-1"
 		aria-hidden="true">
 		<div class="modal-dialog modal-lg modal-dialog-scrollable">
 			<div class="modal-content">
 				<div class="modal-header">
-					<h5 class="modal-title">프로젝트 선택</h5>
+					<h5 class="modal-title">유형 선택</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<input type="text" id="typeModalSearch" class="form-control mb-2"
+						placeholder="유형명 검색" />
+					<div id="typeModalTree" class="type-tree"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============ 등록/수정 모달 내 상위 유형 선택 모달 ============ -->
+	<div class="modal fade" id="modalTypeSelectModal" tabindex="-1"
+		aria-hidden="true">
+		<div class="modal-dialog modal-lg modal-dialog-scrollable">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title">상위 유형 선택</h5>
+					<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+				</div>
+				<div class="modal-body">
+					<div class="alert alert-info py-2 mb-2" style="font-size: 0.85rem;">
+						<i class="fas fa-info-circle me-1"></i> 선택하지 않으면 <strong>최상위
+							유형</strong>으로 등록됩니다.
+					</div>
+					<input type="text" id="modalTypeModalSearch"
+						class="form-control mb-2" placeholder="유형명 검색" />
+					<div id="modalTypeModalTree" class="type-tree"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- ============ 일감 리스트 모달 ============ -->
+	<div class="modal fade" id="issueListModal" tabindex="-1"
+		aria-hidden="true">
+		<div
+			class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+			<div class="modal-content">
+				<div class="modal-header bg-light">
+					<h5 class="modal-title" id="issueListModalTitle">
+						<i class="fas fa-list-ul me-2"></i>일감 상세 목록
+					</h5>
 					<button type="button" class="btn-close" data-bs-dismiss="modal"
 						aria-label="Close"></button>
 				</div>
 				<div class="modal-body">
-					<input type="text" id="projectModalSearch2"
-						class="form-control mb-2" placeholder="프로젝트명 검색">
-					<div class="list-group" id="projectModalList2"></div>
+					<div
+						class="d-flex justify-content-between align-items-center mb-3 p-3 bg-white border rounded shadow-sm">
+						<div>
+							<span class="fw-bold" id="infoProjectBadge"
+								style="font-size: 1.1rem;">프로젝트명 </span> <span class="fw-bold"
+								id="infoTypePath" style="font-size: 1.1rem; color: #333;">일감
+								유형명</span>
+						</div>
+						<div class="text-muted small">
+							<i class="fas fa-info-circle me-1"></i>해당 유형에 할당된 전체 일감입니다.
+						</div>
+					</div>
+
+					<div class="table-responsive">
+						<table class="table table-hover align-middle border-top"
+							id="modalIssueTable">
+							<thead class="table-light">
+								<tr>
+									<th style="width: 60px;" class="text-center">번호</th>
+									<th style="width: auto;">일감 명</th>
+									<th style="width: 100px;" class="text-center">우선순위</th>
+									<th style="width: 100px;" class="text-center">상세</th>
+									<th style="width: 120px;" class="text-center">담당자</th>
+									<th style="width: 200px;" class="text-center">진행도</th>
+								</tr>
+							</thead>
+							<tbody id="modalIssueTbody">
+								<tr>
+									<td colspan="6" class="text-center py-6 text-muted">일감을
+										불러오는 중입니다...</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary"
+						data-bs-dismiss="modal">닫기</button>
 				</div>
 			</div>
 		</div>
-	</div> -->
+	</div>
 
+
+
+
+
+
+
+
+
+
+
+
+	<!-- flatpickr JS + 한국어 locale -->
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+	<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
 	<script th:src="@{/js/issuetype/issuetype.js}"></script>
 </body>
 </html>
