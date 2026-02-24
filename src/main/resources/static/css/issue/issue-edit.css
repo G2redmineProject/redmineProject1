@@ -401,3 +401,63 @@
   margin-left: 4px;
   line-height: 1;
 }
+
+/* =========================================================
+   Type Modal - Tree (edit) : indent + arrow + title
+   ========================================================= */
+#typeModalTree .ti-tree-root {
+  padding: 0;
+  margin: 0;
+}
+
+#typeModalTree .type-item.ti-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* JS가 width를 넣어주는 indent */
+#typeModalTree .ti-indent {
+  flex: 0 0 auto;
+  display: inline-block;
+}
+
+/* arrow 칸 고정 */
+#typeModalTree .ti-arrow {
+  width: 16px;
+  flex: 0 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+#typeModalTree .ti-arrow.is-parent {
+  cursor: pointer;
+}
+
+#typeModalTree .ti-arrow.is-parent::before {
+  content: "▶";
+  font-size: 12px;
+}
+#typeModalTree .ti-parent-item.is-open .ti-arrow.is-parent::before {
+  content: "▼";
+}
+
+#typeModalTree .ti-arrow:not(.is-parent)::before {
+  content: "";
+}
+
+/* title 말줄임 */
+#typeModalTree .ti-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 부모 강조 */
+#typeModalTree .ti-parent-item {
+  font-weight: 800;
+}

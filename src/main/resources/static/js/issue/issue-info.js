@@ -69,6 +69,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ref.includes("/logs")) return location.replace(withTs(ref));
     if (ref.includes("/my")) return location.replace(withTs(ref));
     if (ref.includes("/calendar")) return location.replace(withTs(ref));
+    if (ref.includes("/worklogs")) return location.replace(withTs(ref));
 
     // ref가 비어있거나 이상하면 anchor 우선
     if (anchor) return location.replace(withTs(anchor));
@@ -79,9 +80,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 소요시간 등록
   btnWorklog?.addEventListener("click", () => {
-    if (!issueCode) return showToast("issueCode가 없습니다.");
-    if (!canWorklog) return showToast("권한이 없습니다.");
-    location.href = `/worklogInsert?issueCode=${issueCode}`;
+    if (!btnWorklog) return;
+    openWorklogCreateFromIssueInfo(btnWorklog);
   });
 
   // 수정
@@ -459,10 +459,13 @@ async function loadWorklogs(issueCode) {
   const totalEl = document.getElementById("worklogTotalText");
   if (!box) return;
 
-  const data = await fetch(`/api/issues/${issueCode}/worklogs`, {
-    method: "GET",
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  })
+  const data = await fetch(
+    `/api/worklogs/prefill?issueCode=${encodeURIComponent(issueCode)}`,
+    {
+      method: "GET",
+      headers: { "X-Requested-With": "XMLHttpRequest" },
+    },
+  )
     .then((r) => r.json())
     .catch(() => null);
 
@@ -483,30 +486,65 @@ function renderWorklogs(list) {
   const box = document.getElementById("worklogBox");
   if (!box) return;
 
-  if (!Array.isArray(list) || list.length === 0) {
+  const arr = Array.isArray(list) ? list : [];
+  if (arr.length === 0) {
     box.innerHTML = `<div class="empty text-muted">소요시간 이력이 없습니다.</div>`;
     return;
   }
 
+  // 날짜 내림차순 + 같은 날짜면 최신이 위로(필요시 workLogCode 기준)
+  arr.sort((a, b) => {
+    const da = String(a.workDate || "");
+    const db = String(b.workDate || "");
+    const cmp = db.localeCompare(da);
+    if (cmp !== 0) return cmp;
+    return Number(b.workLogCode || 0) - Number(a.workLogCode || 0);
+  });
+
   box.innerHTML = "";
-  list.forEach((row) => {
-    const el = document.createElement("div");
-    el.className = "worklog-item";
 
-    const workDate = row.workDate ? String(row.workDate).slice(0, 10) : "-";
-    const workerName = row.workerName || String(row.workerCode || "");
+  let lastDate = "";
+  arr.forEach((row) => {
+    const workDate = row.workDate ? String(row.workDate).slice(0, 10) : "";
+    const workerName = (
+      row.workerName ||
+      String(row.workerCode || "") ||
+      "-"
+    ).trim();
     const mins = Number(row.spentMinutes || 0);
-    const desc = row.description || "";
+    const timeText = formatMinutes(mins);
 
-    el.innerHTML = `
-      <div class="worklog-head">
-        <div>${escapeHtml(workDate)} / ${escapeHtml(workerName)}</div>
-        <div class="worklog-min">${escapeHtml(formatMinutes(mins))}</div>
-      </div>
-      <div class="worklog-sub">${escapeHtml(desc || "(설명 없음)")}</div>
-    `;
+    const descRaw = (row.description || "").trim();
 
-    box.appendChild(el);
+    const descHtml = descRaw
+      ? `<span class="wl-desc">${escapeHtml(descRaw)}</span>`
+      : "";
+
+    const sepHtml = descRaw ? `<span class="wl-sep">·</span>` : "";
+
+    // 날짜 헤더(작업이력 history-date처럼)
+    if (workDate && workDate !== lastDate) {
+      lastDate = workDate;
+      const dateHeader = document.createElement("div");
+      dateHeader.className = "history-date worklog-date";
+      dateHeader.textContent = workDate;
+      box.appendChild(dateHeader);
+    }
+
+    // 작업이력 느낌의 item
+    const item = document.createElement("div");
+    item.className = "worklog-item history-item";
+
+    item.innerHTML = `
+  <div class="worklog-head history-head">
+    <span class="head-line">
+      [ ${escapeHtml(workerName)} ] ${sepHtml} ${descHtml}
+    </span>
+    <span class="worklog-min">${escapeHtml(timeText)}</span>
+  </div>
+`;
+
+    box.appendChild(item);
   });
 }
 
@@ -517,4 +555,346 @@ function formatMinutes(mins) {
   if (h <= 0) return `${r}분`;
   if (r <= 0) return `${h}시간`;
   return `${h}시간 ${r}분`;
+}
+
+function openWorklogCreateFromIssueInfo(btnEl) {
+  const modalEl = document.getElementById("worklogCreateModal");
+  if (!modalEl) return showToast("등록 모달이 없습니다.");
+
+  const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+  // dataset에서 프리필 값 가져오기
+  const projectCode = String(btnEl.dataset.projectCode || "").trim();
+  const projectName = String(btnEl.dataset.projectName || "").trim();
+  const issueCode = String(btnEl.dataset.issueCode || "").trim();
+  const issueTitle = String(btnEl.dataset.issueTitle || "").trim();
+
+  const adminCk = String(btnEl.dataset.adminCk || "N")
+    .trim()
+    .toUpperCase();
+
+  const loginUserCode = String(btnEl.dataset.loginUserCode || "").trim();
+  const loginUserName = String(btnEl.dataset.loginUserName || "").trim();
+
+  const workerModalEl = document.getElementById("workerSelectModal");
+  const workerModal = workerModalEl
+    ? bootstrap.Modal.getOrCreateInstance(workerModalEl)
+    : null;
+
+  const workerModalSearch = document.getElementById("workerModalSearch");
+  const workerModalTree = document.getElementById("workerModalTree");
+
+  // 입력 엘리먼트
+  const wlProjectText = document.getElementById("wlProjectText");
+  const wlProjectCode = document.getElementById("wlProjectCode");
+  const btnPickProject = document.getElementById("btnPickProject");
+
+  const wlIssueText = document.getElementById("wlIssueText");
+  const wlIssueCode = document.getElementById("wlIssueCode");
+  const btnPickIssue = document.getElementById("btnPickIssue");
+
+  const wlWorkerText = document.getElementById("wlWorkerText");
+  const wlWorkerCode = document.getElementById("wlWorkerCode");
+  const btnPickWorker = document.getElementById("btnPickWorker");
+
+  const wlWorkDate = document.getElementById("wlWorkDate");
+  const wlHour = document.getElementById("wlHour");
+  const wlMinute = document.getElementById("wlMinute");
+  const wlDesc = document.getElementById("wlDesc");
+
+  const btnCancel = document.getElementById("btnWlCancel");
+  const btnSaveContinue = document.getElementById("btnWlSaveContinue");
+  const btnSaveClose = document.getElementById("btnWlSaveClose");
+
+  // 프리필 세팅
+  if (wlProjectText) wlProjectText.value = projectName;
+  if (wlProjectCode) wlProjectCode.value = projectCode;
+
+  if (wlIssueText) wlIssueText.value = issueTitle;
+  if (wlIssueCode) wlIssueCode.value = issueCode;
+
+  // 프로젝트/일감은 고정: 선택 버튼 비활성화
+  if (btnPickProject) btnPickProject.disabled = true;
+  if (btnPickIssue) btnPickIssue.disabled = true;
+
+  const isAdmin = adminCk === "Y";
+  if (!isAdmin) {
+    if (!loginUserCode) return showToast("로그인 사용자 정보가 없습니다.");
+    if (wlWorkerCode) wlWorkerCode.value = loginUserCode;
+    if (wlWorkerText) wlWorkerText.value = loginUserName || "나";
+    if (btnPickWorker) {
+      btnPickWorker.disabled = true;
+      btnPickWorker.onclick = null;
+    }
+  } else {
+    if (btnPickWorker) btnPickWorker.disabled = false;
+  }
+
+  let workerCreateCache = [];
+  let workerCreateCacheProjectCode = "";
+
+  const fetchWorkersForProject = async (pCode) => {
+    const code = String(pCode || "").trim();
+    if (!code) return false;
+
+    if (
+      workerCreateCacheProjectCode === code &&
+      Array.isArray(workerCreateCache) &&
+      workerCreateCache.length
+    ) {
+      return true;
+    }
+
+    const qs = new URLSearchParams({ projectCode: code });
+    const res = await fetch(`/api/users/modal?${qs.toString()}`, {
+      headers: { Accept: "application/json" },
+    });
+
+    if (!res.ok) {
+      showToast("작업자 목록을 불러오지 못했습니다.");
+      return false;
+    }
+
+    workerCreateCache = await res.json();
+    workerCreateCacheProjectCode = code;
+    return true;
+  };
+
+  const renderWorkerList = (list, keyword) => {
+    if (!workerModalTree) return;
+
+    const q = String(keyword || "")
+      .trim()
+      .toLowerCase();
+    const arr = Array.isArray(list) ? list : [];
+
+    const filtered = !q
+      ? arr
+      : arr.filter((u) =>
+          String(u.userName || "")
+            .toLowerCase()
+            .includes(q),
+        );
+
+    workerModalTree.innerHTML = "";
+    if (!filtered.length) {
+      workerModalTree.innerHTML =
+        '<div class="p-4 text-center text-muted">결과가 없습니다.</div>';
+      return;
+    }
+
+    const ul = document.createElement("ul");
+    ul.style.listStyle = "none";
+    ul.style.padding = "0";
+    ul.style.margin = "0";
+
+    filtered.forEach((u) => {
+      const li = document.createElement("li");
+      const div = document.createElement("div");
+      div.className = "type-item";
+      div.textContent = u.userName || "-";
+
+      div.addEventListener("click", () => {
+        if (wlWorkerText) wlWorkerText.value = u.userName || "";
+        if (wlWorkerCode) wlWorkerCode.value = u.userCode || "";
+        workerModal?.hide();
+      });
+
+      li.appendChild(div);
+      ul.appendChild(li);
+    });
+
+    workerModalTree.appendChild(ul);
+  };
+
+  const openWorkerModalForAdmin = async () => {
+    if (!isAdmin) return;
+    if (!workerModalEl || !workerModal)
+      return showToast("작업자 선택 모달이 없습니다.");
+
+    const pCode = String(wlProjectCode?.value || "").trim();
+    if (!pCode) return showToast("프로젝트 정보가 없습니다.");
+
+    if (workerModalSearch) workerModalSearch.value = "";
+
+    const ok = await fetchWorkersForProject(pCode);
+    if (!ok) return;
+
+    renderWorkerList(workerCreateCache, "");
+
+    // 검색
+    if (workerModalSearch) {
+      workerModalSearch.oninput = () => {
+        renderWorkerList(workerCreateCache, workerModalSearch.value);
+      };
+    }
+
+    modalEl.addEventListener(
+      "hidden.bs.modal",
+      () => {
+        workerModal.show();
+        setTimeout(() => workerModalSearch?.focus(), 0);
+      },
+      { once: true },
+    );
+
+    workerModalEl.addEventListener(
+      "hidden.bs.modal",
+      () => {
+        modal.show();
+      },
+      { once: true },
+    );
+
+    modal.hide();
+  };
+
+  // 작업자 버튼: 관리자면 모달, 담당자 고정
+  if (btnPickWorker) {
+    if (!isAdmin) {
+      btnPickWorker.disabled = true;
+      btnPickWorker.onclick = null;
+    } else {
+      btnPickWorker.disabled = false;
+      btnPickWorker.onclick = (e) => {
+        e.preventDefault();
+        openWorkerModalForAdmin();
+      };
+    }
+  }
+
+  // 작업일 기본값: 오늘
+  if (wlWorkDate && !wlWorkDate.value) {
+    wlWorkDate.value = new Date().toISOString().slice(0, 10);
+  }
+
+  // 시/분/설명은 열 때마다 비우기
+  if (wlHour) wlHour.value = "";
+  if (wlMinute) wlMinute.value = "";
+  if (wlDesc) wlDesc.value = "";
+
+  const setBusy = (busy) => {
+    [btnSaveContinue, btnSaveClose].forEach((b) => {
+      if (!b) return;
+      b.disabled = !!busy;
+    });
+  };
+
+  const clamp = (val, min, max) => {
+    const n = Number(String(val ?? "").trim());
+    if (!Number.isFinite(n)) return "";
+    return String(Math.max(min, Math.min(max, Math.trunc(n))));
+  };
+
+  const getSpentMinutes = () => {
+    const h = Number(clamp(wlHour?.value, 0, 999) || 0);
+    const m = Number(clamp(wlMinute?.value, 0, 59) || 0);
+    return h * 60 + m;
+  };
+
+  const validate = () => {
+    const p = wlProjectCode?.value?.trim() || "";
+    const i = wlIssueCode?.value?.trim() || "";
+    const w = wlWorkerCode?.value?.trim() || "";
+    const d = wlWorkDate?.value?.trim() || "";
+    const spent = getSpentMinutes();
+
+    if (!p) return { ok: false, message: "프로젝트 정보가 없습니다." };
+    if (!i) return { ok: false, message: "일감 정보가 없습니다." };
+    if (!w) return { ok: false, message: "작업자를 선택해주세요." };
+    if (!d) return { ok: false, message: "작업일을 입력해주세요." };
+    if (spent < 1)
+      return { ok: false, message: "시간(시/분)을 올바르게 입력해주세요." };
+    return { ok: true };
+  };
+
+  const postCreate = async () => {
+    const payload = {
+      issueCode: wlIssueCode?.value ? Number(wlIssueCode.value) : null,
+      workerCode: wlWorkerCode?.value ? Number(wlWorkerCode.value) : null,
+      workDate: wlWorkDate?.value || null,
+      spentMinutes: getSpentMinutes(),
+      description: (wlDesc?.value || "").trim() || null,
+    };
+
+    const res = await fetch("/api/worklogs", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.message || "등록에 실패했습니다.");
+    }
+    return data;
+  };
+
+  const afterSuccessRefresh = () => {
+    // issue-info 하단 “소요시간 이력” 다시 로드
+    // 너 이미 issue-info.js에 loadWorklogs(issueCode) 함수가 있으니 그대로 호출
+    const issueCodeForReload = wlIssueCode?.value?.trim() || "";
+    if (typeof loadWorklogs === "function") {
+      loadWorklogs(issueCodeForReload);
+    }
+  };
+
+  const resetForContinue = () => {
+    if (wlHour) wlHour.value = "";
+    if (wlMinute) wlMinute.value = "";
+    if (wlDesc) wlDesc.value = "";
+  };
+
+  const bindClick = (el, handler) => {
+    if (!el) return;
+    el.onclick = null;
+    el.onclick = handler;
+  };
+
+  bindClick(btnCancel, (e) => {
+    e.preventDefault();
+    modal.hide();
+  });
+
+  bindClick(btnSaveContinue, async (e) => {
+    e.preventDefault();
+    const v = validate();
+    if (!v.ok) return showToast(v.message);
+
+    try {
+      setBusy(true);
+      await postCreate();
+      showToast("등록되었습니다.");
+      afterSuccessRefresh();
+      resetForContinue();
+    } catch (err) {
+      showToast(err?.message || "등록에 실패했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  bindClick(btnSaveClose, async (e) => {
+    e.preventDefault();
+    const v = validate();
+    if (!v.ok) return showToast(v.message);
+
+    try {
+      setBusy(true);
+      await postCreate();
+      showToast("등록되었습니다.");
+      afterSuccessRefresh();
+      modal.hide();
+    } catch (err) {
+      showToast(err?.message || "등록에 실패했습니다.");
+    } finally {
+      setBusy(false);
+    }
+  });
+
+  modal.show();
 }

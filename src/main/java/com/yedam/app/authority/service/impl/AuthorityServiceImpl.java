@@ -59,4 +59,10 @@ public class AuthorityServiceImpl implements AuthorityService {
     if (issueCode == null || userCode == null) return false;
     return authorityMapper.existsIssueCreatorOrAssignee(issueCode, userCode) == 1;
   }
+  
+  @Override
+  public boolean isWorklogIssueAssignee(Long workLogCode, Integer userCode) {
+    if (workLogCode == null || userCode == null) return false;
+    return authorityMapper.existsWorklogIssueAssignee(workLogCode, userCode) == 1;
+  }
 }

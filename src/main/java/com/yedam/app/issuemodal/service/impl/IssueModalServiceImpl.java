@@ -17,46 +17,61 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class IssueModalServiceImpl implements IssueModalService {
 
-	private final IssueModalMapper issueModalMapper;
+  private final IssueModalMapper issueModalMapper;
 
-	@Override
-	public List<IssueModalVO> findIssueModalList(Long projectCode, Long typeCode) {
-	  List<IssueModalVO> flat = issueModalMapper.selectIssueModalList(projectCode, typeCode);
-	  if (flat == null || flat.isEmpty()) return List.of();
+  @Override
+  public List<IssueModalVO> findIssueModalList(Long projectCode, Long typeCode) {
+    List<IssueModalVO> flat = issueModalMapper.selectIssueModalList(projectCode, typeCode);
+    return buildIssueTree(flat);
+  }
 
-	  Map<Long, IssueModalVO> nodeMap = new LinkedHashMap<>();
-	  for (IssueModalVO v : flat) {
-	    if (v == null || v.getIssueCode() == null) continue;
-	    if (v.getChildren() == null) v.setChildren(new ArrayList<>());
-	    nodeMap.put(v.getIssueCode(), v);
-	  }
+  @Override
+  public List<IssueModalVO> findIssuesForWorklogCreate(Long projectCode, Long loginUserCode, String adminCk) {
+    boolean isAdmin = "Y".equalsIgnoreCase(String.valueOf(adminCk));
 
-	  List<IssueModalVO> roots = new ArrayList<>();
-	  for (IssueModalVO node : nodeMap.values()) {
-	    Long parentId = node.getParIssueCode();
+    List<IssueModalVO> flat = isAdmin
+        ? issueModalMapper.selectIssuesByProjectAll(projectCode)
+        : issueModalMapper.selectIssuesByProjectMine(projectCode, loginUserCode);
 
-	    if (parentId == null) {
-	      roots.add(node);
-	      continue;
-	    }
+    return buildIssueTree(flat);
+  }
 
-	    if (parentId.equals(node.getIssueCode())) {
-	      node.setParIssueCode(null);
-	      roots.add(node);
-	      continue;
-	    }
+  private List<IssueModalVO> buildIssueTree(List<IssueModalVO> flat) {
+    if (flat == null || flat.isEmpty()) return List.of();
 
-	    IssueModalVO parent = nodeMap.get(parentId);
+    Map<Long, IssueModalVO> nodeMap = new LinkedHashMap<>();
+    for (IssueModalVO v : flat) {
+      if (v == null || v.getIssueCode() == null) continue;
+      if (v.getChildren() == null) v.setChildren(new ArrayList<>());
+      nodeMap.put(v.getIssueCode(), v);
+    }
 
-	    // 같은 typeCode 목록에 부모가 없으면 루트 취급
-	    if (parent == null) {
-	      roots.add(node);
-	      continue;
-	    }
+    List<IssueModalVO> roots = new ArrayList<>();
+    for (IssueModalVO node : nodeMap.values()) {
+      Long parentId = node.getParIssueCode();
 
-	    parent.getChildren().add(node);
-	  }
+      if (parentId == null) {
+        roots.add(node);
+        continue;
+      }
 
-	  return roots;
-	}
+      if (parentId.equals(node.getIssueCode())) {
+        node.setParIssueCode(null);
+        roots.add(node);
+        continue;
+      }
+
+      IssueModalVO parent = nodeMap.get(parentId);
+
+      // 같은 목록 안에 부모가 없으면 루트 취급
+      if (parent == null) {
+        roots.add(node);
+        continue;
+      }
+
+      parent.getChildren().add(node);
+    }
+
+    return roots;
+  }
 }

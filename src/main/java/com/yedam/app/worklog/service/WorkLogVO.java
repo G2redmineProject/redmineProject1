@@ -7,13 +7,20 @@ import lombok.Data;
 @Data
 public class WorkLogVO {
   private Long workLogCode;
+
   private Long issueCode;
   private String issueTitle;
+
+  private Long projectCode;
+  private String projectName;
+
+  private Long typeCode;
+  private String typeName;
+
   private LocalDate workDate;
 
-  private Long workerCode;
+  private Integer workerCode;
   private String workerName;
-  private String projectName;
 
   private Integer spentMinutes;
   private String description;

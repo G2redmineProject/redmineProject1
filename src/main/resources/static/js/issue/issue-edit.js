@@ -141,9 +141,13 @@
   };
 
   /* =========================================================
-     유형 종료일 제한
+     유형 시작/종료일 제한 (등록 화면과 동일)
+     - dueDateView.min/max 적용(선택 방지)
      ========================================================= */
+  const typeStartAtView = $("#typeStartAtView"); // HTML에 추가됨
   const typeEndAtView = $("#typeEndAtView");
+
+  let selectedTypeStartDate = ""; // "YYYY-MM-DD"
   let selectedTypeEndDate = ""; // "YYYY-MM-DD"
 
   const normalizeDateOnly = (v) => {
@@ -155,34 +159,47 @@
     return toDate(d);
   };
 
-  const clampByTypeEndDate = (dateStr) => {
+  const clampByTypeDateRange = (dateStr) => {
     if (!dateStr) return dateStr;
-    if (!selectedTypeEndDate) return dateStr;
-    return dateStr > selectedTypeEndDate ? selectedTypeEndDate : dateStr;
+
+    let out = dateStr;
+
+    if (selectedTypeStartDate && out < selectedTypeStartDate) {
+      out = selectedTypeStartDate;
+    }
+    if (selectedTypeEndDate && out > selectedTypeEndDate) {
+      out = selectedTypeEndDate;
+    }
+    return out;
   };
 
-  const applyTypeEndDateLimit = (endDateStr) => {
+  const applyTypeDateLimit = (startDateStr, endDateStr) => {
+    selectedTypeStartDate = startDateStr || "";
     selectedTypeEndDate = endDateStr || "";
 
-    if (typeEndAtView) {
-      typeEndAtView.textContent = selectedTypeEndDate || "-";
-    }
+    if (typeStartAtView)
+      typeStartAtView.textContent = selectedTypeStartDate || "-";
+    if (typeEndAtView) typeEndAtView.textContent = selectedTypeEndDate || "-";
 
+    // 선택 방지 (캘린더 min/max)
     if (dueView) {
+      if (selectedTypeStartDate) dueView.min = selectedTypeStartDate;
+      else dueView.removeAttribute("min");
+
       if (selectedTypeEndDate) dueView.max = selectedTypeEndDate;
       else dueView.removeAttribute("max");
     }
 
-    if (
-      selectedTypeEndDate &&
-      dueView?.value &&
-      dueView.value > selectedTypeEndDate
-    ) {
-      dueView.value = selectedTypeEndDate;
-      syncDueWithPriority();
-      showToast(
-        "마감기한이 유형 종료일을 초과할 수 없어 종료일로 조정되었습니다.",
-      );
+    // 이미 선택된 값이 범위 밖이면 자동 조정
+    if (dueView?.value) {
+      const before = dueView.value;
+      const after = clampByTypeDateRange(before);
+
+      if (before !== after) {
+        dueView.value = after;
+        syncDueWithPriority();
+        showToast("마감기한이 유형 기간 범위를 벗어나 조정되었습니다.");
+      }
     }
   };
 
@@ -193,7 +210,7 @@
     if (!days) return;
 
     let dueStr = toDate(addDays(new Date(), days));
-    dueStr = clampByTypeEndDate(dueStr);
+    dueStr = clampByTypeDateRange(dueStr);
 
     dueView.value = dueStr;
     dueAt.value = toDT(dueStr);
@@ -207,6 +224,11 @@
       showDueAutoToast();
       setDueByPriority();
       return;
+    }
+
+    if (selectedTypeStartDate && dueView.value < selectedTypeStartDate) {
+      dueView.value = selectedTypeStartDate;
+      showToast("마감기한은 유형 시작일 이전으로 설정할 수 없습니다.");
     }
 
     if (selectedTypeEndDate && dueView.value > selectedTypeEndDate) {
@@ -391,7 +413,11 @@
     const convert = (node) => ({
       code: String(node.typeCode),
       name: node.typeName,
+
+      // startAt/endAt 서버에서 내려오면 바로 사용
+      startAt: node.startAt ?? node.start_at ?? node.typeStartAt ?? null,
       endAt: node.endAt ?? node.end_at ?? node.typeEndAt ?? null,
+
       children: (node.children || []).map(convert),
     });
 
@@ -416,37 +442,113 @@
       return;
     }
 
-    const createNode = (type) => {
+    const makeArrow = (isParent) => {
+      const arrow = document.createElement("span");
+      arrow.className = isParent ? "ti-arrow is-parent" : "ti-arrow";
+      return arrow;
+    };
+
+    const pickType = (node) => {
+      if (typeText) typeText.value = node.name;
+      if (typeCode) typeCode.value = String(node.code);
+
+      const startDate = normalizeDateOnly(node.startAt);
+      const endDate = normalizeDateOnly(node.endAt);
+
+      applyTypeDateLimit(startDate, endDate);
+
+      // 우선순위가 있는데 due가 비어있으면 자동 설정
+      if (prioritySel?.value && !dueView?.value) setDueByPriority();
+
+      syncHiddenDates();
+
+      if (typeSearchEl) typeSearchEl.value = "";
+      typeModal?.hide();
+    };
+
+    const createLeafRow = (node, depth) => {
       const li = document.createElement("li");
 
-      const div = document.createElement("div");
-      div.className = "type-item";
-      div.textContent = type.name;
+      const row = document.createElement("div");
+      row.className = "type-item ti-item";
 
-      div.addEventListener("click", (e) => {
+      const indent = document.createElement("span");
+      indent.className = "ti-indent";
+      indent.style.width = `${depth * 18}px`;
+
+      const arrow = makeArrow(false);
+
+      const title = document.createElement("span");
+      title.className = "ti-title";
+      title.textContent = node.name;
+
+      row.appendChild(indent);
+      row.appendChild(arrow);
+      row.appendChild(title);
+
+      row.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
-
-        if (typeText) typeText.value = type.name;
-        if (typeCode) typeCode.value = type.code;
-
-        const endDate = normalizeDateOnly(type.endAt);
-        applyTypeEndDateLimit(endDate);
-
-        if (prioritySel?.value && !dueView?.value) setDueByPriority();
-        syncHiddenDates();
-
-        if (typeSearchEl) typeSearchEl.value = "";
-        typeModal?.hide();
+        pickType(node);
       });
 
-      li.appendChild(div);
+      li.appendChild(row);
+      return li;
+    };
 
-      if (type.children && type.children.length > 0) {
-        const ul = document.createElement("ul");
-        type.children.forEach((c) => ul.appendChild(createNode(c)));
-        li.appendChild(ul);
-      }
+    const createParentNode = (node, depth) => {
+      const li = document.createElement("li");
 
+      const row = document.createElement("div");
+      row.className = "type-item ti-item ti-parent-item";
+
+      const indent = document.createElement("span");
+      indent.className = "ti-indent";
+      indent.style.width = `${depth * 18}px`;
+
+      const arrow = makeArrow(true);
+
+      const title = document.createElement("span");
+      title.className = "ti-title";
+      title.textContent = node.name;
+
+      row.appendChild(indent);
+      row.appendChild(arrow);
+      row.appendChild(title);
+
+      const childUl = document.createElement("ul");
+      childUl.className = "ti-children-ul";
+
+      (node.children || []).forEach((c) => {
+        const hasKids = Array.isArray(c.children) && c.children.length > 0;
+        childUl.appendChild(
+          hasKids
+            ? createParentNode(c, depth + 1)
+            : createLeafRow(c, depth + 1),
+        );
+      });
+
+      // 기본 닫힘
+      row.classList.remove("is-open");
+      childUl.style.display = "none";
+
+      // (1) 화살표 클릭만 토글
+      arrow.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const open = row.classList.toggle("is-open");
+        childUl.style.display = open ? "block" : "none";
+      });
+
+      // (2) 행 클릭은 선택(부모도 선택)
+      row.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pickType(node);
+      });
+
+      li.appendChild(row);
+      li.appendChild(childUl);
       return li;
     };
 
@@ -455,19 +557,24 @@
       groupWrapper.className = "type-project-group";
 
       const header = document.createElement("div");
-      header.className = "type-project-header";
+      header.className = "type-project-header active";
       header.textContent = p.name;
 
       const content = document.createElement("div");
       content.className = "type-project-content";
-      content.style.display = "block"; // edit는 프로젝트 고정이라 기본 펼침
-
-      header.classList.add("active");
+      content.style.display = "block"; // 수정화면은 프로젝트 고정이라 항상 펼침
 
       const rootUl = document.createElement("ul");
-      (p.children || []).forEach((t) => rootUl.appendChild(createNode(t)));
-      content.appendChild(rootUl);
+      rootUl.className = "ti-tree-root";
 
+      (p.children || []).forEach((t) => {
+        const hasKids = Array.isArray(t.children) && t.children.length > 0;
+        rootUl.appendChild(
+          hasKids ? createParentNode(t, 0) : createLeafRow(t, 0),
+        );
+      });
+
+      content.appendChild(rootUl);
       groupWrapper.appendChild(header);
       groupWrapper.appendChild(content);
       container.appendChild(groupWrapper);
@@ -538,7 +645,7 @@
   const clearType = () => {
     if (typeText) typeText.value = "";
     if (typeCode) typeCode.value = "";
-    applyTypeEndDateLimit("");
+    applyTypeDateLimit("", "");
     syncHiddenDates();
   };
 
@@ -557,10 +664,10 @@
     return null;
   };
 
-  const applyTypeEndFromCurrentTypeCode = async () => {
+  const applyTypeDateRangeFromCurrentTypeCode = async () => {
     const cur = String(typeCode?.value || "").trim();
     if (!cur) {
-      applyTypeEndDateLimit("");
+      applyTypeDateLimit("", "");
       return;
     }
 
@@ -568,11 +675,15 @@
     if (!ok) return;
 
     const node = findTypeNodeByCode(typeRawCache, cur);
+
+    const startDate = normalizeDateOnly(
+      node?.startAt ?? node?.start_at ?? node?.typeStartAt,
+    );
     const endDate = normalizeDateOnly(
       node?.endAt ?? node?.end_at ?? node?.typeEndAt,
     );
-    applyTypeEndDateLimit(endDate);
 
+    applyTypeDateLimit(startDate, endDate);
     syncHiddenDates();
   };
 
@@ -880,10 +991,36 @@
       row.classList.remove("is-open");
       childUl.style.display = "none";
 
-      row.addEventListener("click", (e) => {
+      const isForbidden = forbiddenSet?.has(Number(node.id));
+      if (isForbidden) row.classList.add("pi-disabled");
+
+      // (1) 화살표 클릭만 토글
+      arrow.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         const open = row.classList.toggle("is-open");
         childUl.style.display = open ? "block" : "none";
+      });
+
+      // (2) 행 클릭은 선택(부모도 선택) + 금지항목 처리
+      row.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isForbidden) {
+          showToast(
+            "자기 자신 또는 하위 일감은 상위일감으로 선택할 수 없습니다.",
+          );
+          return;
+        }
+
+        if (parIssueText) parIssueText.value = node.title;
+        if (parIssueCode) {
+          parIssueCode.value = node.id;
+          parIssueCode.setAttribute("name", "parIssueCode");
+        }
+
+        parIssueModal?.hide();
       });
 
       li.appendChild(row);
@@ -970,6 +1107,17 @@
     }
 
     syncDueWithPriority();
+
+    // 기간 범위 최종 방어
+    if (
+      selectedTypeStartDate &&
+      dueView?.value &&
+      dueView.value < selectedTypeStartDate
+    ) {
+      showToast("마감기한은 유형 시작일 이전으로 설정할 수 없습니다.");
+      dueView?.focus();
+      return false;
+    }
 
     if (
       selectedTypeEndDate &&
@@ -1131,7 +1279,7 @@
     }
 
     await hydrateTypeTextIfEmpty();
-    await applyTypeEndFromCurrentTypeCode();
+    await applyTypeDateRangeFromCurrentTypeCode();
 
     onStatusChange();
     syncHiddenDates();
@@ -1154,7 +1302,7 @@
     }
 
     await hydrateTypeTextIfEmpty();
-    await applyTypeEndFromCurrentTypeCode();
+    await applyTypeDateRangeFromCurrentTypeCode();
 
     syncHiddenDates();
   };

@@ -73,4 +73,16 @@ public class UserModalController {
 	  }
 	  return userModalService.findUsersInMyProjects(user.getUserCode().longValue());
 	}
+	
+	//소요시간
+	@GetMapping("/api/users/modal/worklogs/workers")
+	public List<UserModalVO> getWorklogWorkers(HttpSession session) {
+	  UserVO user = (UserVO) session.getAttribute("user");
+
+	  if (user == null || user.getUserCode() == null) {
+	    throw new IllegalStateException("로그인 정보가 없습니다.");
+	  }
+
+	  return userModalService.findWorklogWorkersByMyProjects(user.getUserCode().longValue());
+	}
 }

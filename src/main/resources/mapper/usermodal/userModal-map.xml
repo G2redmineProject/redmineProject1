@@ -132,4 +132,35 @@
      )
    ORDER BY projectCode, userName
 </select>
+
+<!-- 소요시간용 -->
+<select id="selectWorklogWorkersByMyProjects"
+        parameterType="long"
+        resultType="UserModalVO">
+  SELECT DISTINCT
+         wl.worker_code  AS userCode,
+         u.name          AS userName,
+         i.project_code  AS projectCode,
+         p.project_name  AS projectName
+    FROM work_logs wl
+    JOIN issues i
+      ON i.issue_code = wl.issue_code
+    JOIN projects p
+      ON p.project_code = i.project_code
+    JOIN users u
+      ON u.user_code = wl.worker_code
+   WHERE u.is_lock != 1
+     AND wl.worker_code IS NOT NULL
+     AND EXISTS (
+          SELECT 1
+            FROM vw_user_auth v
+           WHERE v.user_code = #{loginUserCode}
+             AND v.project_code = i.project_code
+             AND (
+                   (v.admin_ck = 'Y' AND p.status IN ('OD1','OD3'))
+                OR (v.admin_ck = 'N' AND p.status = 'OD1')
+             )
+     )
+   ORDER BY projectCode, userName
+</select>
 </mapper>

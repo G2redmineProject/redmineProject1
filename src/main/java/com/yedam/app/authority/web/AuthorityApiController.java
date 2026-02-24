@@ -135,4 +135,41 @@ public class AuthorityApiController {
     );
   }
 
+  
+  @GetMapping("/api/authority/worklog/menuPerms")
+  public Map<String, Object> worklogMenuPerms(@RequestParam("projectCode") Long projectCode,
+                                              @RequestParam("workLogCode") Long workLogCode,
+                                              HttpSession session) {
+
+    UserVO user = (UserVO) session.getAttribute("user");
+    if (user == null || user.getUserCode() == null) {
+      return Map.of(
+        "success", false,
+        "canEdit", false,
+        "canDelete", false,
+        "message", "LOGIN_REQUIRED"
+      );
+    }
+
+    Integer userCode = user.getUserCode();
+
+    //관리자 여부
+    AuthorityVO auth = authorityService.getProjectAuth(userCode, projectCode);
+    boolean isAdmin = (auth != null) && "Y".equalsIgnoreCase(auth.getAdminCk());
+
+    // 담당자 여부
+    boolean isAssignee = authorityService.isWorklogIssueAssignee(workLogCode, userCode);
+
+    // 담당자 OR 관리자
+    boolean canEdit = isAdmin || isAssignee;
+    boolean canDelete = isAdmin || isAssignee;
+
+    return Map.of(
+      "success", true,
+      "canEdit", canEdit,
+      "canDelete", canDelete,
+      "isAdmin", isAdmin,
+      "isAssignee", isAssignee
+    );
+  }
 }

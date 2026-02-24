@@ -21,4 +21,7 @@ public interface UserModalMapper {
 	
 	// 작업내역용
 	List<UserModalVO> selectUsersInMyProjects(@Param("loginUserCode") Long loginUserCode);
+	
+	// 소요시간용
+	List<UserModalVO> selectWorklogWorkersByMyProjects(@Param("loginUserCode") Long loginUserCode);
 }

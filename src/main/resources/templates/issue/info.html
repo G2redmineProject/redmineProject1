@@ -27,10 +27,17 @@
           type="button"
           class="btn btn-dark"
           id="btnWorklog"
+          th:if="${isAdmin or (issue.assigneeCode != null and issue.assigneeCode == session.user.userCode)}"
           th:attr="
-      data-can-worklog=${isAdmin or (issue.assigneeCode != null and issue.assigneeCode == loginUserCode)},
-      data-issue-code=${issue.issueCode}
-    "
+    data-can-worklog=${isAdmin or (issue.assigneeCode != null and issue.assigneeCode == loginUserCode)},
+    data-admin-ck=${isAdmin ? 'Y' : 'N'},
+    data-project-code=${issue.projectCode},
+    data-project-name=${issue.projectName},
+    data-issue-code=${issue.issueCode},
+    data-issue-title=${issue.title},
+    data-login-user-code=${session.user.userCode},
+    data-login-user-name=${session.user.name}
+  "
         >
           <i class="fa-regular fa-clock me-1"></i>소요시간 등록
         </button>
@@ -354,6 +361,203 @@
       </section>
     </div>
 
+    <!-- 소요시간 등록 모달 (issue-info에서 사용) -->
+    <div
+      class="modal fade"
+      id="worklogCreateModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">소요시간 등록</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+
+          <div class="modal-body">
+            <form id="worklogCreateForm">
+              <!-- 프로젝트 -->
+              <div class="mb-3">
+                <label class="form-label"
+                  >프로젝트<span class="req">*</span></label
+                >
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="wlProjectText"
+                    class="form-control"
+                    placeholder="프로젝트 선택"
+                    readonly
+                  />
+                  <input type="hidden" id="wlProjectCode" />
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="btnPickProject"
+                  >
+                    선택
+                  </button>
+                </div>
+              </div>
+
+              <!-- 일감 -->
+              <div class="mb-3">
+                <label class="form-label">일감<span class="req">*</span></label>
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="wlIssueText"
+                    class="form-control"
+                    placeholder="일감 선택"
+                    readonly
+                  />
+                  <input type="hidden" id="wlIssueCode" />
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="btnPickIssue"
+                  >
+                    선택
+                  </button>
+                </div>
+              </div>
+
+              <!-- 작업자 -->
+              <div class="mb-3">
+                <label class="form-label"
+                  >작업자<span class="req">*</span></label
+                >
+                <div class="input-group">
+                  <input
+                    type="text"
+                    id="wlWorkerText"
+                    class="form-control"
+                    placeholder="작업자 선택"
+                    readonly
+                  />
+                  <input type="hidden" id="wlWorkerCode" />
+                  <button
+                    type="button"
+                    class="btn btn-secondary"
+                    id="btnPickWorker"
+                  >
+                    선택
+                  </button>
+                </div>
+              </div>
+
+              <div class="row g-2">
+                <!-- 작업일 -->
+                <div class="col-12 col-md-6">
+                  <label class="form-label"
+                    >작업일<span class="req">*</span></label
+                  >
+                  <input type="date" id="wlWorkDate" class="form-control" />
+                </div>
+
+                <!-- 시간(시/분) -->
+                <div class="col-12 col-md-6">
+                  <label class="form-label"
+                    >시간(시/분)<span class="req">*</span></label
+                  >
+                  <div class="d-flex gap-2">
+                    <input
+                      type="number"
+                      id="wlHour"
+                      class="form-control"
+                      placeholder="시"
+                      min="0"
+                      max="999"
+                      inputmode="numeric"
+                    />
+                    <input
+                      type="number"
+                      id="wlMinute"
+                      class="form-control"
+                      placeholder="분"
+                      min="0"
+                      max="59"
+                      inputmode="numeric"
+                    />
+                  </div>
+                  <div class="form-text text-muted"></div>
+                </div>
+              </div>
+
+              <!-- 설명 -->
+              <div class="mt-3">
+                <label class="form-label">설명</label>
+                <textarea
+                  id="wlDesc"
+                  class="form-control"
+                  rows="3"
+                  placeholder="작업 내용(선택)"
+                ></textarea>
+              </div>
+            </form>
+          </div>
+
+          <div class="modal-footer d-flex justify-content-between">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="btnWlCancel"
+              data-bs-dismiss="modal"
+            >
+              취소
+            </button>
+
+            <div class="d-flex gap-2">
+              <button
+                type="button"
+                class="btn btn-primary"
+                id="btnWlSaveContinue"
+              >
+                등록 후 계속
+              </button>
+              <button type="button" class="btn btn-success" id="btnWlSaveClose">
+                등록 후 종료
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 작업자 모달 -->
+    <div
+      class="modal fade"
+      id="workerSelectModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">작업자 선택</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <input
+              type="text"
+              id="workerModalSearch"
+              class="form-control mb-2"
+              placeholder="작업자명 검색"
+            />
+            <div id="workerModalTree" class="type-tree"></div>
+          </div>
+        </div>
+      </div>
+    </div>
     <script th:src="@{/js/issue/issue-info.js}"></script>
   </body>
 </html>

@@ -14,4 +14,7 @@ public interface AuthorityMapper {
 	int existsAdminProject(@Param("userCode") Integer userCode);
 
 	int existsIssueCreatorOrAssignee(Long issueCode, Integer userCode);
+	
+	int existsWorklogIssueAssignee(@Param("workLogCode") Long workLogCode,
+            @Param("userCode") Integer userCode);
 }

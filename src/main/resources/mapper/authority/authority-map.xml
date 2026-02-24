@@ -46,4 +46,13 @@
   WHERE i.issue_code = #{issueCode}
     AND (i.created_by_code = #{userCode} OR i.assignee_code = #{userCode})
 </select>
+
+<select id="existsWorklogIssueAssignee" resultType="int">
+  SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END AS cnt
+  FROM work_logs wl
+  JOIN issues i
+    ON i.issue_code = wl.issue_code
+  WHERE wl.work_log_code = #{workLogCode}
+    AND i.assignee_code = #{userCode}
+</select>
 </mapper>

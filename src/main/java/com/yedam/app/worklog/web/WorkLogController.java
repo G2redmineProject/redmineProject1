@@ -22,16 +22,23 @@ public class WorkLogController {
   private final WorkLogService workLogService;
 
   @GetMapping("/worklogs")
-  public String page(Model model) {
+  public String page(@RequestParam(required = false) String from,
+                     @RequestParam(required = false) String to,
+                     Model model,
+                     HttpSession session) {
+
+    List<Map<String, Object>> list = workLogService.listWorklogs(from, to, session);
+    model.addAttribute("list", list);
     return "worklog/list";
   }
 
   @ResponseBody
   @GetMapping("/api/worklogs")
   public Map<String, Object> list(@RequestParam(required = false) String from,
-                                 @RequestParam(required = false) String to) {
+                                 @RequestParam(required = false) String to,
+                                 HttpSession session) {
     Map<String, Object> res = new HashMap<>();
-    List<Map<String, Object>> data = workLogService.listWorklogs(from, to);
+    List<Map<String, Object>> data = workLogService.listWorklogs(from, to, session);
     res.put("success", true);
     res.put("data", data);
     return res;
@@ -42,9 +49,14 @@ public class WorkLogController {
   public Map<String, Object> prefill(@RequestParam("issueCode") Long issueCode,
                                      HttpSession session) {
     Map<String, Object> res = new HashMap<>();
-    Map<String, Object> data = workLogService.getPrefill(issueCode, session);
-    res.put("success", true);
-    res.put("data", data);
+    try {
+      List<Map<String, Object>> data = workLogService.getPrefill(issueCode, session);
+      res.put("success", true);
+      res.put("data", data);
+    } catch (Exception e) {
+      res.put("success", false);
+      res.put("message", e.getMessage());
+    }
     return res;
   }
 
@@ -56,11 +68,58 @@ public class WorkLogController {
     try {
       workLogService.createWorklog(vo, session);
       res.put("success", true);
+      res.put("workLogCode", vo.getWorkLogCode());
       return res;
     } catch (Exception e) {
       res.put("success", false);
       res.put("message", e.getMessage());
       return res;
     }
+  }
+  
+  @ResponseBody
+  @GetMapping("/api/worklogs/{workLogCode}")
+  public Map<String, Object> getOne(@PathVariable Long workLogCode,
+                                   HttpSession session) {
+    Map<String, Object> res = new HashMap<>();
+    try {
+      res.put("success", true);
+      res.put("data", workLogService.getWorklog(workLogCode, session));
+    } catch (Exception e) {
+      res.put("success", false);
+      res.put("message", e.getMessage());
+    }
+    return res;
+  }
+
+  @ResponseBody
+  @PutMapping("/api/worklogs/{workLogCode}")
+  public Map<String, Object> update(@PathVariable Long workLogCode,
+                                   @RequestBody WorkLogVO vo,
+                                   HttpSession session) {
+    Map<String, Object> res = new HashMap<>();
+    try {
+      workLogService.updateWorklog(workLogCode, vo, session);
+      res.put("success", true);
+    } catch (Exception e) {
+      res.put("success", false);
+      res.put("message", e.getMessage());
+    }
+    return res;
+  }
+
+  @ResponseBody
+  @DeleteMapping("/api/worklogs/{workLogCode}")
+  public Map<String, Object> delete(@PathVariable Long workLogCode,
+                                   HttpSession session) {
+    Map<String, Object> res = new HashMap<>();
+    try {
+      workLogService.deleteWorklog(workLogCode, session);
+      res.put("success", true);
+    } catch (Exception e) {
+      res.put("success", false);
+      res.put("message", e.getMessage());
+    }
+    return res;
   }
 }
