@@ -11,4 +11,6 @@ public interface UserModalService {
 	  List<UserModalVO> findNoticeCreatorByMyProjects(Long loginUserCode);
 	  //작업내역
 	  List<UserModalVO> findUsersInMyProjects(Long loginUserCode);
+	  //소요시간
+	  List<UserModalVO> findWorklogWorkersByMyProjects(Long loginUserCode);
 }

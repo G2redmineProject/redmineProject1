@@ -17,19 +17,17 @@
       <div class="page-title-sub">프로젝트별 일감을 등록할 수 있습니다.</div>
     </div>
 
-    <!-- 서버에서 내려온 에러(권한없음 등) -->
-    <div
-      th:if="${errorMessage != null}"
-      class="alert alert-danger mb-3"
-      th:text="${errorMessage}"
-    ></div>
-
     <div class="card issue-card mb-4">
       <div class="card-header">
         <div class="card-header-title">일감 등록</div>
       </div>
 
       <div class="card-body">
+        <input
+          type="hidden"
+          id="issueReturnUrl"
+          th:value="${session.ISSUE_RETURN_URL}"
+        />
         <form
           id="issueInsertForm"
           th:action="@{/issueInsert}"
@@ -38,6 +36,12 @@
         >
           <input type="hidden" name="createdAt" id="createdAt" />
           <input type="hidden" name="dueAt" id="dueAt" />
+          <input
+            type="hidden"
+            name="afterAction"
+            id="afterAction"
+            value="close"
+          />
 
           <div class="row g-3 align-items-end">
             <div class="col-12 col-md-4">
@@ -216,9 +220,11 @@
               <div class="form-text">
                 우선순위로 자동 설정되며 필요 시 수정할 수 있습니다.
                 <br />
-                <span class="text-muted">유형 종료일: </span>
+                <span class="text-muted">유형 기간: </span>
+                <strong id="typeStartAtView" class="text-muted">-</strong>
+                <span class="text-muted"> ~ </span>
                 <strong id="typeEndAtView" class="text-muted">-</strong>
-                <span class="text-muted">이후는 선택이 불가능합니다.</span>
+                <span class="text-muted"> 중 선택할 수 있습니다.</span>
               </div>
             </div>
 
@@ -262,14 +268,21 @@
               <button type="button" class="btn btn-secondary" id="btnReset">
                 <i class="fas fa-redo me-1"></i>초기화
               </button>
-
+              <button
+                type="submit"
+                class="btn btn-primary"
+                id="btnWlSaveContinue"
+                data-can-create="false"
+              >
+                등록 후 계속
+              </button>
               <button
                 type="submit"
                 class="btn btn-success"
-                id="btnSubmit"
+                id="btnWlSaveClose"
                 data-can-create="false"
               >
-                <i class="fas fa-save me-1"></i>일감 등록
+                등록 후 종료
               </button>
             </div>
           </div>

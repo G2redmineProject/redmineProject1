@@ -14,4 +14,5 @@ public interface AuthorityService {
 	  
 	  boolean isIssueCreatorOrAssignee(Long issueCode, Integer userCode);
 
+	  boolean isWorklogIssueAssignee(Long workLogCode, Integer userCode);
 }

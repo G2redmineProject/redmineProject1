@@ -61,7 +61,9 @@ public class TypeModalServiceImpl implements TypeModalService {
 	@Override
 	public List<TypeModalVO> findTypeModalListForInsert(Integer projectCode) {
 	  if (projectCode == null) return List.of();
-	  return typeModalMapper.selectTypeModalListForInsert(projectCode);
+
+	  List<TypeModalVO> flat = typeModalMapper.selectTypeModalListForInsert(projectCode);
+	  return buildTypeTree(flat); // 핵심: 트리로 변환해서 반환
 	}
 
 }

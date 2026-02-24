@@ -17,6 +17,7 @@
   const typeText = $("#typeText");
   const typeCode = $("#typeCode");
   const typeEndAtView = $("#typeEndAtView");
+  const typeStartAtView = $("#typeStartAtView");
 
   const parIssueText = $("#parIssueText");
   const parIssueCode = $("#parIssueCode");
@@ -27,7 +28,9 @@
   const fileInp = $("#uploadFile");
   const label = $("#selectedFileName");
 
-  const btnSubmit = $("#btnSubmit");
+  // 2개 제출 버튼
+  const btnSaveContinue = $("#btnWlSaveContinue");
+  const btnSaveClose = $("#btnWlSaveClose");
 
   const projectModalEl = $("#projectSelectModal");
   const assigneeModalEl = $("#assigneeSelectModal");
@@ -48,9 +51,7 @@
   const projectList = $("#projectModalList");
   const assigneeBox = $("#assigneeModalTree");
 
-  // 상위일감: 트리 렌더
   const parIssueTreeEl = $("#parIssueModalTree");
-
   const typeTreeEl = $("#typeModalTree");
 
   const projectSearch = $("#projectModalSearch");
@@ -65,6 +66,12 @@
 
   const btnBack = $("#btnBack");
   const btnReset = $("#btnReset");
+
+  // 상태 select (id가 statusCode)
+  const statusSel = $("#statusCode");
+
+  // 제출 기본 모드 (Enter로 submit되면 continue로 간주)
+  let submitMode = "continue"; // "continue" | "close"
 
   const pad2 = (n) => String(n).padStart(2, "0");
   const toDate = (d) =>
@@ -134,11 +141,99 @@
   };
 
   /* =========================================================
-     권한 상태
+     등록 후 계속: 유지 필드 저장/복원(sessionStorage)
+     ========================================================= */
+  const KEEP_KEY = "issueInsert_keep_v1";
+
+  const saveKeepFields = () => {
+    try {
+      const payload = {
+        projectCode: projectCode?.value || "",
+        projectText: projectText?.value || "",
+        typeCode: typeCode?.value || "",
+        typeText: typeText?.value || "",
+        title: $("#title")?.value || "",
+        statusCode: statusSel?.value || "",
+        priority: priority?.value || "",
+        typeStart: selectedTypeStartDate || "",
+        typeEnd: selectedTypeEndDate || "",
+      };
+      sessionStorage.setItem(KEEP_KEY, JSON.stringify(payload));
+    } catch (_) {}
+  };
+
+  const clearKeepFields = () => {
+    try {
+      sessionStorage.removeItem(KEEP_KEY);
+    } catch (_) {}
+  };
+
+  const restoreKeepFields = () => {
+    try {
+      const raw = sessionStorage.getItem(KEEP_KEY);
+      if (!raw) return null;
+
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== "object") return null;
+
+      if (projectCode && data.projectCode) projectCode.value = data.projectCode;
+      if (projectText && data.projectText) projectText.value = data.projectText;
+
+      if (typeCode) typeCode.value = data.typeCode || "";
+      if (typeText) typeText.value = data.typeText || "";
+
+      const titleInp = $("#title");
+      if (titleInp) titleInp.value = data.title || "";
+
+      if (statusSel) statusSel.value = data.statusCode || "";
+      if (priority) priority.value = data.priority || "";
+
+      applyTypeDateLimit(data.typeStart || "", data.typeEnd || "");
+
+      if (priority?.value) {
+        setDueByPriority();
+        syncDueHidden();
+      }
+
+      return data;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const shouldRestore = () => {
+    const params = new URLSearchParams(location.search);
+    return params.get("keep") === "1";
+  };
+
+  /* =========================================================
+     제출 버튼 분기(continue/close) -> hidden input으로 서버에 전달
+     ========================================================= */
+  const ensureAfterActionInput = () => {
+    if (!form) return null;
+    let el = form.querySelector('input[name="afterAction"]');
+    if (!el) {
+      el = document.createElement("input");
+      el.type = "hidden";
+      el.name = "afterAction";
+      form.appendChild(el);
+    }
+    return el;
+  };
+
+  const setAfterAction = (mode) => {
+    submitMode = mode === "close" ? "close" : "continue";
+    const el = ensureAfterActionInput();
+    if (el) el.value = submitMode;
+  };
+
+  /* =========================================================
+     권한 상태 (2개 버튼 모두 반영)
      ========================================================= */
   const setCanCreate = (canWrite) => {
-    if (!btnSubmit) return;
-    btnSubmit.dataset.canCreate = canWrite ? "true" : "false";
+    const v = canWrite ? "true" : "false";
+    if (btnSaveContinue) btnSaveContinue.dataset.canCreate = v;
+    if (btnSaveClose) btnSaveClose.dataset.canCreate = v;
   };
 
   const refreshCanCreate = async (projCode) => {
@@ -160,8 +255,9 @@
   };
 
   /* =========================================================
-     날짜 / 마감기한 / 유형 종료일 제한
+     날짜 / 마감기한 / 유형 시작/종료일 제한
      ========================================================= */
+  let selectedTypeStartDate = ""; // "YYYY-MM-DD"
   let selectedTypeEndDate = ""; // "YYYY-MM-DD"
 
   const normalizeDateOnly = (v) => {
@@ -173,34 +269,42 @@
     return toDate(d);
   };
 
-  const clampByTypeEndDate = (dateStr) => {
+  const clampByTypeDateRange = (dateStr) => {
     if (!dateStr) return dateStr;
-    if (!selectedTypeEndDate) return dateStr;
-    return dateStr > selectedTypeEndDate ? selectedTypeEndDate : dateStr;
+    let out = dateStr;
+
+    if (selectedTypeStartDate && out < selectedTypeStartDate)
+      out = selectedTypeStartDate;
+    if (selectedTypeEndDate && out > selectedTypeEndDate)
+      out = selectedTypeEndDate;
+    return out;
   };
 
-  const applyTypeEndDateLimit = (endDateStr) => {
+  const applyTypeDateLimit = (startDateStr, endDateStr) => {
+    selectedTypeStartDate = startDateStr || "";
     selectedTypeEndDate = endDateStr || "";
 
-    if (typeEndAtView) {
-      typeEndAtView.textContent = selectedTypeEndDate || "-";
-    }
+    if (typeStartAtView)
+      typeStartAtView.textContent = selectedTypeStartDate || "-";
+    if (typeEndAtView) typeEndAtView.textContent = selectedTypeEndDate || "-";
 
     if (dueView) {
+      if (selectedTypeStartDate) dueView.min = selectedTypeStartDate;
+      else dueView.removeAttribute("min");
+
       if (selectedTypeEndDate) dueView.max = selectedTypeEndDate;
       else dueView.removeAttribute("max");
     }
 
-    if (
-      selectedTypeEndDate &&
-      dueView?.value &&
-      dueView.value > selectedTypeEndDate
-    ) {
-      dueView.value = selectedTypeEndDate;
-      syncDueHidden();
-      showToast(
-        "마감기한이 유형 종료일을 초과할 수 없어 종료일로 조정되었습니다.",
-      );
+    if (dueView?.value) {
+      const before = dueView.value;
+      const after = clampByTypeDateRange(before);
+
+      if (before !== after) {
+        dueView.value = after;
+        syncDueHidden();
+        showToast("마감기한이 유형 기간 범위를 벗어나 조정되었습니다.");
+      }
     }
   };
 
@@ -221,7 +325,7 @@
     }
 
     let dueStr = toDate(addDays(new Date(), days));
-    dueStr = clampByTypeEndDate(dueStr);
+    dueStr = clampByTypeDateRange(dueStr);
 
     dueView.value = dueStr;
     dueAt.value = toDT(dueStr);
@@ -237,6 +341,10 @@
       return;
     }
 
+    if (selectedTypeStartDate && dueView.value < selectedTypeStartDate) {
+      dueView.value = selectedTypeStartDate;
+      showToast("마감기한은 유형 시작일 이전으로 설정할 수 없습니다.");
+    }
     if (selectedTypeEndDate && dueView.value > selectedTypeEndDate) {
       dueView.value = selectedTypeEndDate;
       showToast("마감기한은 유형 종료일 이후로 설정할 수 없습니다.");
@@ -280,7 +388,7 @@
   };
 
   /* =========================================================
-     담당자 렌더: 단일 프로젝트 헤더 + 참여자 리스트
+     담당자 렌더
      ========================================================= */
   const renderAssigneeBox = (container, projectName, users, onPick) => {
     if (!container) return;
@@ -321,7 +429,7 @@
   /* =========================================================
      상위일감 선택/초기화 유틸
      ========================================================= */
-  let parentTreeRootsCache = null; // 서버 원본 트리
+  let parentTreeRootsCache = null;
 
   const clearParentIssueSelection = () => {
     if (parIssueText) parIssueText.value = "";
@@ -332,28 +440,25 @@
   };
 
   const clearOnlyProjectDependents = () => {
-    // 상위일감
     clearParentIssueSelection();
 
-    // 담당자
     if (assigneeText) assigneeText.value = "";
     if (assigneeCode) assigneeCode.value = "";
     if (assigneeSearch) assigneeSearch.value = "";
 
-    // 담당자 캐시
     assigneeCache = [];
     assigneeCacheProjectCode = "";
   };
 
   /* =========================================================
      유형 트리 렌더
-     - 등록: 프로젝트 선택 후, 해당 프로젝트만 by-project로 조회
      ========================================================= */
   const buildTypeTreeForJS = (serverData, pCode, pName) => {
     const convert = (node) => ({
       code: String(node.typeCode),
       name: node.typeName,
-      endAt: node.endAt ?? node.end_at ?? node.typeEndAt ?? null,
+      startAt: node.startAt ?? node.start_at ?? null,
+      endAt: node.endAt ?? node.end_at ?? null,
       children: (node.children || []).map(convert),
     });
 
@@ -378,41 +483,110 @@
       return;
     }
 
-    const createNode = (type) => {
+    const makeArrow = (isParent) => {
+      const arrow = document.createElement("span");
+      arrow.className = isParent ? "ti-arrow is-parent" : "ti-arrow";
+      return arrow;
+    };
+
+    const pickType = (node) => {
+      const pickedTypeName = node.name;
+      const pickedTypeCode = String(node.code);
+
+      const pickedStartDate = normalizeDateOnly(node.startAt);
+      const pickedEndDate = normalizeDateOnly(node.endAt);
+
+      typeText.value = pickedTypeName;
+      typeCode.value = pickedTypeCode;
+
+      clearParentIssueSelection();
+
+      applyTypeDateLimit(pickedStartDate, pickedEndDate);
+      if (priority?.value) setDueByPriority();
+
+      if (typeSearch) typeSearch.value = "";
+      typeModal?.hide();
+    };
+
+    const createLeafRow = (node, depth) => {
       const li = document.createElement("li");
-      const div = document.createElement("div");
 
-      div.className = "type-item";
-      div.textContent = type.name;
+      const row = document.createElement("div");
+      row.className = "type-item ti-item";
 
-      div.addEventListener("click", (e) => {
+      const indent = document.createElement("span");
+      indent.className = "ti-indent";
+      indent.style.width = `${depth * 18}px`;
+
+      const arrow = makeArrow(false);
+
+      const title = document.createElement("span");
+      title.className = "ti-title";
+      title.textContent = node.name;
+
+      row.appendChild(indent);
+      row.appendChild(arrow);
+      row.appendChild(title);
+
+      row.addEventListener("click", (e) => {
         e.stopPropagation();
-
-        const pickedTypeName = type.name;
-        const pickedTypeCode = String(type.code);
-        const pickedEndDate = normalizeDateOnly(type.endAt);
-
-        // 프로젝트는 등록 화면에서 고정(사용자가 프로젝트를 먼저 선택)
-        typeText.value = pickedTypeName;
-        typeCode.value = pickedTypeCode;
-
-        // 유형 변경 -> 상위일감 초기화
-        clearParentIssueSelection();
-
-        applyTypeEndDateLimit(pickedEndDate);
-        if (priority?.value) setDueByPriority();
-
-        if (typeSearch) typeSearch.value = "";
-        typeModal?.hide();
+        pickType(node);
       });
 
-      li.appendChild(div);
+      li.appendChild(row);
+      return li;
+    };
 
-      if (type.children && type.children.length > 0) {
-        const ul = document.createElement("ul");
-        type.children.forEach((c) => ul.appendChild(createNode(c)));
-        li.appendChild(ul);
-      }
+    const createParentNode = (node, depth) => {
+      const li = document.createElement("li");
+
+      const row = document.createElement("div");
+      row.className = "type-item ti-item ti-parent-item";
+
+      const indent = document.createElement("span");
+      indent.className = "ti-indent";
+      indent.style.width = `${depth * 18}px`;
+
+      const arrow = makeArrow(true);
+
+      const title = document.createElement("span");
+      title.className = "ti-title";
+      title.textContent = node.name;
+
+      row.appendChild(indent);
+      row.appendChild(arrow);
+      row.appendChild(title);
+
+      const childUl = document.createElement("ul");
+      childUl.className = "ti-children-ul";
+
+      (node.children || []).forEach((c) => {
+        const hasKids = Array.isArray(c.children) && c.children.length > 0;
+        childUl.appendChild(
+          hasKids
+            ? createParentNode(c, depth + 1)
+            : createLeafRow(c, depth + 1),
+        );
+      });
+
+      row.classList.remove("is-open");
+      childUl.style.display = "none";
+
+      arrow.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const open = row.classList.toggle("is-open");
+        childUl.style.display = open ? "block" : "none";
+      });
+
+      row.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pickType(node);
+      });
+
+      li.appendChild(row);
+      li.appendChild(childUl);
       return li;
     };
 
@@ -429,9 +603,16 @@
       content.style.display = "block";
 
       const rootUl = document.createElement("ul");
-      (p.children || []).forEach((t) => rootUl.appendChild(createNode(t)));
-      content.appendChild(rootUl);
+      rootUl.className = "ti-tree-root";
 
+      (p.children || []).forEach((t) => {
+        const hasKids = Array.isArray(t.children) && t.children.length > 0;
+        rootUl.appendChild(
+          hasKids ? createParentNode(t, 0) : createLeafRow(t, 0),
+        );
+      });
+
+      content.appendChild(rootUl);
       groupWrapper.appendChild(header);
       groupWrapper.appendChild(content);
       container.appendChild(groupWrapper);
@@ -462,11 +643,9 @@
      ========================================================= */
   let projectCache = [];
 
-  // 유형: 프로젝트별 캐시
   let typeCacheProjectCode = "";
-  let typeRawCache = []; // 서버 원본 트리(프로젝트별)
+  let typeRawCache = [];
 
-  // 담당자: 프로젝트별 캐시
   let assigneeCacheProjectCode = "";
   let assigneeCache = [];
 
@@ -503,7 +682,6 @@
     return true;
   };
 
-  // 핵심: 등록 화면 유형은 by-project로만
   const ensureTypesByProject = async (projCode) => {
     if (!projCode) return false;
 
@@ -522,7 +700,7 @@
   };
 
   /* =========================================================
-     상위일감 모달 (수정화면과 동일: 유형모달 톤 + 아코디언)
+     상위일감 모달
      ========================================================= */
   const normalizeIssueTree = (roots) => {
     const convert = (n) => ({
@@ -565,7 +743,6 @@
     const groupWrapper = document.createElement("div");
     groupWrapper.className = "type-project-group";
 
-    // 헤더는 "유형명"이 있을 때만 표시
     const typeName = String(typeText?.value || "").trim();
     if (typeName) {
       const header = document.createElement("div");
@@ -587,12 +764,11 @@
       return arrow;
     };
 
-    const createLeafRow = (node, depth) => {
+    const createLeafRow = (node) => {
       const li = document.createElement("li");
 
       const row = document.createElement("div");
       row.className = "type-item pi-item";
-      row.dataset.depth = String(depth);
 
       const arrow = makeArrow(false);
 
@@ -622,12 +798,11 @@
       return li;
     };
 
-    const createParentNode = (node, depth) => {
+    const createParentNode = (node) => {
       const li = document.createElement("li");
 
       const row = document.createElement("div");
       row.className = "type-item pi-item pi-parent-item";
-      row.dataset.depth = String(depth);
 
       const arrow = makeArrow(true);
 
@@ -648,21 +823,28 @@
 
       (node.children || []).forEach((c) => {
         const hasKids = Array.isArray(c.children) && c.children.length > 0;
-        childUl.appendChild(
-          hasKids
-            ? createParentNode(c, depth + 1)
-            : createLeafRow(c, depth + 1),
-        );
+        childUl.appendChild(hasKids ? createParentNode(c) : createLeafRow(c));
       });
 
-      // 기본 닫힘
       row.classList.remove("is-open");
       childUl.style.display = "none";
 
-      row.addEventListener("click", (e) => {
+      arrow.addEventListener("click", (e) => {
+        e.preventDefault();
         e.stopPropagation();
         const open = row.classList.toggle("is-open");
         childUl.style.display = open ? "block" : "none";
+      });
+
+      row.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (parIssueText) parIssueText.value = node.title;
+        if (parIssueCode) parIssueCode.value = node.id;
+
+        if (parIssueSearch) parIssueSearch.value = "";
+        parIssueModal?.hide();
       });
 
       li.appendChild(row);
@@ -672,9 +854,7 @@
 
     treeRoots.forEach((n) => {
       const hasKids = Array.isArray(n.children) && n.children.length > 0;
-      rootUl.appendChild(
-        hasKids ? createParentNode(n, 0) : createLeafRow(n, 0),
-      );
+      rootUl.appendChild(hasKids ? createParentNode(n) : createLeafRow(n));
     });
 
     content.appendChild(rootUl);
@@ -728,14 +908,11 @@
   const clearProjectDependentFields = () => {
     clearOnlyProjectDependents();
 
-    // 유형
     if (typeText) typeText.value = "";
     if (typeCode) typeCode.value = "";
 
-    // 유형 종료일 제한 초기화
-    applyTypeEndDateLimit("");
+    applyTypeDateLimit("", "");
 
-    // 유형 캐시 초기화(프로젝트 바뀌면 by-project 재조회)
     typeRawCache = [];
     typeCacheProjectCode = "";
   };
@@ -761,10 +938,7 @@
       if (projectSearch) projectSearch.value = "";
       projectModal.hide();
 
-      if (prev && prev !== picked.value) {
-        clearProjectDependentFields();
-      }
-
+      if (prev && prev !== picked.value) clearProjectDependentFields();
       await refreshCanCreate(picked.value);
     });
 
@@ -789,15 +963,11 @@
       if (projectSearch) projectSearch.value = "";
       projectModal?.hide();
 
-      if (prev && prev !== picked.value) {
-        clearProjectDependentFields();
-      }
-
+      if (prev && prev !== picked.value) clearProjectDependentFields();
       await refreshCanCreate(picked.value);
     });
   };
 
-  // 담당자 모달: 프로젝트 선택 필수
   const openAssigneeModal = async () => {
     if (!assigneeModal || !assigneeBox) return;
 
@@ -850,7 +1020,6 @@
     });
   };
 
-  // 유형 모달: 프로젝트 선택 필수 + by-project 호출
   const openTypeModal = async () => {
     if (!typeModal || !typeTreeEl) return;
 
@@ -899,7 +1068,6 @@
   btnType?.addEventListener("click", openTypeModal);
   btnParIssue?.addEventListener("click", openParIssueModalTree);
 
-  // 검색: 다시 모달 오픈하지 말고 내부 갱신만
   projectSearch?.addEventListener("input", () => refreshProjectList());
   assigneeSearch?.addEventListener("input", () => refreshAssigneeBox());
   typeSearch?.addEventListener("input", () => refreshTypeTree());
@@ -917,7 +1085,47 @@
 
   fileInp?.addEventListener("change", renderSelectedFileName);
 
-  btnBack?.addEventListener("click", () => history.back());
+  const withTs = (url) => {
+    try {
+      const u = new URL(url, location.origin);
+      u.searchParams.set("_ts", String(Date.now()));
+      return u.toString();
+    } catch (_) {
+      const sep = url.includes("?") ? "&" : "?";
+      return `${url}${sep}_ts=${Date.now()}`;
+    }
+  };
+
+  const safeBack = () => {
+    const returnUrlEl = document.getElementById("issueReturnUrl");
+    const returnUrl = (returnUrlEl?.value || "").trim();
+    if (returnUrl.startsWith("/")) {
+      location.replace(withTs(returnUrl));
+      return;
+    }
+
+    // referrer 기준으로 분기
+    const ref = document.referrer || "";
+
+    if (ref.includes("/issueList")) return location.replace(withTs(ref));
+    if (ref.includes("/kanbanboard")) return location.replace(withTs(ref));
+    if (ref.includes("/ganttChart")) return location.replace(withTs(ref));
+    if (ref.includes("/calendar")) return location.replace(withTs(ref));
+
+    // 애매하면 목록으로
+    location.replace(withTs("/issueList"));
+  };
+
+  btnBack?.addEventListener("click", safeBack);
+
+  // 버튼 클릭 시 제출모드 세팅 (submit에서 e.submitter로 최종 확정하지만, 혹시 모를 경우 대비)
+  btnSaveContinue?.addEventListener("click", () => {
+    setAfterAction("continue");
+  });
+
+  btnSaveClose?.addEventListener("click", () => {
+    setAfterAction("close");
+  });
 
   btnReset?.addEventListener("click", () => {
     form?.reset();
@@ -932,9 +1140,19 @@
     renderSelectedFileName();
 
     setCanCreate(false);
+
+    clearKeepFields();
+    setAfterAction("continue");
   });
 
   form?.addEventListener("submit", (e) => {
+    // 어떤 버튼으로 submit됐는지(Enter면 null일 수 있음)
+    const submitter = e.submitter;
+
+    if (submitter === btnSaveClose) setAfterAction("close");
+    else if (submitter === btnSaveContinue) setAfterAction("continue");
+    else setAfterAction(submitMode || "continue");
+
     if (createdAt && !createdAt.value) setCreatedToday();
 
     if (!projectCode.value) {
@@ -947,7 +1165,7 @@
       showToast("제목을 입력해 주세요.");
       return;
     }
-    if (!$("#statusCode")?.value) {
+    if (!statusSel?.value) {
       e.preventDefault();
       showToast("상태를 선택해 주세요.");
       return;
@@ -967,6 +1185,16 @@
     }
 
     if (
+      selectedTypeStartDate &&
+      dueView?.value &&
+      dueView.value < selectedTypeStartDate
+    ) {
+      e.preventDefault();
+      showToast("마감기한은 유형 시작일 이전으로 설정할 수 없습니다.");
+      return;
+    }
+
+    if (
       selectedTypeEndDate &&
       dueView?.value &&
       dueView.value > selectedTypeEndDate
@@ -976,12 +1204,21 @@
       return;
     }
 
-    const canCreate = (btnSubmit?.dataset?.canCreate || "false") === "true";
-    if (!canCreate) {
+    // 권한 체크: 실제 submit 버튼 기준(Enter면 continue 버튼 기준)
+    const can =
+      submitter?.dataset?.canCreate ??
+      btnSaveContinue?.dataset?.canCreate ??
+      "false";
+
+    if (String(can) !== "true") {
       e.preventDefault();
       showToast("권한이 없습니다.");
       return;
     }
+
+    // 최종: continue면 유지값 저장, close면 유지값 제거
+    if (submitMode === "continue") saveKeepFields();
+    else clearKeepFields();
   });
 
   /* =========================================================
@@ -992,10 +1229,22 @@
     renderSelectedFileName();
     setCanCreate(false);
 
-    applyTypeEndDateLimit("");
+    setAfterAction("continue");
+    applyTypeDateLimit("", "");
+
+    if (shouldRestore()) {
+      restoreKeepFields();
+      const url = new URL(location.href);
+      url.searchParams.delete("keep");
+      history.replaceState({}, "", url.toString());
+    } else {
+      clearKeepFields();
+    }
 
     const p = projectCode?.value?.trim();
     if (p) await refreshCanCreate(p);
+
+    syncDueHidden();
   };
 
   init();

@@ -9,4 +9,6 @@ public class ProjectModalVO {
 	private Integer projectCode;
 	private String projectName;
 	private Date createdOn; // 생성일
+	
+	private String adminCk;
 }

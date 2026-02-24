@@ -16,4 +16,5 @@ public class TypeModalVO {
 	private List<TypeModalVO> children; // 하위 유형 재귀
 	
 	private LocalDate endAt;
+	private LocalDate startAt;
 }

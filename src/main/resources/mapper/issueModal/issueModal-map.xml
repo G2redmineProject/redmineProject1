@@ -16,4 +16,35 @@
     AND i.type_code = #{typeCode}
   ORDER BY i.issue_code
 </select>
+
+<select id="selectIssuesByProjectAll" resultType="IssueModalVO">
+  SELECT
+    i.issue_code     AS issueCode,
+    i.project_code   AS projectCode,
+    i.par_issue_code AS parIssueCode,
+    i.type_code      AS typeCode,
+    i.title          AS title,
+    u.name           AS name
+  FROM issues i
+  LEFT JOIN users u
+    ON u.user_code = i.assignee_code
+  WHERE i.project_code = #{projectCode}
+  ORDER BY i.issue_code
+</select>
+
+<select id="selectIssuesByProjectMine" resultType="IssueModalVO">
+  SELECT
+    i.issue_code     AS issueCode,
+    i.project_code   AS projectCode,
+    i.par_issue_code AS parIssueCode,
+    i.type_code      AS typeCode,
+    i.title          AS title,
+    u.name           AS name
+  FROM issues i
+  LEFT JOIN users u
+    ON u.user_code = i.assignee_code
+  WHERE i.project_code = #{projectCode}
+    AND i.assignee_code = #{loginUserCode}
+  ORDER BY i.issue_code
+</select>
 </mapper>

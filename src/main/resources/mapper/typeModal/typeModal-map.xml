@@ -55,7 +55,8 @@
 		p.type_name AS parTypeName,
 		t.project_code AS projectCode,
 		pr.project_name AS projectName,
-		t.end_at         AS endAt
+		t.end_at         AS endAt,
+		t.start_at         AS startAt
 		FROM types t
 		LEFT OUTER JOIN types p
 		ON t.par_type_code = p.type_code

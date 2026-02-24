@@ -118,72 +118,77 @@ public String issueInfo(IssueVO issue, Model model, HttpSession session) {
 }
 
   // 등록 화면
-  @GetMapping("issueInsert")
-  public String issueInsertForm(
-      @RequestParam(required = false) Long projectCode,
-      Model model,
-      HttpSession session,
-      HttpServletRequest request
-  ) {
-    UserVO user = (UserVO) session.getAttribute("user");
-    if (user == null) return "redirect:/login";
+@GetMapping("issueInsert")
+public String issueInsertForm(
+    @RequestParam(required = false) Long projectCode,
+    @RequestParam(required = false) String keep,
+    Model model,
+    HttpSession session,
+    HttpServletRequest request
+) {
+  UserVO user = (UserVO) session.getAttribute("user");
+  if (user == null) return "redirect:/login";
 
-    // "등록 화면 들어오기 직전 페이지"를 세션에 저장
-    // referer가 없거나 이상하면 /issueList 로
+  if (!"1".equals(keep)) {
     String fallback = "/issueList";
     String prev = sanitizeReturnUrl(request.getHeader("Referer"), fallback);
     session.setAttribute(ISSUE_RETURN_URL, prev);
-
-    model.addAttribute("issue", new IssueVO());
-    model.addAttribute("projectCode", projectCode);
-
-    return "issue/insert";
   }
 
-  // 등록처리
-  @PostMapping("issueInsert")
-  public String issueInsertProcess(
-      @ModelAttribute IssueVO issue,
-      @RequestParam(required = false) MultipartFile uploadFile,
-      HttpSession session,
-      RedirectAttributes ra
-  ) {
-    UserVO user = (UserVO) session.getAttribute("user");
-    if (user == null) return "redirect:/login";
+  model.addAttribute("issue", new IssueVO());
+  model.addAttribute("projectCode", projectCode);
+  return "issue/insert";
+}
 
-    Integer userCode = user.getUserCode();
+//등록처리
+@PostMapping("issueInsert")
+public String issueInsertProcess(
+   @ModelAttribute IssueVO issue,
+   @RequestParam(required = false) MultipartFile uploadFile,
+   @RequestParam(required = false, defaultValue = "close") String afterAction,
+   HttpSession session,
+   RedirectAttributes ra
+) {
+ UserVO user = (UserVO) session.getAttribute("user");
+ if (user == null) return "redirect:/login";
 
-    Long projectCode = issue.getProjectCode();
-    if (projectCode == null) {
-      ra.addFlashAttribute("errorMessage", "프로젝트를 선택해 주세요.");
-      return "redirect:/issueInsert";
-    }
+ Integer userCode = user.getUserCode();
 
-    boolean canWrite = authorityService.canWrite(projectCode, userCode, "일감");
-    if (!canWrite) {
-      ra.addFlashAttribute("errorMessage", "권한이 없습니다.");
-      return "redirect:/issueInsert";
-    }
+ Long projectCode = issue.getProjectCode();
+ if (projectCode == null) {
+   ra.addFlashAttribute("errorMessage", "프로젝트를 선택해 주세요.");
+   return "redirect:/issueInsert";
+ }
 
-    issue.setCreatedByCode(userCode);
-    Long issueCode = issueService.addIssue(issue);
+ boolean canWrite = authorityService.canWrite(projectCode, userCode, "일감");
+ if (!canWrite) {
+	  ra.addFlashAttribute("errorMessage", "권한이 없습니다.");
+	  return "redirect:/issueInsert?projectCode=" + projectCode;
+	}
 
-    if (uploadFile != null && !uploadFile.isEmpty()) {
-      issueService.attachFileToIssue(issueCode, userCode, uploadFile);
-    }
+ issue.setCreatedByCode(userCode);
+ Long issueCode = issueService.addIssue(issue);
 
-    // GET /issueInsert 진입 시 저장해둔 이전 페이지로 이동
-    String returnUrl = (String) session.getAttribute(ISSUE_RETURN_URL);
-    String fallback = "/issueList";
+ if (uploadFile != null && !uploadFile.isEmpty()) {
+   issueService.attachFileToIssue(issueCode, userCode, uploadFile);
+ }
 
-    if (returnUrl == null || returnUrl.isBlank()) returnUrl = fallback;
-    returnUrl = sanitizeReturnUrl(returnUrl, fallback);
+ // 등록 후 계속
+ if ("continue".equalsIgnoreCase(afterAction)) {
+   return "redirect:/issueInsert?projectCode=" + projectCode  + "&keep=1";
+ }
 
-    // 한번 쓰고 지우고 싶으면
-    session.removeAttribute(ISSUE_RETURN_URL);
+ // 등록 후 종료 
+ String returnUrl = (String) session.getAttribute(ISSUE_RETURN_URL);
+ String fallback = "/issueList";
 
-    return "redirect:" + returnUrl;
-  }
+ if (returnUrl == null || returnUrl.isBlank()) returnUrl = fallback;
+ returnUrl = sanitizeReturnUrl(returnUrl, fallback);
+
+ session.removeAttribute(ISSUE_RETURN_URL);
+
+ return "redirect:" + returnUrl;
+}
 
   // 삭제
   @PostMapping("issueDelete")

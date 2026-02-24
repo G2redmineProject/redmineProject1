@@ -19,9 +19,10 @@
   <select id="selectProjectModalListForCreate"
           parameterType="Integer"
           resultType="ProjectModalVO">
-    SELECT DISTINCT
+    SELECT
            project_code AS projectCode,
-           project_name AS projectName
+           project_name AS projectName,
+           admin_ck     AS adminCk
       FROM vw_user_auth
      WHERE user_code = #{userCode}
        AND status = 'OD1'
