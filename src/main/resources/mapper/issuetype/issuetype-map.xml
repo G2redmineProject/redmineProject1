@@ -20,7 +20,33 @@
 		LEFT JOIN types pt ON t.par_type_code = pt.type_code
 		WHERE t.is_deleted != 1
 		  AND p.status != 'OD2'
-		ORDER BY t.project_code, NVL(t.par_type_code, t.type_code), t.type_code
+		ORDER BY
+			t.project_code                    ASC,   -- 프로젝트 단위 묶음
+		    NVL(t.par_type_code, t.type_code) ASC,   -- 같은 최상위 루트끼리 묶음
+		    t.par_type_code                   NULLS FIRST,  -- 최상위가 먼저
+		    t.type_code                       ASC    -- 같은 레벨 내 등록 순
+	</select>
+	
+	<!-- 유형타입 수정 삭제 유효성 체크 -->
+	<select id="countIssuesByTypeCode" parameterType="int" resultType="int">
+		SELECT COUNT(*)
+		FROM   issues
+		WHERE  type_code  = #{typeCode}
+	</select>
+	
+	<!-- 유형 타입 조회 -->
+	<select id="selectListIssueType" resultType="IssueTypeListVO">
+		SELECT 
+		    i.issue_code
+		    ,i.title
+		    ,c.code_name
+		    ,u.name
+		    ,progress
+		    ,COUNT(*) OVER() as total_cnt
+		FROM issues i 
+		JOIN common_code c ON i.priority = c.code_id
+		JOIN users u ON i.assignee_code = u.user_code
+		WHERE  type_code  = #{typeCode}
 	</select>
 
 	<!-- 유형 타입 추가 -->
@@ -45,6 +71,8 @@
 		UPDATE types
 		SET
 			type_name = #{typeName},
+			project_code = #{projectCode},
+			par_type_code = #{parTypeCode},
 			start_at = #{startAt},
 			end_at = #{endAt}
 		WHERE

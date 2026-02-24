@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 import com.yedam.app.issuetype.mapper.IssueTypeMapper;
+import com.yedam.app.issuetype.service.IssueTypeListVO;
 import com.yedam.app.issuetype.service.IssueTypeService;
 import com.yedam.app.issuetype.service.IssueTypeVO;
 
@@ -21,6 +22,12 @@ public class IssueTypeServiceImpl implements IssueTypeService {
 	public List<IssueTypeVO> findIssueType() {
 		return issueTypeMapper.selectAllIssueType();
 	}
+	
+	// 유형 타입 수정/삭제 유효성 체크
+	@Override
+    public int countIssuesByTypeCode(int typeCode) {
+        return issueTypeMapper.countIssuesByTypeCode(typeCode);
+    }
 
 	// 유형 타입 등록
 	@Override
@@ -38,6 +45,11 @@ public class IssueTypeServiceImpl implements IssueTypeService {
 	@Override
 	public int deleteIssueType(Integer typeCode) {
 		return issueTypeMapper.deleteIssueType(typeCode);
+	}
+
+	@Override
+	public List<IssueTypeListVO> findIssueListType(Integer typeCode) {
+		return issueTypeMapper.selectListIssueType(typeCode);
 	}
 
 }
