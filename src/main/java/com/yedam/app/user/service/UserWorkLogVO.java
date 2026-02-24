@@ -7,16 +7,17 @@ import lombok.Data;
 @Data
 public class UserWorkLogVO {
 	private Long logCode;
-	  private Integer projectCode;
-	  private String projectName;
+	private Integer projectCode;
+	private String projectName;
+	private String userName;
 
-	  private String actionType;   // UPDATE/CREATE...
-	  private String targetType;   // ISSUE...
-	  private Long targetCode;     // issue_code
-	  private String issueTitle;   // 조인으로 가져올 것
+	private String actionType;   // UPDATE/CREATE...
+	private String targetType;   // ISSUE...
+	private Long targetCode;     // issue_code
+	private String issueTitle;   // 조인으로 가져올 것
 	  
-	  private String targetTitle; // ISSUE/NOTICE/DOC 공통 제목
+	private String targetTitle; // ISSUE/NOTICE/DOC 공통 제목
 
-	  private Date createdAt;
-	  private String meta;
+	private Date createdAt;
+	private String meta;
 }

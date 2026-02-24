@@ -32,18 +32,26 @@ public class MyPageController {
 	 * - 로그인 사용자 기준으로 blocks + blockData 구성
 	 */
 	@GetMapping("/my")
-	public String myPage(@RequestParam(defaultValue = "7") int days,
-						 HttpSession session,
-						 Model model) {
+	public String myPage(
+	    @RequestParam(defaultValue = "7") int days,
+	    @RequestParam(defaultValue = "ME") String mode,
+	    @RequestParam(required = false) Integer projectCode,
+	    HttpSession session,
+	    Model model
+	) {
+	  UserVO login = (UserVO) session.getAttribute("user");
+	  if (login == null) return "redirect:/login";
 
-		UserVO login = (UserVO) session.getAttribute("user");
-		if (login == null) return "redirect:/login";
+	  Map<String, Object> m = myPageService.buildMyPage(
+	      login.getUserCode(),
+	      login.getName(),
+	      days,
+	      mode,
+	      projectCode
+	  );
 
-		Map<String, Object> m = myPageService.buildMyPage(login.getUserCode(), login.getName(), days);
-
-		model.addAllAttributes(m);
-
-		return "mypage/myPage";
+	  model.addAllAttributes(m);
+	  return "mypage/myPage";
 	}
 	
 	/**

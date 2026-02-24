@@ -73,3 +73,122 @@
 #issStaTable.table-hover > tbody > tr:hover > * {
   background-color: #ffffff;
 }
+
+/* =========================
+   issuesStatus - 화면 분할 레이아웃
+   ========================= */
+
+.isssta-screen{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: auto;
+  min-height: 0;
+}
+
+.isssta-card-slot{
+  min-height: 0;
+  display: flex;
+  flex: 0 0 auto;
+}
+
+.isssta-card-slot.half{ flex: 0 0 auto; }
+.isssta-card-slot.third{ flex: 0 0 auto; }
+
+.isssta-card{
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-bottom: 0 !important;
+  min-height: 0;
+}
+
+.isssta-scroll{
+  overflow: auto;
+  min-height: 0;
+  max-height: 320px;
+}
+
+/* =========================
+   상태 숫자 버튼
+   ========================= */
+.count-btn{
+  border: 0;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+
+  text-decoration: none;
+  color: #0d6efd;
+  font-size: 14px;
+}
+
+.count-btn:hover{
+  font-weight: 800;
+  text-decoration: none;
+}
+
+/* =========================
+   선택한 조건의 일감목록(상태별 목록) - 말줄임만
+   ========================= */
+#pickedIssueTable,
+#pickedIssueTableUser {
+  width: 100%;
+  table-layout: fixed; /* ✅ colgroup 기준으로 고정 */
+}
+
+/* ✅ 일감명 말줄임 */
+#pickedIssueTable td:nth-child(2),
+#pickedIssueTableUser td:nth-child(2){
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* =========================
+   행 클릭 이동 UX
+   ========================= */
+.issue-row {
+  cursor: pointer;
+}
+
+.issue-row:hover > td {
+  background-color: #ffffff;
+}
+
+/* 담당자별 테이블 진척도 셀 */
+.isssta-progress{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* =========================================================
+   ✅ 번호 컬럼 "고정폭" + 중앙정렬 유지
+   ========================================================= */
+#issStaTable,
+#pickedIssueTable,
+#pickedIssueTableUser,
+#top5Table{
+  table-layout: fixed;
+}
+
+#issStaTable th:first-child,
+#issStaTable td:first-child,
+#pickedIssueTable th:first-child,
+#pickedIssueTable td:first-child,
+#pickedIssueTableUser th:first-child,
+#pickedIssueTableUser td:first-child,
+#top5Table th:first-child,
+#top5Table td:first-child{
+  width: 70px;
+  min-width: 70px;
+  max-width: 70px;
+  white-space: nowrap;
+}
+
+th, td {
+	font-size: 14px;
+}

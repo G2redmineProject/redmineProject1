@@ -1,9 +1,9 @@
-package com.yedam.app.main.service;
+package com.yedam.app.mypage.service;
 
 import lombok.Data;
 
 @Data
-public class AssigneeIssStaVO {
+public class CreatorIssStaVO {
 	private Integer userCode;
 	private String userName;
 	private Integer newIss;
@@ -11,5 +11,5 @@ public class AssigneeIssStaVO {
 	private Integer solution;
 	private Integer returnIss;
 	private Integer completion;
-	private Integer progressRate; // 0~100
+	private Integer progressRate; // 평균 progress
 }

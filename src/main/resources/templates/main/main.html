@@ -1,7 +1,7 @@
 <!doctype html>
 <html xmlns:th="https://www.thymeleaf.org/"
-	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-	layout:decorate="~{common/layouts/default_layout}">
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{common/layouts/default_layout}">
 <head>
 <meta charset="UTF-8" />
 <title>Main</title>
@@ -9,201 +9,253 @@
 </head>
 
 <body>
-	<div layout:fragment="Content">
+<div layout:fragment="Content">
 
-		<!--  타이틀 -->
-		<div class="x-page-title">
-			<h3 class="page-title">메인 페이지</h3>
-			<div class="page-title-sub">환영합니다.</div>
-		</div>
+    <!-- 타이틀 -->
+    <div class="x-page-title">
+        <h3 class="page-title">메인 페이지</h3>
+        <div class="page-title-sub">환영합니다.</div>
+    </div>
 
-		<!-- 2x2 대신: 상단 2컬럼 + 하단 2컬럼(카드 높이 균일) -->
-		<div class="main-grid">
+    <div class="main-grid">
 
-			<!-- 1) 프로젝트 현황 (도넛) -->
-			<div class="card main-card">
-				<div
-					class="card-header d-flex align-items-center justify-content-between">
-					<div>
-						<i class="fas fa-chart-pie me-1"></i>프로젝트 현황
-					</div>
-					<div class="text-muted small">상태별 프로젝트 수</div>
-				</div>
-				<div class="card-body p-0">
-					<div class="chart-wrap">
-						<div id="donutchart" class="chart-box"></div>
-					</div>
-				</div>
-			</div>
+        <!-- 1) 프로젝트 현황 -->
+        <div class="card main-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-chart-pie me-1"></i>프로젝트 현황
+                </div>
+                <div class="text-muted small">상태별 프로젝트 수</div>
+            </div>
+            <div class="card-body p-0">
+                <div class="chart-wrap">
+                    <div id="donutchart" class="chart-box"></div>
+                </div>
+            </div>
+        </div>
 
-			<!-- 2) 일감현황 (프로젝트별) -->
-			<div class="card main-card">
-				<div
-					class="card-header d-flex align-items-center justify-content-between">
-					<div>
-						<i class="fas fa-table me-1"></i>일감현황
-					</div>
-					<div class="text-muted small">프로젝트별 신규/진행/해결/반려/완료</div>
-				</div>
+        <!-- 2) 일감현황 -->
+        <div class="card main-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-table me-1"></i>일감현황
+                </div>
+                <div class="text-muted small">프로젝트별 신규/진행/해결/반려/완료</div>
+            </div>
 
-				<div class="card-body p-0">
-					<div class="table-responsive main-table-wrap">
-						<table class="table table-hover align-middle text-center mb-0"
-							id="mainIssueTable">
-							<thead>
-								<tr>
-									<th style="min-width: 200px;">프로젝트</th>
-									<th style="width: 90px;">신규</th>
-									<th style="width: 90px;">진행</th>
-									<th style="width: 90px;">해결</th>
-									<th style="width: 90px;">반려</th>
-									<th style="width: 90px;">완료</th>
-									<th style="width: 90px;">합계</th>
-								</tr>
-							</thead>
+            <div class="card-body p-0">
+                <div class="table-responsive main-table-wrap">
+                    <table class="table table-hover align-middle text-center mb-0"
+                           id="mainIssueTable">
+                        <colgroup>
+                            <col style="width: 70px;">
+                            <col>
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                            <col style="width: 10%;">
+                        </colgroup>
 
-							<tbody>
-								<tr th:each="list : ${ProIssStatusList}"
-									th:with="
-      									isAdminProj=${adminProjectList != null and adminProjectList.contains(list.projectCode)},
-      									n=${(isAdminProj ? list.newIss : list.myNewIss) ?: 0},
-      									p=${(isAdminProj ? list.progress : list.myProgress) ?: 0},
-      									s=${(isAdminProj ? list.solution : list.mySolution) ?: 0},
-      									r=${(isAdminProj ? list.returnIss : list.myReturnIss) ?: 0},
-      									c=${(isAdminProj ? list.completion : list.myCompletion) ?: 0},
-      									total=${n + p + s + r + c}
-    									"
-									th:classappend="${isAdminProj} ? 'click-row admin-row' : 'click-row'"
-									th:onclick="|location.href='@{/G2main/{projectCode}/issuesStatus(projectCode=${list.projectCode})}'|">
+                        <thead>
+                        <tr>
+                            <th style="width: 70px;">번호</th>
+                            <th>프로젝트</th>
+                            <th>신규</th>
+                            <th>진행</th>
+                            <th>해결</th>
+                            <th>반려</th>
+                            <th>완료</th>
+                            <th>합계</th>
+                        </tr>
+                        </thead>
 
+                        <tbody>
+                        <tr th:each="list, stat : ${ProIssStatusList}"
+                            th:with="
+                                isAdminProj=${adminProjectList != null and adminProjectList.contains(list.projectCode)},
+                                n=${(isAdminProj ? list.newIss : list.myNewIss) ?: 0},
+                                p=${(isAdminProj ? list.progress : list.myProgress) ?: 0},
+                                s=${(isAdminProj ? list.solution : list.mySolution) ?: 0},
+                                r=${(isAdminProj ? list.returnIss : list.myReturnIss) ?: 0},
+                                c=${(isAdminProj ? list.completion : list.myCompletion) ?: 0},
+                                total=${n + p + s + r + c}
+                            "
+                            th:classappend="${isAdminProj} ? 'click-row admin-row' : 'click-row'"
+                            th:onclick="|location.href='@{/G2main/{projectCode}/issuesStatus(projectCode=${list.projectCode})}'|">
 
-									<td class="text-start"><span class="proj-name"
-										th:text="${list.projectName}">프로젝트</span> <span
-										class="badge admin-badge ms-2" th:if="${isAdminProj}">관리자</span>
-									</td>
+                            <td th:text="${stat.index + 1}">1</td>
 
-									<td th:text="${n}">0</td>
-									<td th:text="${p}">0</td>
-									<td th:text="${s}">0</td>
-									<td th:text="${r}">0</td>
-									<td th:text="${c}">0</td>
+                            <td class="text-start">
+                                <span class="proj-name"
+                                      th:text="${list.projectName}">프로젝트</span>
+                                <span class="badge admin-badge ms-2"
+                                      th:if="${isAdminProj}">관리자</span>
+                            </td>
 
-									<td class="fw-bold" th:text="${total}">0</td>
-								</tr>
+                            <td th:text="${n}">0</td>
+                            <td th:text="${p}">0</td>
+                            <td th:text="${s}">0</td>
+                            <td th:text="${r}">0</td>
+                            <td th:text="${c}">0</td>
+                            <td class="fw-bold" th:text="${total}">0</td>
+                        </tr>
 
-								<tr th:if="${#lists.isEmpty(ProIssStatusList)}"
-									class="no-data-row">
-									<td colspan="7" class="text-center text-muted py-3">표시할
-										데이터가 없습니다.</td>
-								</tr>
-							</tbody>
-						</table>
-					</div>
+                        <tr th:if="${#lists.isEmpty(ProIssStatusList)}"
+                            class="no-data-row">
+                            <td colspan="8" class="text-center text-muted py-3">
+                                표시할 데이터가 없습니다.
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
 
-					<div class="main-hint">
-						행을 클릭하면 해당 프로젝트의 일감현황으로 이동합니다. <span class="ms-2">관리자면
-							담당자별, 아니면 내 일감현황이 표시됩니다.</span>
-					</div>
-				</div>
-			</div>
+                <div class="main-hint">
+                    행을 클릭하면 해당 프로젝트의 일감현황으로 이동합니다.
+                    <span class="ms-2">
+                        관리자면 담당자별, 아니면 내 일감현황이 표시됩니다.
+                    </span>
+                </div>
+            </div>
+        </div>
 
-			<!-- 3) (아래 왼쪽) 공지사항 -->
-			<div class="card main-card">
-				<div
-					class="card-header d-flex align-items-center justify-content-between">
-					<div>
-						<i class="fas fa-bullhorn me-1"></i>최근공지
-					</div>
-					<!-- 필요하면 프로젝트 공지 리스트 페이지로 -->
-					<!-- <a class="text-decoration-none small" href="/notice">더보기</a> -->
-				</div>
+        <!-- 3) 최근공지 -->
+        <div class="card main-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-bullhorn me-1"></i>최근공지
+                </div>
+                <div class="text-muted small">최신 5개</div>
+            </div>
 
-				<div class="card-body p-0">
-					<div class="p-3 block-inner" data-main-recent-notice="1">
-						<div th:if="${#lists.isEmpty(noticeList)}" class="text-muted">
-							최근 공지가 없습니다.</div>
+            <div class="card-body p-0">
+                <div class="p-0 block-inner" data-main-recent-notice="1">
 
-						<ul th:if="${!#lists.isEmpty(noticeList)}"
-							class="list-group list-group-flush">
-							<li class="list-group-item px-0" th:each="n : ${noticeList}">
-								<div class="d-flex justify-content-between gap-2">
-									<div class="text-truncate">
-										<span class="notice-project" th:text="${n.projectName}">프로젝트명</span>
+                    <div th:if="${#lists.isEmpty(noticeList)}"
+                         class="text-muted p-3">
+                        최근 공지가 없습니다.
+                    </div>
 
-										<a class="x-badge-link x-badge-notice"
-											th:href="@{/noticeInfo(noticeCode=${n.noticeCode})}"
-											th:text="${n.title}">공지</a>
-									</div>
+                    <div th:if="${!#lists.isEmpty(noticeList)}"
+                         class="table-responsive main-table-wrap notice-table-wrap">
 
-									<div class="text-muted small"
-										th:text="${n.createdAt != null ? #dates.format(n.createdAt,'MM-dd') : ''}">
-										02-19</div>
-								</div>
-							</li>
-						</ul>
+                        <table class="table table-hover align-middle mb-0 text-center"
+                               id="mainNoticeTable">
+                            <colgroup>
+                                <col style="width: 70px;">
+                                <col style="width: 200px;">
+                                <col>
+                                <col style="width: 56px;">
+                            </colgroup>
 
-						<div class="block-spacer"></div>
+                            <thead>
+                            <tr>
+                                <th>번호</th>
+                                <th>프로젝트</th>
+                                <th>공지</th>
+                                <th>날짜</th>
+                            </tr>
+                            </thead>
 
-						<!-- ✅ 내페이지와 동일한 페이저 -->
-						<div class="block-pager" data-pager-for="MAIN_NOTICE">
-							<button type="button"
-								class="btn btn-sm btn-outline-secondary pager-prev">이전</button>
-							<div class="pager-pages"></div>
-							<button type="button"
-								class="btn btn-sm btn-outline-secondary pager-next">다음</button>
-						</div>
-					</div>
-				</div>
-			</div>
+                            <tbody>
+                            <tr class="notice-item click-row"
+                                th:each="n, stat : ${noticeList}"
+                                th:onclick="|location.href='@{/noticeInfo(noticeCode=${n.noticeCode})}'|">
 
-			<!-- 4) (아래 오른쪽) 오늘의 진행률 -->
-			<div class="card main-card">
-				<div
-					class="card-header d-flex align-items-center justify-content-between">
-					<div>
-						<i class="fas fa-chart-line me-1"></i>전체 프로젝트 진행률
-					</div>
-					<div class="text-muted small">
-						<span
-							th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
-							오늘 </span>
-					</div>
-				</div>
+                                <td class="notice-td-no"
+                                    th:text="${stat.index + 1}">1</td>
 
-				<div class="card-body d-flex flex-column justify-content-center">
+                                <!-- ❌ title 제거 (JS가 처리) -->
+                                <td class="notice-td-proj text-truncate"
+                                    th:text="${n.projectName}">
+                                    프로젝트명
+                                </td>
 
-					<!-- 퍼센트 숫자 -->
-					<div class="today-rate-value">
-						<span th:text="${todayProgressRate}">0</span>%
-					</div>
+                                <td class="text-start">
+                                    <!-- ❌ title 제거 (JS가 처리) -->
+                                    <span class="notice-td-title text-truncate d-block w-100"
+                                          th:text="${n.title}">
+                                        공지
+                                    </span>
+                                </td>
 
-					<!-- 게이지 바 -->
-					<div class="progress progress-lg mt-3">
-						<div class="progress-bar" role="progressbar"
-							th:style="|width:${todayProgressRate}%;|"
-							th:attr="aria-valuenow=${todayProgressRate}" aria-valuemin="0"
-							aria-valuemax="100"></div>
-					</div>
+                                <td class="text-muted small notice-td-date"
+                                    th:text="${n.createdAt != null ? #dates.format(n.createdAt,'MM-dd') : ''}">
+                                    02-19
+                                </td>
 
-					<div class="text-muted small mt-2 text-center">오늘까지 처리된 일감 기준
-						진행률</div>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
 
-				</div>
-			</div>
+                    <div class="block-spacer"></div>
 
-		</div>
-	</div>
+                    <div class="block-pager px-3 pb-2"
+                         data-pager-for="MAIN_NOTICE">
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary pager-prev">
+                            이전
+                        </button>
+                        <div class="pager-pages"></div>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-secondary pager-next">
+                            다음
+                        </button>
+                    </div>
 
-	<th:block layout:fragment="pageScript">
-		<script src="https://www.gstatic.com/charts/loader.js"></script>
+                </div>
+            </div>
+        </div>
 
-		<!-- ✅ Thymeleaf가 치환할 수 있는 영역에서 데이터만 주입 -->
-		<script th:inline="javascript">
-			window.__statusListCnt = /*[[${statusListCnt}]]*/[];
-		</script>
+        <!-- 4) 오늘의 진행률 -->
+        <div class="card main-card">
+            <div class="card-header d-flex align-items-center justify-content-between">
+                <div>
+                    <i class="fas fa-chart-line me-1"></i>전체 프로젝트 진행률
+                </div>
+                <div class="text-muted small">
+                    <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
+                        오늘
+                    </span>
+                </div>
+            </div>
 
-		<script th:src="@{/js/main/main.js}"></script>
+            <div class="card-body d-flex flex-column justify-content-center">
+                <div class="today-rate-value">
+                    <span th:text="${todayProgressRate}">0</span>%
+                </div>
 
-	</th:block>
+                <div class="progress progress-lg mt-3">
+                    <div class="progress-bar"
+                         role="progressbar"
+                         th:style="|width:${todayProgressRate}%;|"
+                         th:attr="aria-valuenow=${todayProgressRate}"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                    </div>
+                </div>
+
+                <div class="text-muted small mt-2 text-center">
+                    오늘까지 처리된 일감 기준 진행률
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<th:block layout:fragment="pageScript">
+    <script src="https://www.gstatic.com/charts/loader.js"></script>
+
+    <script th:inline="javascript">
+        window.__statusListCnt = /*[[${statusListCnt}]]*/[];
+    </script>
+
+    <script th:src="@{/js/main/main.js}"></script>
+</th:block>
+
 </body>
 </html>

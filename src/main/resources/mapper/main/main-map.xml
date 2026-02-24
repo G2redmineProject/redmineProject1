@@ -144,7 +144,9 @@
 		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS
 		returnIss,
 		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS
-		completion
+		completion,
+    	NVL(ROUND(AVG(NVL(i.progress, 0))), 0) AS progressRate
+		
 		FROM issues i
 
 		JOIN status s
@@ -174,7 +176,9 @@
 		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS
 		returnIss,
 		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS
-		completion
+		completion,
+		NVL(ROUND(AVG(NVL(i.progress, 0))), 0) AS progressRate
+		
 		FROM issues i
 		JOIN status s ON s.status_code = i.status_code
 		JOIN users u ON u.user_code = i.assignee_code
@@ -290,4 +294,45 @@
   		WHERE ROWNUM <![CDATA[ <= ]]> #{limit}
 	</select>
 	
+	<select id="selectPickedIssues" resultType="PickedIssueDTO">
+  		<![CDATA[
+  		SELECT *
+  		FROM (
+    		SELECT
+      			i.issue_code AS issueCode,
+      			i.title AS title,
+      			cs.code_name AS statusName,
+      			cp.code_name AS priorityName,
+      			i.due_at AS dueAt
+    		FROM issues i
+    		JOIN status s ON s.status_code = i.status_code
+    		LEFT JOIN common_code cs ON cs.code_id = s.code_id
+    		LEFT JOIN common_code cp ON cp.code_id = i.priority
+    		WHERE i.project_code = #{projectCode}
+
+      		-- ✅ 관리자인 경우: 클릭한 assigneeCode로 필터(비어있으면 전체)
+      		-- ✅ 비관리자인 경우: 무조건 자기(userCode)만 보이게 강제
+      		AND (
+        		(#{isAdmin} = 'Y' AND (#{assigneeCode} IS NULL OR i.assignee_code = #{assigneeCode}))
+        	OR
+        		(#{isAdmin} != 'Y' AND i.assignee_code = #{userCode})
+      		)
+
+      		-- 상태 필터(비어있으면 전체)
+      		AND (#{statusId} IS NULL OR #{statusId} = '' OR s.code_id = #{statusId})
+
+    		ORDER BY
+      			i.due_at NULLS LAST,
+      			NVL(i.updated_at, i.created_at) DESC
+  		)
+  		WHERE ROWNUM <= #{limit}
+  		]]>
+	</select>
+	
+	<!-- 프로젝트명 조회 -->
+	<select id="selectProjectName" resultType="String">
+  		SELECT p.project_name
+  		FROM projects p
+  		WHERE p.project_code = #{projectCode}
+	</select>
 </mapper>

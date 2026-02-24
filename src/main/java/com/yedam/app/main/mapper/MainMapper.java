@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import com.yedam.app.main.service.AssigneeIssStaVO;
 import com.yedam.app.main.service.MainProjectStatusVO;
 import com.yedam.app.main.service.MyTopIssueVO;
+import com.yedam.app.main.service.PickedIssueDTO;
 import com.yedam.app.main.service.ProIssStaVO;
 import com.yedam.app.mypage.service.MyNoticeDTO;
 
@@ -36,4 +37,16 @@ public interface MainMapper {
 	public List<MyTopIssueVO> selectMyTopIssues(Integer projectCode, Integer userCode);
 
 	public List<MyNoticeDTO> selectRecentNoticesForMain(@Param("userCode") Integer userCode, @Param("limit") int limit);
+	
+	public List<PickedIssueDTO> selectPickedIssues(
+			  @Param("projectCode") Integer projectCode,
+			  @Param("assigneeCode") Integer assigneeCode,
+			  @Param("statusId") String statusId,
+			  @Param("userCode") Integer userCode,
+			  @Param("limit") int limit,
+			  @Param("isAdmin") String isAdmin
+			);
+	
+	// 프로젝트명 조회
+	public String selectProjectName(Integer projectCode);
 }

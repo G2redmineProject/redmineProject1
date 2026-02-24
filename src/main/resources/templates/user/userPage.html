@@ -78,32 +78,32 @@
 					<thead>
 						<tr>
 							<th style="width: 26%">구분</th>
-							<th class="text-end">신규</th>
-							<th class="text-end">진행</th>
-							<th class="text-end">해결</th>
-							<th class="text-end">반려</th>
-							<th class="text-end">완료</th>
+							<th>신규</th>
+							<th>진행</th>
+							<th>해결</th>
+							<th>반려</th>
+							<th>완료</th>
 						</tr>
 					</thead>
 					<tbody>
 						<!-- ✅ 내가 등록한 일감 -->
 						<tr>
 							<td>내가 등록한 일감</td>
-							<td class="text-end" th:text="${issueStaDual.regNewIss}">0</td>
-							<td class="text-end" th:text="${issueStaDual.regProgress}">0</td>
-							<td class="text-end" th:text="${issueStaDual.regSolution}">0</td>
-							<td class="text-end" th:text="${issueStaDual.regReturnIss}">0</td>
-							<td class="text-end" th:text="${issueStaDual.regCompletion}">0</td>
+							<td th:text="${issueStaDual.regNewIss}">0</td>
+							<td th:text="${issueStaDual.regProgress}">0</td>
+							<td th:text="${issueStaDual.regSolution}">0</td>
+							<td th:text="${issueStaDual.regReturnIss}">0</td>
+							<td th:text="${issueStaDual.regCompletion}">0</td>
 						</tr>
 
 						<!-- ✅ 내가 담당자인 일감 -->
 						<tr>
 							<td>내가 담당자인 일감</td>
-							<td class="text-end" th:text="${issueStaDual.assNewIss}">0</td>
-							<td class="text-end" th:text="${issueStaDual.assProgress}">0</td>
-							<td class="text-end" th:text="${issueStaDual.assSolution}">0</td>
-							<td class="text-end" th:text="${issueStaDual.assReturnIss}">0</td>
-							<td class="text-end" th:text="${issueStaDual.assCompletion}">0</td>
+							<td th:text="${issueStaDual.assNewIss}">0</td>
+							<td th:text="${issueStaDual.assProgress}">0</td>
+							<td th:text="${issueStaDual.assSolution}">0</td>
+							<td th:text="${issueStaDual.assReturnIss}">0</td>
+							<td th:text="${issueStaDual.assCompletion}">0</td>
 						</tr>
 					</tbody>
 				</table>

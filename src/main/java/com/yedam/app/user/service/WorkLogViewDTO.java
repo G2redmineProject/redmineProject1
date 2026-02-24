@@ -13,4 +13,7 @@ public class WorkLogViewDTO {
 	private String issueTitle;
 
 	private String detailHtml;   // "상태 : 신규 >> 해결<br>..."
+	
+	private String targetUrl;   // 상세페이지 링크(있으면)
+	private Boolean targetLink; // 링크 가능 여부(있으면 true)
 }
