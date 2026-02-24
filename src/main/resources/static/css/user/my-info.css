@@ -73,3 +73,7 @@
   background: #f3f4f6;
   color: #111827;
 }
+
+th, td {
+	font-size: 14px;
+}

@@ -289,5 +289,200 @@
 
 		ORDER BY p.project_name ASC, NVL(i.started_at, i.created_at) ASC, i.issue_code ASC
 	</select>
+	
+	<!-- 관리자 모드 담당자별 할당 일감현황 -->
+	<select id="selectAdminAssigneeIssSta" resultType="AssigneeIssStaVO">
+  		SELECT
+    		u.user_code AS userCode,
+    		u.name AS userName,
+    		SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END) AS newIss,
+    		SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END) AS progress,
+    		SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS solution,
+    		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS returnIss,
+    		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS completion,
+    		NVL(ROUND(AVG(NVL(i.progress, 0))), 0) AS progressRate
+  		FROM issues i
+  		
+  		JOIN status s ON s.status_code = i.status_code
+  		
+  		JOIN users u  ON u.user_code = i.assignee_code
+  		
+  		WHERE i.project_code = #{projectCode}
+  		
+  		GROUP BY u.user_code, u.name
+  		
+  		ORDER BY u.name
+	</select>
+	
+	<!-- 관리자 모드 등록자별 등록 일감 현황 -->
+	<select id="selectAdminCreatorIssSta" resultType="CreatorIssStaVO">
+  		SELECT
+    		u.user_code AS userCode,
+    		u.name AS userName,
+    		SUM(CASE WHEN s.code_id = 'OB1' THEN 1 ELSE 0 END) AS newIss,
+    		SUM(CASE WHEN s.code_id = 'OB2' THEN 1 ELSE 0 END) AS progress,
+    		SUM(CASE WHEN s.code_id = 'OB3' THEN 1 ELSE 0 END) AS solution,
+    		SUM(CASE WHEN s.code_id = 'OB4' THEN 1 ELSE 0 END) AS returnIss,
+    		SUM(CASE WHEN s.code_id = 'OB5' THEN 1 ELSE 0 END) AS completion,
+    		NVL(ROUND(AVG(NVL(i.progress, 0))), 0) AS progressRate
+  		FROM issues i
+  		
+  		JOIN status s ON s.status_code = i.status_code
+  		
+  		JOIN users u  ON u.user_code = i.created_by_code
+  		
+  		WHERE i.project_code = #{projectCode}
+  		
+  		GROUP BY u.user_code, u.name
+  		
+  		ORDER BY u.name
+	</select>
+	
+	<select id="selectAdminProjectCodes" resultType="Integer">
+  		SELECT DISTINCT project_code
+  		FROM (
+    		SELECT pru.project_code
+    		FROM project_role_user pru
+    		JOIN role r ON r.role_code = pru.role_code
+    		WHERE pru.user_code = #{userCode}
+      		AND r.admin_ck = 'Y'
+      		
+    		UNION
+    		
+    		SELECT gpr.project_code
+    		FROM "GROUP_MEMBER" gm
+    		JOIN "GR_PRO_ROLE" gpr ON gpr.gr_code = gm.gr_code
+    		JOIN role r ON r.role_code = gpr.role_code
+    		WHERE gm.user_code = #{userCode}
+      		AND r.admin_ck = 'Y'
+  		)
+	</select>
 
+	<select id="selectProjectName" resultType="String">
+  		SELECT project_name FROM projects WHERE project_code = #{projectCode}
+	</select>
+	
+	<!-- 프로젝트 1개 최근공지 -->
+	<select id="selectRecentNoticesByProject" resultType="MyNoticeDTO">
+  		SELECT *
+  		FROM (
+    		SELECT
+      		n.notice_code AS noticeCode,
+      		n.project_code AS projectCode,
+      		p.project_name AS projectName,
+      		n.title AS title,
+      		n.created_at AS createdAt
+    		FROM notices n
+    		JOIN projects p
+      		ON p.project_code = n.project_code
+    		WHERE p.status = 'OD1'
+      		AND n.project_code = #{projectCode}
+    		ORDER BY n.created_at DESC
+  		)
+  		WHERE ROWNUM <![CDATA[ <= ]]> #{limit}
+	</select>
+	
+	<!-- 프로젝트 1개 주간 간트 -->
+	<select id="selectWeekGanttIssuesByProject" resultType="WeekGanttIssueDTO">
+  		SELECT
+    		i.issue_code AS issueCode,
+    		i.project_code AS projectCode,
+    		p.project_name AS projectName,
+    		i.title AS title,
+
+    		NVL(i.started_at, i.created_at) AS startAt,
+    		NVL(i.resolved_at, i.due_at) AS endAt,
+
+    		CASE WHEN i.assignee_code = #{userCode} THEN 'Y' END AS assignedYn,
+    		CASE WHEN i.created_by_code = #{userCode} THEN 'Y' END AS registeredYn
+  		FROM projects p
+  		JOIN issues i
+    		ON i.project_code = p.project_code
+  		WHERE p.status = 'OD1'
+    		AND p.project_code = #{projectCode}
+
+    		AND NVL(i.started_at, i.created_at) <![CDATA[ < ]]> #{to}
+    		AND NVL(NVL(i.resolved_at, i.due_at), NVL(i.started_at, i.created_at)) <![CDATA[ >= ]]> #{from}
+  		ORDER BY NVL(i.started_at, i.created_at) ASC, i.issue_code ASC
+	</select>
+	
+	<!-- 프로젝트 1개 작업내역(로그) -->
+	<select id="selectProjectWorkLogs" resultType="UserWorkLogVO">
+  		SELECT
+    		l.log_code AS logCode,
+    		l.project_code AS projectCode,
+    		p.project_name AS projectName,
+
+    		l.user_code AS userCode,
+    		u.name AS userName,   <!-- ✅ 추가: 작성자 이름 -->
+
+    		l.action_type AS actionType,
+    		l.target_type AS targetType,
+    		l.target_code AS targetCode,
+
+    		CASE 
+      					WHEN l.target_type = 'ISSUE' THEN i.title
+      		WHEN l.target_type = 'NOTICE' THEN n.title
+      		WHEN l.target_type = 'DOC' THEN da.original_name
+      		ELSE NULL
+    		END AS targetTitle,
+
+    		l.created_at AS createdAt,
+    		l.meta AS meta
+  		FROM logs l
+  		JOIN projects p
+    		ON p.project_code = l.project_code
+  		JOIN users u
+    		ON u.user_code = l.user_code
+
+  		LEFT JOIN issues i
+    		ON l.target_type = 'ISSUE'
+    		AND i.issue_code = l.target_code
+
+  		LEFT JOIN notices n
+    		ON l.target_type = 'NOTICE'
+    		AND n.notice_code = l.target_code
+
+  		LEFT JOIN documents_attachments da
+    		ON l.target_type = 'DOC'
+    		AND da.file_code = l.target_code
+
+  		WHERE l.project_code = #{projectCode}
+    		AND l.created_at <![CDATA[ >= ]]> #{from}
+    		AND l.created_at <![CDATA[ <= ]]> #{to}
+    		AND (
+         		(l.target_type = 'ISSUE'  AND i.issue_code IS NOT NULL)
+      		OR (l.target_type = 'NOTICE' AND n.notice_code IS NOT NULL)
+      		OR (l.target_type = 'DOC'    AND da.file_code IS NOT NULL)
+      		OR (l.target_type NOT IN ('ISSUE','NOTICE','DOC'))
+    		)
+  		ORDER BY l.created_at DESC
+	</select>
+
+	<!-- 관리자 프로젝트 목록(코드+이름) -->
+	<select id="selectAdminProjects" resultType="com.yedam.app.mypage.service.AdminProjectOptionDTO">
+  		SELECT DISTINCT
+    		p.project_code AS projectCode,
+    		p.project_name AS projectName
+  		FROM (
+    		SELECT pru.project_code
+    		FROM project_role_user pru
+    		JOIN role r ON r.role_code = pru.role_code
+    		WHERE pru.user_code = #{userCode}
+      		AND r.admin_ck = 'Y'
+
+    		UNION
+
+    		SELECT gpr.project_code
+    		FROM "GROUP_MEMBER" gm
+    		JOIN "GR_PRO_ROLE" gpr ON gpr.gr_code = gm.gr_code
+    		JOIN role r ON r.role_code = gpr.role_code
+    		WHERE gm.user_code = #{userCode}
+      		AND r.admin_ck = 'Y'
+  		) ap
+  		JOIN projects p
+    		ON p.project_code = ap.project_code
+  		WHERE p.status = 'OD1'
+  		ORDER BY p.project_name
+	</select>
 </mapper>

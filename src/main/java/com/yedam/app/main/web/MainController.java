@@ -6,6 +6,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.yedam.app.login.service.UserVO;
 import com.yedam.app.main.service.AssigneeIssStaVO;
@@ -75,11 +77,36 @@ public class MainController {
 		  topIssueList = mainService.findMyTopIssues(projectCode, userCode);
 		}
 		
+		String projectName = mainService.findProjectName(projectCode);
+		
+		model.addAttribute("projectName", projectName);
 		model.addAttribute("AssIssStaList", assIssStaList);
 		model.addAttribute("isAdmin", isAdmin);
 	    model.addAttribute("projectCode", projectCode);
 	    model.addAttribute("topIssueList", topIssueList);
 		
 		return "main/issuesStatus";
+	}
+	
+	@GetMapping("/api/main/issuesStatus/picked")
+	@ResponseBody
+	public List<com.yedam.app.main.service.PickedIssueDTO> pickedIssues(
+	    @RequestParam Integer projectCode,
+	    @RequestParam(required = false) Integer assigneeCode,
+	    @RequestParam(required = false) String statusId,
+	    @RequestParam(defaultValue = "50") int limit,
+	    HttpSession session
+	) {
+	  UserVO user = (UserVO) session.getAttribute("user");
+	  if (user == null) return List.of();
+
+	  Integer userCode = user.getUserCode();
+	  boolean isAdmin = mainService.findIsAdminInProject(userCode, projectCode);
+
+	  // 안전: limit 상한
+	  if (limit <= 0) limit = 50;
+	  if (limit > 200) limit = 200;
+
+	  return mainService.findPickedIssues(projectCode, assigneeCode, statusId, userCode, isAdmin, limit);
 	}
 }

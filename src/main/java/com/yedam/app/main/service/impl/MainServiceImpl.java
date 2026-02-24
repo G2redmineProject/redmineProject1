@@ -9,6 +9,7 @@ import com.yedam.app.main.service.AssigneeIssStaVO;
 import com.yedam.app.main.service.MainProjectStatusVO;
 import com.yedam.app.main.service.MainService;
 import com.yedam.app.main.service.MyTopIssueVO;
+import com.yedam.app.main.service.PickedIssueDTO;
 import com.yedam.app.main.service.ProIssStaVO;
 import com.yedam.app.mypage.service.MyNoticeDTO;
 
@@ -65,4 +66,13 @@ public class MainServiceImpl implements MainService{
 	  return mainMapper.selectRecentNoticesForMain(userCode, limit);
 	}
 
+	@Override
+	public List<PickedIssueDTO> findPickedIssues(Integer projectCode, Integer assigneeCode, String statusId, Integer userCode, boolean isAdmin, int limit) {
+	  return mainMapper.selectPickedIssues(projectCode, assigneeCode, statusId, userCode, limit, isAdmin ? "Y" : "N");
+	}
+	
+	@Override
+	public String findProjectName(Integer projectCode) {
+	  return mainMapper.selectProjectName(projectCode);
+	}
 }

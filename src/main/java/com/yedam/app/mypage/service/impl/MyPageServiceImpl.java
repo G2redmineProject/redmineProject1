@@ -24,8 +24,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yedam.app.mypage.mapper.MyPageMapper;
 import com.yedam.app.mypage.service.BlockVO;
-import com.yedam.app.mypage.service.MyIssueRowDTO;
-import com.yedam.app.mypage.service.MyNoticeDTO;
 import com.yedam.app.mypage.service.MyPageService;
 import com.yedam.app.mypage.service.WeekGanttIssueDTO;
 import com.yedam.app.user.service.UserWorkLogVO;
@@ -142,7 +140,8 @@ public class MyPageServiceImpl implements MyPageService {
 	// 내 페이지 전체 데이터 조립
 	// ================================
 	@Override
-	public Map<String, Object> buildMyPage(Integer userCode, String userName, int days) {
+	public Map<String, Object> buildMyPage(Integer userCode, String userName, int days, String mode,
+			Integer projectCode) {
 		// 1) 블록 목록
 		List<BlockVO> blocks = getBlocksEnsured(userCode);
 
@@ -150,28 +149,55 @@ public class MyPageServiceImpl implements MyPageService {
 		Map<String, Object> blockData = new HashMap<>();
 		int limit = 8;
 
+		var adminProjectOptions = myPageMapper.selectAdminProjects(userCode);
+
+		// 권한체크는 코드 Set으로
+		Set<Integer> adminProjectCodeSet = new HashSet<>();
+		for (var opt : adminProjectOptions) {
+		  if (opt.getProjectCode() != null) adminProjectCodeSet.add(opt.getProjectCode());
+		}
+
+		boolean requestedAdmin = "ADMIN".equalsIgnoreCase(mode) && projectCode != null;
+		boolean isAdminMode = requestedAdmin && adminProjectCodeSet.contains(projectCode);
+
 		for (BlockVO b : blocks) {
 			String t = (b.getBlockType() == null) ? "" : b.getBlockType().toUpperCase();
 
 			switch (t) {
 			case BT_ASSIGNED -> {
-				List<MyIssueRowDTO> assigned = myPageMapper.selectAssignedIssues(userCode, limit);
-				blockData.put(BT_ASSIGNED, assigned);
+				if (isAdminMode) {
+					blockData.put(BT_ASSIGNED, myPageMapper.selectAdminAssigneeIssSta(projectCode));
+				} else {
+					blockData.put(BT_ASSIGNED, myPageMapper.selectAssignedIssues(userCode, limit));
+				}
 			}
 			case BT_REGISTERED -> {
-				List<MyIssueRowDTO> registered = myPageMapper.selectRegisteredIssues(userCode, limit);
-				blockData.put(BT_REGISTERED, registered);
+				if (isAdminMode) {
+					blockData.put(BT_REGISTERED, myPageMapper.selectAdminCreatorIssSta(projectCode));
+				} else {
+					blockData.put(BT_REGISTERED, myPageMapper.selectRegisteredIssues(userCode, limit));
+				}
 			}
 			case "NOTICE" -> {
-				List<MyNoticeDTO> notices = myPageMapper.selectRecentNotices(userCode, limit);
-				blockData.put("NOTICE", notices);
+				if (isAdminMode) {
+					blockData.put("NOTICE", myPageMapper.selectRecentNoticesByProject(projectCode, limit));
+				} else {
+					blockData.put("NOTICE", myPageMapper.selectRecentNotices(userCode, limit));
+				}
 			}
 			case "CALENDAR" -> {
-				// ✅ 간트차트 데이터
-				blockData.put("CALENDAR", buildWeekGantt(userCode));
+				if (isAdminMode) {
+					blockData.put("CALENDAR", buildWeekGanttByProject(userCode, projectCode));
+				} else {
+					blockData.put("CALENDAR", buildWeekGantt(userCode));
+				}
 			}
 			case "WORKLOG" -> {
-				blockData.put("WORKLOG", buildWorkLogsForView(userCode, userName, days));
+				if (isAdminMode) {
+					blockData.put("WORKLOG", buildProjectWorkLogsForView(projectCode, days));
+				} else {
+					blockData.put("WORKLOG", buildWorkLogsForView(userCode, userName, days));
+				}
 			}
 			default -> {
 			}
@@ -194,6 +220,16 @@ public class MyPageServiceImpl implements MyPageService {
 		// ✅ 오늘/주말(간트 헤더 스타일용)
 		String todayStr = LocalDate.now(ZONE).toString();
 		Set<String> weekendDays = calcWeekendDaysOfThisWeek();
+		
+		String selectedName = null;
+		if (isAdminMode) {
+		  for (var opt : adminProjectOptions) {
+		    if (opt.getProjectCode() != null && opt.getProjectCode().equals(projectCode)) {
+		      selectedName = opt.getProjectName();
+		      break;
+		    }
+		  }
+		}
 
 		Map<String, Object> result = new HashMap<>();
 		result.put("blocks", blocks);
@@ -203,6 +239,11 @@ public class MyPageServiceImpl implements MyPageService {
 		result.put("addableBlocks", addables);
 		result.put("todayStr", todayStr);
 		result.put("weekendDays", weekendDays);
+
+		result.put("adminProjectList", adminProjectOptions);
+		result.put("mode", isAdminMode ? "ADMIN" : "ME");
+		result.put("adminProjectCode", isAdminMode ? projectCode : null);
+		result.put("adminProjectName", isAdminMode ? selectedName : null);
 
 		return result;
 	}
@@ -320,8 +361,37 @@ public class MyPageServiceImpl implements MyPageService {
 			String typeLabel = toKoreanTargetType(log.getTargetType());
 			String title = (log.getTargetTitle() == null || log.getTargetTitle().isBlank()) ? "-"
 					: log.getTargetTitle();
+
+			String type = (log.getTargetType() == null) ? "" : log.getTargetType().trim().toUpperCase();
+			Long code = log.getTargetCode(); // UserWorkLogVO가 Integer면 그대로 OK
+
+			String targetUrl = null;
+			boolean linkable = false;
+
+			switch (type) {
+			case "ISSUE" -> {
+				targetUrl = "/issueInfo?issueCode=" + code;
+				linkable = true;
+			}
+			case "NOTICE" -> {
+				targetUrl = "/noticeInfo?noticeCode=" + code;
+				linkable = true;
+			}
+			case "DOC" -> {
+				// 아직 페이지 없음 → 링크 X
+				targetUrl = null;
+				linkable = false;
+			}
+			default -> {
+				targetUrl = null;
+				linkable = false;
+			}
+			}
+
 			dto.setIssueTitle("[" + typeLabel + "] " + title);
 			dto.setDetailHtml(buildDetailHtml(log.getMeta(), om));
+			dto.setTargetUrl(targetUrl);
+			dto.setTargetLink(linkable);
 
 			grouped.computeIfAbsent(day, k -> new ArrayList<>()).add(dto);
 		}
@@ -381,43 +451,47 @@ public class MyPageServiceImpl implements MyPageService {
 	}
 
 	private String toFieldLabel(String field) {
-	    if (field == null) return "변경";
+		if (field == null)
+			return "변경";
 
-	    String f = field.trim(); // ✅ 핵심
+		String f = field.trim(); // ✅ 핵심
 
-	    return switch (f) {
-	        case "status" -> "상태";
-	        case "startedAt" -> "시작일";
-	        case "dueAt" -> "마감일";
-	        case "resolvedAt" -> "완료일";
-	        case "progress" -> "진척도";
-	        case "rejectReason" -> "반려 사유";
-	        default -> f;
-	    };
+		return switch (f) {
+		case "status" -> "상태";
+		case "startedAt" -> "시작일";
+		case "dueAt" -> "마감일";
+		case "resolvedAt" -> "완료일";
+		case "progress" -> "진척도";
+		case "rejectReason" -> "반려 사유";
+		default -> f;
+		};
 	}
 
 	private String formatValueByField(String field, String v) {
-	    if (v == null || "null".equals(v)) return "";
+		if (v == null || "null".equals(v))
+			return "";
 
-	    String f = (field == null) ? "" : field.trim();
+		String f = (field == null) ? "" : field.trim();
 
-	    if ("startedAt".equals(f) || "dueAt".equals(f) || "resolvedAt".equals(f)) {
-	        // 1) ISO_LOCAL_DATE_TIME: 2026-02-12T16:59:31
-	        try {
-	            LocalDateTime dt = LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
-	            return dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-	        } catch (Exception ignore) {}
+		if ("startedAt".equals(f) || "dueAt".equals(f) || "resolvedAt".equals(f)) {
+			// 1) ISO_LOCAL_DATE_TIME: 2026-02-12T16:59:31
+			try {
+				LocalDateTime dt = LocalDateTime.parse(v, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+				return dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+			} catch (Exception ignore) {
+			}
 
-	        // 2) 공백형: 2026-02-12 16:59  (네 로그에 있음)
-	        try {
-	            LocalDateTime dt = LocalDateTime.parse(v, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-	            return dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-	        } catch (Exception ignore) {}
+			// 2) 공백형: 2026-02-12 16:59 (네 로그에 있음)
+			try {
+				LocalDateTime dt = LocalDateTime.parse(v, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+				return dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+			} catch (Exception ignore) {
+			}
 
-	        return v;
-	    }
+			return v;
+		}
 
-	    return v;
+		return v;
 	}
 
 	private String text(JsonNode n) {
@@ -454,4 +528,105 @@ public class MyPageServiceImpl implements MyPageService {
 			return false; // 파싱 실패면 표시(안전)
 		}
 	}
+
+	private Map<String, Object> buildWeekGanttByProject(Integer userCode, Integer projectCode) {
+		LocalDate today = LocalDate.now(ZONE);
+		LocalDate monday = today.with(DayOfWeek.MONDAY);
+		LocalDate nextMonday = monday.plusDays(7);
+
+		Date from = Date.from(monday.atStartOfDay(ZONE).toInstant());
+		Date to = Date.from(nextMonday.atStartOfDay(ZONE).toInstant());
+
+		List<WeekGanttIssueDTO> rows = myPageMapper.selectWeekGanttIssuesByProject(userCode, projectCode, from, to);
+
+		Map<Integer, Map<String, Object>> byProject = new LinkedHashMap<>();
+		for (WeekGanttIssueDTO r : rows) {
+			if (r.getProjectCode() == null)
+				continue;
+
+			byProject.computeIfAbsent(r.getProjectCode(), k -> {
+				Map<String, Object> m = new HashMap<>();
+				m.put("projectCode", r.getProjectCode());
+				m.put("projectName", r.getProjectName());
+				m.put("items", new ArrayList<WeekGanttIssueDTO>());
+				return m;
+			});
+
+			@SuppressWarnings("unchecked")
+			List<WeekGanttIssueDTO> items = (List<WeekGanttIssueDTO>) byProject.get(r.getProjectCode()).get("items");
+			items.add(r);
+		}
+
+		List<String> days = new ArrayList<>();
+		for (int i = 0; i < 7; i++)
+			days.add(monday.plusDays(i).toString());
+
+		Map<String, Object> out = new HashMap<>();
+		out.put("weekStart", monday.toString());
+		out.put("days", days);
+		out.put("projects", new ArrayList<>(byProject.values()));
+		return out;
+	}
+	
+	private Map<String, List<WorkLogViewDTO>> buildProjectWorkLogsForView(Integer projectCode, int days) {
+		  ZonedDateTime now = ZonedDateTime.now(ZONE);
+
+		  int d = Math.max(days, 1);
+		  LocalDate startDay = now.toLocalDate().minusDays(d - 1);
+		  ZonedDateTime fromZdt = startDay.atStartOfDay(ZONE);
+
+		  Date from = Date.from(fromZdt.toInstant());
+		  Date to = Date.from(now.toInstant());
+
+		  List<UserWorkLogVO> logs = myPageMapper.selectProjectWorkLogs(projectCode, from, to);
+
+		  SimpleDateFormat dayFmt = new SimpleDateFormat("yyyy-MM-dd");
+		  SimpleDateFormat timeFmt = new SimpleDateFormat("HH:mm");
+
+		  Map<String, List<WorkLogViewDTO>> grouped = new LinkedHashMap<>();
+		  ObjectMapper om = new ObjectMapper();
+
+		  for (UserWorkLogVO log : logs) {
+		    String day = (log.getCreatedAt() == null) ? "unknown" : dayFmt.format(log.getCreatedAt());
+		    String time = (log.getCreatedAt() == null) ? "" : timeFmt.format(log.getCreatedAt());
+
+		    if (isEmptyChangesMeta(log.getMeta(), om)) continue;
+
+		    WorkLogViewDTO dto = new WorkLogViewDTO();
+		    dto.setDay(day);
+		    dto.setTime(time);
+
+		    // ✅ ADMIN: 작성자 이름(없으면 fallback)
+		    String actor = (log.getUserName() != null && !log.getUserName().isBlank()) ? log.getUserName() : "사용자";
+		    dto.setActorName(actor);
+
+		    dto.setActionLabel(toKoreanAction(log.getActionType()));
+		    dto.setProjectName(log.getProjectName());
+
+		    String typeLabel = toKoreanTargetType(log.getTargetType());
+		    String title = (log.getTargetTitle() == null || log.getTargetTitle().isBlank()) ? "-" : log.getTargetTitle();
+
+		    String type = (log.getTargetType() == null) ? "" : log.getTargetType().trim().toUpperCase();
+		    Long code = log.getTargetCode();
+
+		    String targetUrl = null;
+		    boolean linkable = false;
+
+		    switch (type) {
+		      case "ISSUE" -> { targetUrl = "/issueInfo?issueCode=" + code; linkable = true; }
+		      case "NOTICE" -> { targetUrl = "/noticeInfo?noticeCode=" + code; linkable = true; }
+		      case "DOC" -> { targetUrl = null; linkable = false; }
+		      default -> { targetUrl = null; linkable = false; }
+		    }
+
+		    dto.setIssueTitle("[" + typeLabel + "] " + title);
+		    dto.setDetailHtml(buildDetailHtml(log.getMeta(), om));
+		    dto.setTargetUrl(targetUrl);
+		    dto.setTargetLink(linkable);
+
+		    grouped.computeIfAbsent(day, k -> new ArrayList<>()).add(dto);
+		  }
+
+		  return grouped;
+		}
 }

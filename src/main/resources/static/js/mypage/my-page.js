@@ -31,6 +31,77 @@ document.addEventListener("DOMContentLoaded", () => {
 	});
 
 	// =========================
+	// ✅ 행 클릭 이동(ASSIGNED/REGISTERED/NOTICE)
+	// =========================
+	grid.addEventListener("click", (e) => {
+		// 아이콘 링크/버튼/입력 요소 클릭은 제외
+		if (e.target.closest("a, button, input, select, label")) return;
+
+		const tr = e.target.closest("tr.click-row");
+		if (!tr) return;
+
+		const url = tr.dataset.go;
+		if (!url) return;
+
+		// 드래그 중 선택 텍스트 방지
+		const sel = window.getSelection?.();
+		if (sel && String(sel).trim().length > 0) return;
+
+		window.location.href = url;
+	});
+
+	// =========================
+	// ✅ 말줄임인 경우에만 Tooltip 적용(메인 방식)
+	// =========================
+	const hasBS = !!(window.bootstrap && bootstrap.Tooltip);
+
+	function applyEllipsisTooltips(root = document) {
+		if (!hasBS) return;
+
+		const targets = root.querySelectorAll(
+			[
+				// 테이블/공지에서 말줄임 되는 요소들
+				'.my-block [data-ellipsis-scope="1"] .text-truncate'
+			].join(",")
+		);
+
+		targets.forEach((el) => {
+			// display:none(페이징으로 숨김)이면 측정 불가
+			if (el.offsetParent === null) return;
+
+			// gantt-bar 툴팁은 기존 로직 유지 (겹치면 이상해짐)
+			if (el.classList.contains("gantt-bar") || el.closest(".gantt")) return;
+
+			const text = (el.textContent || "").trim();
+			if (!text) return;
+
+			const isTruncated = el.scrollWidth > el.clientWidth;
+
+			// 기존 인스턴스 정리
+			const inst = bootstrap.Tooltip.getInstance(el);
+			if (inst) inst.dispose();
+
+			if (!isTruncated) {
+				el.removeAttribute("data-bs-toggle");
+				el.removeAttribute("data-bs-placement");
+				el.removeAttribute("data-bs-title");
+				el.removeAttribute("data-bs-html");
+				return;
+			}
+
+			el.setAttribute("data-bs-toggle", "tooltip");
+			el.setAttribute("data-bs-placement", "top");
+			el.setAttribute("data-bs-title", text);  // HTML 아님(흰/검정 들쑥 문제 방지)
+			el.setAttribute("data-bs-html", "false");
+
+			new bootstrap.Tooltip(el, {
+				trigger: "hover",
+				container: "body"
+			});
+		});
+	}
+
+	// =========================
 	// 블록 추가 모달
 	// =========================
 	const addBtn = document.getElementById("btnAddBlock");
@@ -129,26 +200,22 @@ document.addEventListener("DOMContentLoaded", () => {
 			wheelHandler = (e) => {
 				if (!isDragging) return;
 
-				// 트랙패드/휠 모두 대응 (deltaMode=1이면 line 단위라 조금 보정)
 				const unit = e.deltaMode === 1 ? 16 : 1;
 				const dy = (e.deltaY || 0) * unit;
 				const dx = (e.deltaX || 0) * unit;
 
 				if (isWinScroll) {
-					// ✅ 윈도우 스크롤은 scrollBy가 제일 안정적
 					window.scrollBy(dx, dy);
 				} else {
 					scrollEl.scrollTop += dy;
 					scrollEl.scrollLeft += dx;
 				}
 
-				// ✅ Sortable이 wheel을 먹어버리기 전에 우리가 선점
 				if (e.cancelable) e.preventDefault();
 				e.stopPropagation();
 				e.stopImmediatePropagation();
 			};
 
-			// capture + passive:false 필수
 			window.addEventListener("wheel", wheelHandler, { capture: true, passive: false });
 		}
 
@@ -168,13 +235,11 @@ document.addEventListener("DOMContentLoaded", () => {
 			chosenClass: "sortable-chosen",
 			dragClass: "sortable-drag",
 
-			// ✅ 끝쪽 가져다대면 자동 스크롤(기존 유지)
 			scroll: isWinScroll ? true : scrollEl,
 			bubbleScroll: true,
 			scrollSensitivity: 80,
 			scrollSpeed: 15,
 
-			// ✅ window 스크롤일 때도 rootScroll을 직접 움직이기
 			scrollFn: (offsetX, offsetY) => {
 				if (isWinScroll) {
 					window.scrollBy(offsetX, offsetY);
@@ -190,7 +255,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				return true;
 			},
 
-			// ✅ 여기서부터가 핵심: unchoose로 끄지 말고 end에서만 끄기
 			onStart: () => {
 				isDragging = true;
 				enableWheelScroll();
@@ -313,30 +377,50 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// ✅ 작업내역: 조회 버튼을 AJAX로 처리(페이지 새로고침 방지)
 	initWorklogAjax();
+
+	// ✅ 초기 1회(렌더 후)
+	requestAnimationFrame(() => applyEllipsisTooltips(document));
 });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const sel = document.getElementById("adminProjectSelect");
+    if (!sel) return;
+
+    sel.addEventListener("change", () => {
+      const pc = sel.value;
+      const params = new URLSearchParams(window.location.search);
+      const days = params.get("days") || "7";
+
+      if (!pc) {
+        window.location.href = `/my?days=${encodeURIComponent(days)}&mode=ME`;
+      } else {
+        window.location.href = `/my?days=${encodeURIComponent(days)}&mode=ADMIN&projectCode=${encodeURIComponent(pc)}`;
+      }
+    });
+  });
 
 function initBlockPaging() {
 	const PAGE_SIZE = 6;
 
 	setupPager({
-		itemSelector: '[data-block-type="ASSIGNED"] tbody tr',
+		itemSelector: '[data-block-type="ASSIGNED"] tbody tr.click-row',
 		pagerSelector: '.block-pager[data-pager-for="ASSIGNED"]',
 		pageSize: PAGE_SIZE,
 		fillMode: "table"
 	});
 
 	setupPager({
-		itemSelector: '[data-block-type="REGISTERED"] tbody tr',
+		itemSelector: '[data-block-type="REGISTERED"] tbody tr.click-row',
 		pagerSelector: '.block-pager[data-pager-for="REGISTERED"]',
 		pageSize: PAGE_SIZE,
 		fillMode: "table"
 	});
 
 	setupPager({
-		itemSelector: '[data-block-type="NOTICE"] .list-group > .list-group-item',
+		itemSelector: '[data-block-type="NOTICE"] tbody tr.notice-item',
 		pagerSelector: '.block-pager[data-pager-for="NOTICE"]',
 		pageSize: PAGE_SIZE,
-		fillMode: "list"
+		fillMode: "table"
 	});
 }
 
@@ -348,6 +432,8 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 	const btnPrev = pager.querySelector(".pager-prev");
 	const btnNext = pager.querySelector(".pager-next");
 
+	const hasBS = !!(window.bootstrap && bootstrap.Tooltip);
+
 	// ✅ itemSelector는 "원본 리스트"를 의미 (dummy 제외)
 	const getRealItems = () =>
 		Array.from(document.querySelectorAll(itemSelector)).filter(
@@ -356,12 +442,11 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 
 	let page = 0;
 
-	// ✅ dummy 제거 유틸
 	const clearDummies = () => {
 		if (fillMode === "table") {
-			const table = itemsContainer();
-			if (!table) return;
-			table.querySelectorAll('tr[data-pager-dummy="1"]').forEach((tr) => tr.remove());
+			const tbody = itemsContainer();
+			if (!tbody) return;
+			tbody.querySelectorAll('tr[data-pager-dummy="1"]').forEach((tr) => tr.remove());
 		} else if (fillMode === "list") {
 			const list = itemsContainer();
 			if (!list) return;
@@ -369,7 +454,6 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 		}
 	};
 
-	// ✅ dummy를 붙일 컨테이너 찾기
 	function itemsContainer() {
 		if (fillMode === "table") {
 			const first = document.querySelector(itemSelector);
@@ -382,7 +466,6 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 		return null;
 	}
 
-	// ✅ dummy 생성
 	const appendDummies = (count) => {
 		if (count <= 0) return;
 
@@ -421,6 +504,47 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 		}
 	};
 
+	// ✅ 페이징 후 “말줄임 툴팁” 재적용
+	function reapplyTooltipsAfterPaging() {
+		if (!hasBS) return;
+
+		// 숨김/표시가 끝난 다음 프레임에 측정해야 정확함
+		requestAnimationFrame(() => {
+			const scope = pager.closest(".my-block") || document;
+			// my-page.js 상단에 정의된 applyEllipsisTooltips가 스코프 내에서 동작하도록
+			// (전역이 아니라면 아래처럼 직접 구현해야 하는데, 여기선 전역 함수가 아니라 지역이라 호출 불가)
+			// => 안전하게: 여기서 "간단 재호출" 로직을 한 번 더 만든다.
+
+			const targets = scope.querySelectorAll('[data-ellipsis-scope="1"] .text-truncate');
+			targets.forEach((el) => {
+				if (el.offsetParent === null) return;
+				if (el.classList.contains("gantt-bar") || el.closest(".gantt")) return;
+
+				const text = (el.textContent || "").trim();
+				if (!text) return;
+
+				const isTruncated = el.scrollWidth > el.clientWidth;
+
+				const inst = bootstrap.Tooltip.getInstance(el);
+				if (inst) inst.dispose();
+
+				if (!isTruncated) {
+					el.removeAttribute("data-bs-toggle");
+					el.removeAttribute("data-bs-placement");
+					el.removeAttribute("data-bs-title");
+					el.removeAttribute("data-bs-html");
+					return;
+				}
+
+				el.setAttribute("data-bs-toggle", "tooltip");
+				el.setAttribute("data-bs-placement", "top");
+				el.setAttribute("data-bs-title", text);
+				el.setAttribute("data-bs-html", "false");
+				new bootstrap.Tooltip(el, { trigger: "hover", container: "body" });
+			});
+		});
+	}
+
 	const render = () => {
 		const items = getRealItems();
 		const totalPages = Math.ceil(items.length / pageSize);
@@ -430,6 +554,8 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 		if (items.length <= pageSize) {
 			pager.style.display = "none";
 			clearDummies();
+			items.forEach((el) => (el.style.display = ""));
+			reapplyTooltipsAfterPaging();
 			return;
 		} else {
 			pager.style.display = "";
@@ -477,6 +603,8 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 				pagesWrap.appendChild(btn);
 			}
 		}
+
+		reapplyTooltipsAfterPaging();
 	};
 
 	btnPrev?.addEventListener("click", () => {
@@ -668,7 +796,7 @@ function initWorklogAjax() {
 			const select = form.querySelector('select[name="days"]');
 			const days = select ? select.value : "7";
 
-			const url = new URL(form.getAttribute("action") || "/my", window.location.origin);
+			const url = new URL(window.location.href);   // ✅ 현재 mode/projectCode 포함
 			url.searchParams.set("days", days);
 
 			const body = worklogBlock.querySelector(".card-body");
@@ -726,6 +854,5 @@ function findScrollContainer(el) {
 		cur = cur.parentElement;
 	}
 
-	// body/html이 스크롤이면 documentElement로 처리 (크롬에서 실제 스크롤 주체)
 	return document.scrollingElement || document.documentElement;
 }

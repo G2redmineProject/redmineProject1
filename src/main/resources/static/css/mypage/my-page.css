@@ -1,8 +1,9 @@
 /* =========================================================
    /static/css/mypage/my-page.css
-   - 뱃지 톤 통일 + row 높이 고정
-   - 페이징 안 잘리게 레이아웃 보강
-   - CALENDAR 체크박스 필터 UI
+   - ASSIGNED/REGISTERED/NOTICE: 동일 테이블(my-table) 스타일로 통일
+   - NOTICE 전용(table-responsive, my-notice-table 등) CSS 제거
+   - 말줄임은 JS 툴팁(진짜 말줄임일 때만)
+   - 번호 컬럼 70px 고정
    ========================================================= */
 
 /* =========================
@@ -70,7 +71,6 @@
   --block-height: 420px;
   --block-head-h: 48px;
 
-  /* ✅ 행 높이 고정(뱃지 커져도 row는 커지면 안됨) */
   --row-h: 34px;
   --row-pad-y: 6px;
 }
@@ -173,7 +173,8 @@
 }
 
 .block-inner > table,
-.block-inner > ul{
+.block-inner > ul,
+.block-inner > .table-responsive{
   flex: 1 1 auto;
   min-height: 0;
 }
@@ -217,88 +218,48 @@
   border-color: #111827;
 }
 
-/* =========================================================
-   ✅ 링크 뱃지 (모든 블록 공통)
-   - 글자/뱃지 크기 "조금" 키움
-   - 대신 row 높이는 고정(var --row-h)으로 안 커지게
-   ========================================================= */
-.x-badge-link,
-.x-badge-text{
-  display:inline-flex;
-  align-items:center;
-  max-width: 100%;
-  vertical-align: middle;
-
-  /* ✅ 살짝 키움 */
-  font-size: 13px;
-  font-weight: 900;
-
-  /* ✅ 높이를 고정해서 row가 커지지 않게 */
-  height: 22px;
-  line-height: 22px;
-
-  padding: 0 10px;
-  border-radius: 999px;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  border: 1px solid transparent;
-}
-
-.x-badge-link{
-  text-decoration:none;
-}
-
-.x-badge-issue{
-  background: #eef2ff;
-  color: #1f2a44;
-  border-color: #dbe3ff;
-}
-.x-badge-issue:hover{
-  filter: brightness(0.98);
-  text-decoration:none;
-}
-
-.x-badge-notice{
-  background: #eef7ff;
-  color: #12324a;
-  border-color: #d6eaff;
-}
-.x-badge-notice:hover{
-  filter: brightness(0.98);
-  text-decoration:none;
-}
-
-/* ✅ 최근공지 프로젝트명(배지)도 동일한 크기 베이스로 통일 */
-.x-badge-project{
-  background:#f3f4f6;
-  color:#111827;
-  border-color:#e5e7eb;
-}
-
 /* =========================
-   테이블(블록 내) - ✅ row 높이 고정
+   테이블(블록 내) - ASSIGNED/REGISTERED/NOTICE 통일
    ========================= */
 .my-table{
   table-layout: fixed;
+  width:100%;
+  margin:0;
 }
-.my-table th, .my-table td{
+
+.my-table th,
+.my-table td{
   vertical-align: middle;
   padding-top: var(--row-pad-y);
   padding-bottom: var(--row-pad-y);
   line-height: 1.25;
-  height: var(--row-h);         /* ✅ 핵심: row 높이 고정 */
+  height: var(--row-h);
+  font-size: 14px;
 }
 
-.my-table td{
-  overflow:hidden;              /* td 자체도 overflow 방지 */
+.my-table td{ overflow:hidden; }
+
+/* ✅ 번호 컬럼 70px 고정 */
+.my-table th:first-child,
+.my-table td:first-child{
+  width:70px;
+  min-width:70px;
+  max-width:70px;
+  white-space:nowrap;
+  text-align:center;
 }
 
-/* cell 내 뱃지 */
-.my-table td .x-badge-link{
-  max-width: 100%;
+/* 클릭 행 */
+.click-row{ cursor:pointer; }
+
+/* NOTICE 날짜 셀 (NOTICE만 필요한 최소 스타일) */
+.notice-date{
+  width:56px;
+  min-width:56px;
+  max-width:56px;
+  text-align:right;
+  white-space:nowrap;
+  color:#6b7280;
 }
 
 /* 링크 아이콘 */
@@ -311,15 +272,22 @@
   opacity:0.85;
 }
 
-/* =========================
-   NOTICE (list-group)도 행 높이 커지지 않게 고정
-   ========================= */
-.list-group-item{
-  padding-top: 8px;
-  padding-bottom: 8px;
+/* ✅ 페이징 빈칸 채우기용 더미 */
+.pager-dummy-row td{
+  height: var(--row-h);
+  padding-top: var(--row-pad-y);
+  padding-bottom: var(--row-pad-y);
+  border-color: transparent !important;
+  background: transparent !important;
 }
-.list-group-item .text-truncate{
-  min-width: 0;
+.pager-dummy-row{ pointer-events:none; }
+
+/* 리스트 더미(혹시 남아있을까봐 유지) */
+.pager-dummy-li{
+  height: 40px;
+  border-color: transparent !important;
+  background: transparent !important;
+  pointer-events: none;
 }
 
 /* =========================
@@ -387,7 +355,7 @@
 }
 
 /* =========================
-   CALENDAR: 내부 스크롤
+   CALENDAR: 내부 스크롤(기존 유지)
    ========================= */
 .block-calendar{
   height: 100%;
@@ -401,9 +369,7 @@
   overflow: auto;
 }
 
-/* =========================
-   Gantt (주간)
-   ========================= */
+/* (아래 gantt css는 기존 유지) */
 :root{
   --gantt-left-width: 180px;
   --gantt-header-height: 56px;
@@ -588,54 +554,39 @@
 .my-block.sortable-chosen { box-shadow: 0 8px 18px rgba(0,0,0,0.08); }
 .my-block.sortable-drag { cursor: grabbing; }
 
-/* ✅ 블록 삭제 버튼: 모달 X(btn-close) 스타일로 통일 */
+/* ✅ 블록 삭제 버튼 */
 .my-block-actions .x-del.btn-close{
   padding: 0;
   margin: 0;
   width: 1.1rem;
   height: 1.1rem;
-
-  /* 헤더 배경 위에서 선명하게 */
   opacity: .7;
   filter: none;
 }
+.my-block-actions .x-del.btn-close:hover{ opacity: .95; }
+.my-block-actions .x-del.btn-close:focus{ box-shadow:none; outline:none; }
 
-.my-block-actions .x-del.btn-close:hover{
-  opacity: .95;
+/* NOTICE 행 상하폭 조금 더 여유 */
+[data-block-type="NOTICE"] .my-table td{
+  padding-top: 12.5px;
+  padding-bottom: 12.5px;
 }
 
-.my-block-actions .x-del.btn-close:focus{
-  box-shadow: none;
-  outline: none;
+.work-link{
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
+.work-link:hover{ opacity:.85; }
 
-/* ✅ 페이징 빈칸 채우기용 더미(행 높이 유지) */
-.pager-dummy-row td{
-  height: var(--row-h);
-  padding-top: var(--row-pad-y);
-  padding-bottom: var(--row-pad-y);
-  border-color: transparent !important;  /* ✅ 선/hover 티 안나게 */
-  background: transparent !important;
-}
+.work-nolink{ color:#111827; }
 
-.pager-dummy-row{
-  pointer-events: none; /* 클릭/hover 방지 */
-}
-
-.pager-dummy-li{
-  height: 40px; /* NOTICE는 table이 아니라서 적당히 */
-  border-color: transparent !important;
-  background: transparent !important;
-  pointer-events: none;
-}
-
-/* =========================
-   ASSIGNED / REGISTERED / NOTICE
-   프로젝트명: 14px + bold
-   ========================= */
-.my-block[data-block-type="ASSIGNED"] .my-table tbody td:first-child,
-.my-block[data-block-type="REGISTERED"] .my-table tbody td:first-child,
-.my-block[data-block-type="NOTICE"] .notice-project{
-  font-size: 14px;
-  font-weight: 900;
+.work-badge{
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #6b7280;
 }
