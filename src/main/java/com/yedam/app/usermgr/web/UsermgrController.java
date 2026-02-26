@@ -17,6 +17,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.yedam.app.login.service.UserVO;
 import com.yedam.app.project.service.PruserVO;
+import com.yedam.app.user.service.MyGroupInfoVO;
 import com.yedam.app.user.service.MyGroupProjectRoleVO;
 import com.yedam.app.user.service.MyInfoService;
 import com.yedam.app.user.service.MyInfoUpdateReqDTO;
@@ -57,9 +58,10 @@ public class UsermgrController {
 		}
 
 		// 프로젝트/그룹 정보 조회
-		List<MyProjectRoleVO> myProjects = myInfoService.findMyProjectsWithRoles(findUser.getUserCode());
-		List<MyGroupProjectRoleVO> myGroups = myInfoService.findMyGroupsWithProjectRoles(findUser.getUserCode());
-
+		//List<MyProjectRoleVO> myProjects = myInfoService.findMyProjectsWithRoles(findUser.getUserCode());
+		//List<MyGroupProjectRoleVO> myGroups = myInfoService.findMyGroupsWithProjectRoles(findUser.getUserCode());
+		List<MyProjectRoleVO> myProjects = myInfoService.findMyProjectsWithRoles(userCode);
+	    List<MyGroupInfoVO> myGroups = myInfoService.findMyGroupsInfo(userCode);
 		// 모델에 넣기
 		model.addAttribute("user", findUser);
 		model.addAttribute("myProjects", myProjects);
