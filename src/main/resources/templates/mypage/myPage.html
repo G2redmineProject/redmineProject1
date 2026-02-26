@@ -41,7 +41,8 @@
 		</div>
 
 		<!-- 블록 그리드 -->
-		<div id="myBlockGrid" class="my-block-grid" th:attr="data-mode=${mode}">
+		<div id="myBlockGrid" class="my-block-grid"
+			th:attr="data-mode=${mode}">
 
 			<div th:each="b : ${blocks}" class="card my-block"
 				th:attr="data-block-code=${b.blockCode}, data-block-type=${b.blockType}">
@@ -191,7 +192,7 @@
 									</tr>
 								</tbody>
 							</table>
-							
+
 						</div>
 
 					</div>
@@ -288,7 +289,7 @@
 									</tr>
 								</tbody>
 							</table>
-							
+
 						</div>
 
 					</div>
@@ -496,17 +497,32 @@
 					</div>
 
 					<div class="modal-body">
-						<div class="list-group">
-							<div th:if="${#lists.isEmpty(addableBlocks)}"
-								class="text-muted small">추가할 수 있는 블록이 없습니다.</div>
+						<div id="addBlockList" class="list-group">
 
-							<button th:each="ab : ${addableBlocks}"
-								class="list-group-item list-group-item-action add-block-item"
-								th:attr="data-type=${ab.type}" th:text="${ab.label}">블록</button>
+							<div th:if="${#lists.isEmpty(addableBlocks)}"
+								class="text-muted small" id="noAddableHint">추가할 수 있는 블록이
+								없습니다.</div>
+
+							<!-- ✅ 체크박스 항목 -->
+							<label th:each="ab : ${addableBlocks}"
+								class="list-group-item d-flex align-items-center gap-2">
+								<input class="form-check-input add-block-chk" type="checkbox"
+								th:attr="data-type=${ab.type}"> <span
+								class="add-block-label"
+								th:text="${ab.label}">블록</span>
+							</label>
+
 						</div>
 
-						<div class="text-muted small mt-2">블록은 자유롭게 추가/삭제할 수 있습니다.
-							(화면에 블록이 없을경우 기본 블럭이 자동생성)</div>
+						<div class="text-muted small mt-2">블록은 자유롭게 추가/삭제할 수 있습니다.</div>
+					</div>
+
+					<!-- ✅ footer 추가 -->
+					<div class="modal-footer">
+						<button type="button" class="btn btn-outline-secondary"
+							data-bs-dismiss="modal">취소</button>
+						<button type="button" class="btn btn-primary"
+							id="btnAddBlockConfirm">확인</button>
 					</div>
 				</div>
 			</div>

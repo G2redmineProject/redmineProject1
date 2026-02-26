@@ -193,33 +193,25 @@
 	
 	<!-- 내가 속한 진행중 프로젝트들의 전체 현재 진척도(가중 평균) -->
 	<select id="selectTodayProgressRate" resultType="Integer">
+	<![CDATA[
+		WITH my_projects AS (
+  			SELECT /*+ MATERIALIZE */ pru.project_code
+  			FROM project_role_user pru
+  			WHERE pru.user_code = #{userCode}
+  			UNION
+  			SELECT /*+ MATERIALIZE */ gpr.project_code
+  			FROM "GROUP_MEMBER" gm
+  			JOIN "GR_PRO_ROLE" gpr ON gpr.gr_code = gm.gr_code
+  			WHERE gm.user_code = #{userCode}
+		)
 		SELECT NVL(
-    		     ROUND(SUM(v.plan * v.actual_prog) / NULLIF(SUM(v.plan), 0), 0), 0)
-    			 AS total_actual_prog
-		FROM VW_PROJECT_PROGRESS v
-		
-		JOIN projects p
-  		ON p.project_code = v.project_code
-  		
-		WHERE p.status = 'OD1'
-  		AND v.project_code IN (
-      		-- 1) 유저가 프로젝트에 직접 매핑된 경우
-      		SELECT pru.project_code
-      		FROM PROJECT_ROLE_USER pru
-      		
-      		WHERE pru.user_code = #{userCode}
-
-      		UNION
-
-      		-- 2) 유저가 그룹에 속해있고, 그 그룹이 프로젝트에 역할로 연결된 경우
-      		SELECT gpr.project_code
-      		FROM GROUP_MEMBER gm
-      		
-      		JOIN GR_PRO_ROLE gpr
-        	ON gpr.gr_code = gm.gr_code
-        	
-      		WHERE gm.user_code = #{userCode}
-  		)
+         	ROUND(SUM(v.plan * v.actual_prog) / NULLIF(SUM(v.plan), 0), 0),
+         	0
+       		) AS total_actual_prog
+		FROM my_projects mp
+		JOIN projects p ON p.project_code = mp.project_code AND p.status = 'OD1'
+		JOIN VW_PROJECT_PROGRESS v ON v.project_code = mp.project_code
+	]]>
 	</select>
 	
 	<!-- 본인 이슈 Top 5 -->
@@ -261,7 +253,7 @@
 	</select>
 	
 	<!-- ======================= 메인 최근공지(내페이지와 동일) ======================= -->
-	<select id="selectRecentNoticesForMain" resultType="com.yedam.app.mypage.service.MyNoticeDTO">
+	<select id="selectRecentNoticesForMain" resultType="MyNoticeDTO">
   		SELECT *
   		FROM (
     		SELECT

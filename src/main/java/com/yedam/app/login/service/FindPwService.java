@@ -7,6 +7,8 @@ public interface FindPwService {
 	// 인증메일 보내기
 	public void sendOtpMail(String toEmail, String otp);
 	
+	void sendOtpMailAsync(String email, String otp);
+	
 	// 유저코드로 비밀번호 업데이트
 	public void modifyPwByUserCode(Integer userCode, String newPw);
 }

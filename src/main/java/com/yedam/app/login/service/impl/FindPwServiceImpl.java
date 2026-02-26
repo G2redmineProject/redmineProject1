@@ -5,6 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +37,7 @@ public class FindPwServiceImpl implements FindPwService {
 			msg.setTo(toEmail);
 			msg.setFrom("tjdcksgur.1@daum.net");
 			
-			msg.setSubject("[Together] 비밀번호 재설정 인증번호");
+			msg.setSubject("[G2gether] 비밀번호 재설정 인증번호");
 			msg.setText("인증번호: " + otp + "\n5분 이내에 입력해주세요.");
 
 			mailSender.send(msg);
@@ -47,6 +48,12 @@ public class FindPwServiceImpl implements FindPwService {
 		}
 
 	}
+	
+	@Async
+    @Override
+    public void sendOtpMailAsync(String email, String otp) {
+        sendOtpMail(email, otp);
+    }
 
 	@Override
 	public void modifyPwByUserCode(Integer userCode, String newPw) {

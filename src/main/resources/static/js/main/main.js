@@ -3,57 +3,85 @@
    ========================================================= */
 
 /* =========================
-   Google Chart (Donut)
+   Skeleton toggle
+   ========================= */
+function setLoading(cardId, on) {
+	const el = document.getElementById(cardId);
+	if (!el) return;
+	el.classList.toggle("is-loading", !!on);
+}
+
+/* =========================
+   Google Chart (Donut) - AJAX
    ========================= */
 google.charts.load("current", { packages: ["corechart"] });
-google.charts.setOnLoadCallback(initChart);
+google.charts.setOnLoadCallback(() => {
+	// 구글차트 로더 준비된 시점에 AJAX로 데이터 받아 그리기
+	loadDonutChart();
+});
 
-let chart, data;
+let donutChart, donutData;
 
-function initChart() {
-	const statusListCnt = window.__statusListCnt || [];
+async function loadDonutChart() {
 	const chartEl = document.getElementById("donutchart");
 	if (!chartEl) return;
 
-	if (!statusListCnt || statusListCnt.length === 0) {
+	setLoading("cardDonut", true);
+
+	try {
+		const res = await fetch(`/api/main/statusCnt?_ts=${Date.now()}`, {
+			headers: { Accept: "application/json" },
+			cache: "no-store",
+		});
+
+		const list = res.ok ? await res.json() : [];
+		if (!list || list.length === 0) {
+			chartEl.innerHTML =
+				"<div class='text-muted text-center py-5'>표시할 데이터가 없습니다.</div>";
+			return;
+		}
+
+		const reversed = [...list].reverse();
+
+		donutData = new google.visualization.DataTable();
+		donutData.addColumn("string", "상태");
+		donutData.addColumn("number", "개수");
+		donutData.addColumn({ type: "string", role: "tooltip" });
+
+		reversed.forEach((item) => {
+			const value = Number(item.codeNameCnt ?? item.CODE_NAME_CNT ?? 0);
+			const name = String(item.codeName ?? item.CODE_NAME ?? "");
+			donutData.addRow([name, value, `${name}: ${value}개`]);
+		});
+
+		donutChart = new google.visualization.PieChart(chartEl);
+		drawDonutChart();
+
+		let t;
+		window.addEventListener("resize", () => {
+			clearTimeout(t);
+			t = setTimeout(drawDonutChart, 120);
+		});
+	} catch (e) {
+		console.error("[donut] load error:", e);
 		chartEl.innerHTML =
-			"<div class='text-muted text-center py-5'>표시할 데이터가 없습니다.</div>";
-		return;
+			"<div class='text-muted text-center py-5'>차트를 불러오지 못했습니다.</div>";
+	} finally {
+		setLoading("cardDonut", false);
 	}
-
-	const reversed = [...statusListCnt].reverse();
-
-	data = new google.visualization.DataTable();
-	data.addColumn("string", "상태");
-	data.addColumn("number", "개수");
-	data.addColumn({ type: "string", role: "tooltip" });
-
-	reversed.forEach((item) => {
-		const value = Number(item.codeNameCnt);
-		data.addRow([item.codeName, value, `${item.codeName}: ${value}개`]);
-	});
-
-	chart = new google.visualization.PieChart(chartEl);
-	drawChart();
-
-	let t;
-	window.addEventListener("resize", () => {
-		clearTimeout(t);
-		t = setTimeout(drawChart, 120);
-	});
 }
 
-function drawChart() {
-	if (!chart || !data) return;
+function drawDonutChart() {
+	if (!donutChart || !donutData) return;
 
 	const el = document.getElementById("donutchart");
 	if (!el) return;
 
 	const w = el.getBoundingClientRect().width;
 
-	chart.draw(data, {
+	donutChart.draw(donutData, {
 		pieHole: 0.4,
-		colors: ["#3b9ff6", "#a3a3a3"],
+		colors: ["#3b9ff6", "#9ca3af"],
 		legend: { position: "top", textStyle: { fontSize: 13 } },
 		pieSliceText: "value",
 		pieSliceTextStyle: { fontSize: 16, bold: true },
@@ -67,12 +95,54 @@ function drawChart() {
 }
 
 /* =========================
+   Today Progress Rate - AJAX
+   ========================= */
+document.addEventListener("DOMContentLoaded", () => {
+	loadTodayProgressRate();
+});
+
+async function loadTodayProgressRate() {
+	const valueEl = document.getElementById("todayProgressRateValue");
+	const barEl = document.getElementById("todayProgressRateBar");
+	if (!valueEl || !barEl) return;
+
+	setLoading("cardProgress", true);   // ✅ ON
+
+	try {
+		const res = await fetch(`/api/main/todayProgressRate?_ts=${Date.now()}`, {
+			headers: { Accept: "application/json" },
+			cache: "no-store",
+		});
+
+		const json = res.ok ? await res.json() : { ok: false, rate: 0 };
+		const rate = clampInt(json?.rate, 0, 100);
+
+		valueEl.textContent = String(rate);
+		barEl.style.width = `${rate}%`;
+		barEl.setAttribute("aria-valuenow", String(rate));
+	} catch (e) {
+		console.error("[progress] load error:", e);
+		valueEl.textContent = "0";
+		barEl.style.width = "0%";
+		barEl.setAttribute("aria-valuenow", "0");
+	} finally {
+		setLoading("cardProgress", false); // ✅ OFF
+	}
+}
+
+function clampInt(v, min, max) {
+	const n = Number(v);
+	if (Number.isNaN(n)) return min;
+	return Math.max(min, Math.min(max, Math.trunc(n)));
+}
+
+/* =========================
    Tooltip helpers
    ========================= */
 function escapeHtml(str) {
 	return String(str)
 		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
+		.replaceAll("<", "&lt;")   // ✅ 여기 dot 빠지면 JS 터짐!
 		.replaceAll(">", "&gt;")
 		.replaceAll('"', "&quot;")
 		.replaceAll("'", "&#039;");
@@ -95,11 +165,8 @@ function buildTooltipHTML({ badgeText, mainText }) {
 
 // ✅ 셀 안의 뱃지 텍스트가 섞이지 않게 "순수 텍스트"만 추출
 function getPureTextForTooltip(el) {
-	// 1) 일감현황 프로젝트 칸: span.proj-name 안 텍스트만 사용
 	const issueProjName = el.querySelector(".proj-name");
 	if (issueProjName) return (issueProjName.textContent || "").trim();
-
-	// 2) 나머지(최근공지 등): 그대로 텍스트 사용
 	return (el.textContent || "").trim();
 }
 
@@ -112,9 +179,9 @@ function applyEllipsisTooltips(root = document) {
 
 	const targets = root.querySelectorAll(
 		[
-			"#mainIssueTable td:nth-child(2)",     // 일감현황 프로젝트 칸
-			"#mainNoticeTable td.notice-td-proj",  // 최근공지 프로젝트 칸
-			"#mainNoticeTable .notice-td-title"    // 최근공지 제목(span)
+			"#mainIssueTable td:nth-child(2)", // 일감현황 프로젝트 칸
+			"#mainNoticeTable td.notice-td-proj", // 최근공지 프로젝트 칸
+			"#mainNoticeTable .notice-td-title", // 최근공지 제목(span)
 		].join(",")
 	);
 
@@ -126,7 +193,6 @@ function applyEllipsisTooltips(root = document) {
 
 		const isTruncated = el.scrollWidth > el.clientWidth;
 
-		// 기존 인스턴스 정리
 		const inst = bootstrap.Tooltip.getInstance(el);
 		if (inst) inst.dispose();
 
@@ -138,7 +204,6 @@ function applyEllipsisTooltips(root = document) {
 			return;
 		}
 
-		// ✅ 뱃지 포함 여부(일감현황 프로젝트 칸에서만)
 		let badgeText = null;
 		const inIssueTable = !!el.closest("#mainIssueTable");
 		if (inIssueTable) {
@@ -157,8 +222,6 @@ function applyEllipsisTooltips(root = document) {
 			trigger: "hover",
 			container: "body",
 			html: true,
-			// 필요 시:
-			// sanitize: false,
 		});
 	});
 }
@@ -304,11 +367,12 @@ function initMemoCalendar() {
 	const labelEl = document.getElementById("memoMonthLabel");
 
 	const modalEl = document.getElementById("memoModal");
-	const modal = (modalEl && window.bootstrap?.Modal) ? new bootstrap.Modal(modalEl) : null;
+	const modal = modalEl && window.bootstrap?.Modal ? new bootstrap.Modal(modalEl) : null;
 
 	const deleteModalEl = document.getElementById("memoDeleteConfirmModal");
-	const deleteModal = (deleteModalEl && window.bootstrap?.Modal) ? new bootstrap.Modal(deleteModalEl) : null;
-	
+	const deleteModal =
+		deleteModalEl && window.bootstrap?.Modal ? new bootstrap.Modal(deleteModalEl) : null;
+
 	const dateLabel = document.getElementById("memoModalDateLabel");
 	const contentEl = document.getElementById("memoContent");
 	const btnSave = document.getElementById("btnMemoSave");
@@ -321,11 +385,12 @@ function initMemoCalendar() {
 	let cur = new Date();
 	cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
 
-	// dateStr -> content
 	let memoMap = new Map();
 	let openDateStr = null;
 
-	function pad2(n) { return String(n).padStart(2, "0"); }
+	function pad2(n) {
+		return String(n).padStart(2, "0");
+	}
 	function ymd(d) {
 		return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 	}
@@ -333,7 +398,7 @@ function initMemoCalendar() {
 		return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
 	}
 
-	function escapeHtml(str) {
+	function escapeHtmlMemo(str) {
 		return String(str ?? "")
 			.replaceAll("&", "&amp;")
 			.replaceAll("<", "&lt;")
@@ -342,47 +407,45 @@ function initMemoCalendar() {
 			.replaceAll("'", "&#039;");
 	}
 
-	// 툴팁 HTML + 줄바꿈 처리(이모지 OK)
 	function buildMemoTooltipHTML(dateStr, content) {
-		const safe = escapeHtml(content).replaceAll("\n", "<br/>");
+		const safe = escapeHtmlMemo(content).replaceAll("\n", "<br/>");
 		return `
       <div style="min-width:180px; max-width:280px;">
-        <div style="font-weight:900; margin-bottom:6px;">${escapeHtml(dateStr)}</div>
+        <div style="font-weight:900; margin-bottom:6px;">${escapeHtmlMemo(dateStr)}</div>
         <div style="font-size:12px; line-height:1.35;">${safe}</div>
       </div>
     `.trim();
 	}
 
 	async function loadMonth() {
-		const month = ym(cur);
-		labelEl.textContent = month;
+		setLoading("cardMemoCal", true);
+		try {
+			const month = ym(cur);
+			labelEl.textContent = month;
 
-		const res = await fetch(`/api/main/memos?month=${encodeURIComponent(month)}&_ts=${Date.now()}`, {
-			headers: { "Accept": "application/json" },
-			cache: "no-store"
-		});
+			const res = await fetch(
+				`/api/main/memos?month=${encodeURIComponent(month)}&_ts=${Date.now()}`,
+				{
+					headers: { Accept: "application/json" },
+					cache: "no-store",
+				}
+			);
 
-		const list = res.ok ? await res.json() : [];
-		console.log("[memos]", list);
-		memoMap = new Map();
+			const list = res.ok ? await res.json() : [];
+			memoMap = new Map();
+			(list || []).forEach((m) => {
+				const key = (m.memoDate || "").trim(); // "YYYY-MM-DD"
+				if (key) memoMap.set(key, m.content || "");
+			});
 
-		(list || []).forEach((m) => {
-			const key = (m.memoDate || "").trim(); // ✅ 서버가 "YYYY-MM-DD"로 내려주는 전제
-			if (key) memoMap.set(key, m.content || "");
-		});
-
-		render();
-	}
-
-	function clearTooltips(root) {
-		if (!hasBS) return;
-		root.querySelectorAll("[data-bs-toggle='tooltip']").forEach((el) => {
-			const inst = bootstrap.Tooltip.getInstance(el);
-			if (inst) inst.dispose();
-			el.removeAttribute("data-bs-toggle");
-			el.removeAttribute("data-bs-title");
-			el.removeAttribute("data-bs-html");
-		});
+			render();
+		} catch (e) {
+			console.error("[memo] load error:", e);
+			memoMap = new Map();
+			render();
+		} finally {
+			setLoading("cardMemoCal", false);
+		}
 	}
 
 	function applyTooltip(el, dateStr, content) {
@@ -398,17 +461,27 @@ function initMemoCalendar() {
 		new bootstrap.Tooltip(el, {
 			trigger: "hover",
 			container: "body",
-			html: true
+			html: true,
 		});
 	}
 
+	function clearAllMemoTooltips() {
+		if (!hasBS) return;
+
+		document.querySelectorAll("#memoCalendar [data-bs-toggle='tooltip']").forEach((el) => {
+			const inst = bootstrap.Tooltip.getInstance(el);
+			if (inst) inst.dispose();
+		});
+
+		document.querySelectorAll(".tooltip").forEach((t) => t.remove());
+	}
+
 	function render() {
-		clearAllMemoTooltips(); // (유령툴팁/점 방지)
+		clearAllMemoTooltips();
 		calEl.innerHTML = "";
 
 		const root = document.createElement("div");
 
-		// 요일
 		const dow = ["일", "월", "화", "수", "목", "금", "토"];
 		const dowRow = document.createElement("div");
 		dowRow.className = "memo-cal-grid";
@@ -424,9 +497,9 @@ function initMemoCalendar() {
 
 		const first = new Date(cur.getFullYear(), cur.getMonth(), 1);
 		const start = new Date(first);
-		start.setDate(first.getDate() - first.getDay()); // 일요일 시작
+		start.setDate(first.getDate() - first.getDay());
 
-		const days = 42; // 6주 고정
+		const days = 42;
 		for (let i = 0; i < days; i++) {
 			const d = new Date(start);
 			d.setDate(start.getDate() + i);
@@ -434,7 +507,7 @@ function initMemoCalendar() {
 			const cell = document.createElement("div");
 			cell.className = "memo-cal-cell";
 
-			const inMonth = (d.getMonth() === cur.getMonth());
+			const inMonth = d.getMonth() === cur.getMonth();
 			if (!inMonth) cell.classList.add("is-out");
 
 			const dateStr = ymd(d);
@@ -456,7 +529,6 @@ function initMemoCalendar() {
 			cell.addEventListener("click", () => {
 				if (!modal) return;
 
-				// 이번달 밖이면 그 달로 이동
 				if (!inMonth) {
 					cur = new Date(d.getFullYear(), d.getMonth(), 1);
 					loadMonth();
@@ -489,57 +561,47 @@ function initMemoCalendar() {
 			method: "POST",
 			headers: {
 				"Content-Type": "application/json",
-				"Accept": "application/json"
+				Accept: "application/json",
 			},
 			body: JSON.stringify({ date: dateStr, content }),
-			cache: "no-store"
+			cache: "no-store",
 		});
 
 		if (!res.ok) return;
 
-		openDateStr = dateStr; // ✅ 동기화
+		openDateStr = dateStr;
 		await loadMonth();
 		btnDelete.style.display = (memoMap.get(dateStr) || "").trim() ? "" : "none";
-		modal?.hide(); // ✅ 저장 후 메모 모달 닫기
+		modal?.hide();
 	}
 
 	async function deleteCurrent() {
 		const dateStr = (openDateStr || dateLabel.textContent || "").trim();
 		if (!dateStr) return;
 
-		const res = await fetch(`/api/main/memos?date=${encodeURIComponent(dateStr)}&_ts=${Date.now()}`, {
-			method: "DELETE",
-			headers: { "Accept": "application/json" },
-			cache: "no-store"
-		});
+		const res = await fetch(
+			`/api/main/memos?date=${encodeURIComponent(dateStr)}&_ts=${Date.now()}`,
+			{
+				method: "DELETE",
+				headers: { Accept: "application/json" },
+				cache: "no-store",
+			}
+		);
 
 		if (!res.ok) return;
 
-		openDateStr = dateStr; // ✅ 동기화
+		openDateStr = dateStr;
 		await loadMonth();
 		contentEl.value = "";
 		btnDelete.style.display = "none";
-		modal?.hide(); // ✅ 저장 후 메모 모달 닫기
+		modal?.hide();
 	}
 
-	function clearAllMemoTooltips() {
-		if (!hasBS) return;
-
-		// 1) 달력 셀에 붙은 bootstrap tooltip 인스턴스 제거
-		document.querySelectorAll("#memoCalendar [data-bs-toggle='tooltip']").forEach((el) => {
-			const inst = bootstrap.Tooltip.getInstance(el);
-			if (inst) inst.dispose();
-		});
-
-		// 2) body에 남아있는 tooltip DOM 강제 제거(유령 방지)
-		document.querySelectorAll(".tooltip").forEach((t) => t.remove());
-	}
-	
-	function dowKorean(dateStr){ // "YYYY-MM-DD"
-	  const [y,m,d] = (dateStr || "").split("-").map(Number);
-	  const dt = new Date(y, (m||1)-1, d||1);
-	  const arr = ["일","월","화","수","목","금","토"];
-	  return arr[dt.getDay()];
+	function dowKorean(dateStr) {
+		const [y, m, d] = (dateStr || "").split("-").map(Number);
+		const dt = new Date(y, (m || 1) - 1, d || 1);
+		const arr = ["일", "월", "화", "수", "목", "금", "토"];
+		return arr[dt.getDay()];
 	}
 
 	prevBtn?.addEventListener("click", () => {
@@ -553,20 +615,18 @@ function initMemoCalendar() {
 	});
 
 	btnSave?.addEventListener("click", saveCurrent);
+
 	btnDelete?.addEventListener("click", () => {
-	  // 메모가 없는 상태면 그냥 무시
-	  const dateStr = (openDateStr || dateLabel.textContent || "").trim();
-	  const memo = memoMap.get(dateStr) || "";
-	  if (!dateStr || !memo.trim()) return;
-
-	  if (!deleteModal) return;
-
-	  deleteModal.show();
+		const dateStr = (openDateStr || dateLabel.textContent || "").trim();
+		const memo = memoMap.get(dateStr) || "";
+		if (!dateStr || !memo.trim()) return;
+		if (!deleteModal) return;
+		deleteModal.show();
 	});
-	
+
 	btnDeleteConfirm?.addEventListener("click", async () => {
-	  await deleteCurrent();         // ✅ 실제 삭제
-	  deleteModal?.hide();           // ✅ confirm 모달 닫기
+		await deleteCurrent();
+		deleteModal?.hide();
 	});
 
 	modalEl?.addEventListener("hidden.bs.modal", () => {

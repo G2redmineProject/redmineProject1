@@ -11,11 +11,11 @@
 	<div class="ms-auto d-flex align-items-center me-3 me-lg-4 ">
 
 		<!-- 고정 프로젝트 박스 (세션에 있을 때만 표시) 나중에 fixedProjectName 변경-->
-		<div th:if="${session.fixedProjectName != null}" 
+		<div th:if="${session.currentProject?.projectName != null}" 
 			class="fixed-project-badge me-2" title="현재 고정 프로젝트">
 
 			<span class="fixed-project-name"
-				th:text="${session.fixedProjectName}">프로젝트명</span>
+				th:text="${session.currentProject?.projectName}">프로젝트명</span>
 
 			<button type="button" class="fixed-project-close"
 				id="btnClearFixedProject" aria-label="프로젝트 고정 해제" title="고정 해제">×</button>

@@ -472,3 +472,220 @@
   font-weight: 900;
   line-height: 1;
 }
+
+/* =========================================================
+   Skeleton UI (Main)
+   ========================================================= */
+.has-skeleton{
+  position: relative;
+}
+
+.skeleton-hide{
+  /* 로딩 중엔 숨김 처리 */
+}
+
+.has-skeleton .skeleton-overlay{
+  position: absolute;
+  inset: 0;
+  padding: 12px;
+  display: none;
+  background: #fff;
+  z-index: 5;
+}
+
+.has-skeleton.is-loading .skeleton-overlay{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.has-skeleton.is-loading .skeleton-hide{
+  visibility: hidden;
+}
+
+/* shimmer */
+@keyframes skShimmer{
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sk{
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eeeeee 25%, #f6f6f6 37%, #eeeeee 63%);
+  background-size: 800px 100%;
+  animation: skShimmer 1.2s ease-in-out infinite;
+}
+
+/* widths helpers */
+.w-60{ width: 60%; }
+.w-45{ width: 45%; }
+.w-40{ width: 40%; }
+
+/* common skeleton blocks */
+.sk-row{ height: 14px; border-radius: 8px; }
+
+/* donut placeholder */
+.sk-donut{
+  flex: 1 1 auto;
+  min-height: 220px;
+  border-radius: 16px;
+}
+
+/* calendar placeholder */
+.sk-cal{
+  flex: 1 1 auto;
+  min-height: 220px;
+  border-radius: 16px;
+}
+
+.sk-progress {
+  height: 16px;
+  border-radius: 999px;
+}
+
+/* =========================
+   Skeleton UI prettier blocks
+   ========================= */
+
+/* overlay 기본: 카드 안에서 가운데 정렬 + padding 통일 */
+.has-skeleton .skeleton-overlay{
+  position: absolute;
+  inset: 0;
+  padding: 14px 16px;
+  display: none;
+  background: #fff;
+  z-index: 5;
+}
+
+.has-skeleton.is-loading .skeleton-overlay{
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.has-skeleton.is-loading .skeleton-hide{
+  visibility: hidden;
+}
+
+/* shimmer base */
+@keyframes skShimmer{
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.sk{
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eeeeee 25%, #f6f6f6 37%, #eeeeee 63%);
+  background-size: 800px 100%;
+  animation: skShimmer 1.15s ease-in-out infinite;
+}
+
+/* helpers */
+.w-60{ width: 60%; }
+.w-55{ width: 55%; }
+.w-50{ width: 50%; }
+.w-45{ width: 45%; }
+.w-40{ width: 40%; }
+.w-35{ width: 35%; }
+
+/* title/desc lines */
+.sk-title{ height: 14px; border-radius: 8px; }
+.sk-desc{ height: 12px; border-radius: 8px; }
+
+/* =========================
+   Donut skeleton
+   ========================= */
+.sk-donut-overlay{
+  align-items: stretch;
+}
+
+.sk-donut-center{
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ring 느낌: 큰 둥근 사각(원) + 가운데 구멍 */
+.sk-ring{
+  width: 210px;
+  height: 210px;
+  border-radius: 999px;
+}
+
+.sk-ring-hole{
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 0 0 10px rgba(255,255,255,0.9) inset;
+}
+
+/* legend */
+.sk-legend{
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 4px;
+}
+
+.sk-legend-item{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sk-dot{
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+}
+
+.sk-line{
+  height: 12px;
+  border-radius: 8px;
+}
+
+/* =========================
+   Progress skeleton
+   ========================= */
+.sk-progress-overlay{
+  align-items: stretch;
+  justify-content: center;
+}
+
+.sk-percent{
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sk-percent-num{
+  width: 120px;
+  height: 44px;
+  border-radius: 12px;
+}
+
+.sk-percent-suffix{
+  width: 26px;
+  height: 24px;
+  border-radius: 10px;
+}
+
+.sk-progress-track{
+  height: 16px;
+  border-radius: 999px;
+  margin-top: 6px;
+}
+
+/* (선택) 도넛/진행률 overlay에서만 shimmer 강도 살짝 */
+.sk-donut-overlay .sk,
+.sk-progress-overlay .sk{
+  background: linear-gradient(90deg, #ececec 25%, #f7f7f7 37%, #ececec 63%);
+  background-size: 900px 100%;
+}
