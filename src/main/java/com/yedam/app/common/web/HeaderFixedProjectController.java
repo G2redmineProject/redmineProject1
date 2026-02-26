@@ -17,8 +17,7 @@ public class HeaderFixedProjectController {
 	public ResponseEntity<?> clearFixedProject(HttpSession session) {
 
 		// 임시로 fixedProjectCode, fixedProjectName
-		session.removeAttribute("fixedProjectCode");
-		session.removeAttribute("fixedProjectName");
+		session.removeAttribute("currentProject");
 
 		return ResponseEntity.ok(Map.of("ok", true));
 	}

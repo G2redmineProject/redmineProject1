@@ -3,15 +3,35 @@ document.addEventListener("DOMContentLoaded", () => {
 	if (!grid) return;
 
 	// =========================
-	// 블록 타입 라벨(모달 표시용)
+	// ✅ 현재 모드 (ME / ADMIN)
 	// =========================
-	const BLOCK_LABEL = {
-		ASSIGNED: "할당된 일감",
-		REGISTERED: "등록한 일감",
-		NOTICE: "최근공지",
-		CALENDAR: "달력(주간)",
-		WORKLOG: "작업내역"
+	const MODE = (grid.dataset.mode || "ME").toUpperCase();
+
+	// =========================
+	// ✅ 블록 타입 라벨(모달 표시용) - 모드별
+	// =========================
+	const BLOCK_LABEL_BY_MODE = {
+		ME: {
+			ASSIGNED: "내 할당 일감",
+			REGISTERED: "내 등록 일감",
+			NOTICE: "최근공지 (내 프로젝트)",
+			CALENDAR: "주간 간트 (내 일감)",
+			WORKLOG: "내 작업내역"
+		},
+		ADMIN: {
+			ASSIGNED: "담당자별 할당 일감 현황",
+			REGISTERED: "등록자별 등록 일감 현황",
+			NOTICE: "최근공지 (선택 프로젝트)",
+			CALENDAR: "주간 간트 (프로젝트 전체)",
+			WORKLOG: "프로젝트 작업내역"
+		}
 	};
+
+	function getBlockLabel(type) {
+		const t = String(type || "").toUpperCase();
+		const byMode = BLOCK_LABEL_BY_MODE[MODE] || BLOCK_LABEL_BY_MODE.ME;
+		return byMode[t] || t;
+	}
 
 	// =========================================================
 	// ✅ 헤더 드래그는 유지하면서,
@@ -59,10 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (!hasBS) return;
 
 		const targets = root.querySelectorAll(
-			[
-				// 테이블/공지에서 말줄임 되는 요소들
-				'.my-block [data-ellipsis-scope="1"] .text-truncate'
-			].join(",")
+			['.my-block [data-ellipsis-scope="1"] .text-truncate'].join(",")
 		);
 
 		targets.forEach((el) => {
@@ -91,7 +108,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 			el.setAttribute("data-bs-toggle", "tooltip");
 			el.setAttribute("data-bs-placement", "top");
-			el.setAttribute("data-bs-title", text);  // HTML 아님(흰/검정 들쑥 문제 방지)
+			el.setAttribute("data-bs-title", text);
 			el.setAttribute("data-bs-html", "false");
 
 			new bootstrap.Tooltip(el, {
@@ -110,42 +127,101 @@ document.addEventListener("DOMContentLoaded", () => {
 		modalEl && window.bootstrap?.Modal ? new bootstrap.Modal(modalEl) : null;
 
 	const modalList = modalEl?.querySelector(".list-group") || null;
+	const emptyHint = modalEl ? modalEl.querySelector("#noAddableHint") : null;
 
-	const emptyHint = modalEl
-		? Array.from(modalEl.querySelectorAll(".text-muted.small, .text-muted")).find(
-			(el) => (el.textContent || "").includes("추가할 수 있는 블록이 없습니다")
-		)
-		: null;
+	// ✅ 서버에서 렌더된 초기 항목들도 모드 라벨로 통일
+	function relabelModalByMode() {
+		if (!modalEl) return;
+
+		modalEl.querySelectorAll(".add-block-chk").forEach((chk) => {
+			const t = (chk.dataset.type || "").toUpperCase();
+			const item = chk.closest(".list-group-item");
+
+			// ✅ 있으면 이걸 우선(추천: span.add-block-label)
+			let span = item?.querySelector(".add-block-label");
+			if (!span) span = item?.querySelector("span");
+
+			if (span) span.textContent = getBlockLabel(t);
+		});
+	}
 
 	if (addBtn && modal) {
 		addBtn.addEventListener("click", () => {
+			relabelModalByMode(); // ✅ 모드별 라벨 적용
 			syncModalEmptyHint();
 			modal.show();
 		});
 	}
 
 	// =========================
-	// 모달 버튼 클릭(블록 추가) - 이벤트 위임
+	// ✅ 블록 추가 모달: 체크박스 + 확인 버튼 방식
 	// =========================
-	if (modalList) {
-		modalList.addEventListener("click", async (e) => {
-			const btn = e.target.closest(".add-block-item");
-			if (!btn) return;
+	const confirmBtn = document.getElementById("btnAddBlockConfirm");
 
-			const type = (btn.dataset.type || "").toUpperCase();
-			if (!type) return;
+	function getSelectedTypesInModal() {
+		if (!modalEl) return [];
+		return Array.from(modalEl.querySelectorAll(".add-block-chk:checked"))
+			.map((chk) => (chk.dataset.type || "").toUpperCase())
+			.filter(Boolean);
+	}
 
-			const res = await fetch(
-				`/my/blocks?blockType=${encodeURIComponent(type)}`,
-				{ method: "POST" }
-			);
-			if (res.ok) {
-				removeAddable(type);
-				syncModalEmptyHint();
-				location.reload();
-			} else {
-				console.warn("블록 추가 실패", await safeText(res));
-			}
+	function removeTypesFromModal(types) {
+		if (!modalEl) return;
+		const set = new Set(types.map((t) => String(t).toUpperCase()));
+
+		modalEl.querySelectorAll(".add-block-chk").forEach((chk) => {
+			const t = (chk.dataset.type || "").toUpperCase();
+			if (!set.has(t)) return;
+
+			const item = chk.closest(".list-group-item");
+			if (item) item.remove();
+		});
+	}
+
+	async function postAddBlock(type) {
+		const res = await fetch(`/my/blocks?blockType=${encodeURIComponent(type)}`, {
+			method: "POST"
+		});
+		return res.ok;
+	}
+
+	if (confirmBtn && modal) {
+		confirmBtn.addEventListener("click", () => {
+			// ✅ 연타 방지: 바로 잠그기
+			if (confirmBtn.disabled) return;
+			confirmBtn.disabled = true;
+
+			requestAnimationFrame(async () => {
+				try {
+					const types = getSelectedTypesInModal();
+
+					// 아무것도 체크 안 하면 그냥 닫고 끝
+					if (types.length === 0) {
+						modal.hide();
+						return;
+					}
+
+					const uniq = Array.from(new Set(types));
+
+					// 먼저 닫기
+					modal.hide();
+
+					// ✅ 순차 추가(안전)
+					const okTypes = [];
+					for (const t of uniq) {
+						const ok = await postAddBlock(t);
+						if (ok) okTypes.push(t);
+					}
+
+					// 성공한 것만 모달에서 제거
+					removeTypesFromModal(okTypes);
+					syncModalEmptyHint();
+
+					if (okTypes.length > 0) location.reload();
+				} finally {
+					confirmBtn.disabled = false;
+				}
+			});
 		});
 	}
 
@@ -164,6 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
 				card.remove();
 				await saveOrder();
 				if (blockType) addAddable(blockType);
+				relabelModalByMode(); // ✅ 삭제 후 모달 라벨도 유지
 				syncModalEmptyHint();
 			} else {
 				console.warn("블록 삭제 실패", await safeText(res));
@@ -186,26 +263,21 @@ document.addEventListener("DOMContentLoaded", () => {
 			if (!isDragging) return;
 			if (e.ctrlKey) return;
 
-			// ✅ 다른 wheel 핸들러보다 강하게 먼저 먹기
 			e.preventDefault();
 			e.stopImmediatePropagation();
 
 			let dx = e.deltaX || 0;
 			let dy = e.deltaY || 0;
 
-			// deltaMode=1이면 라인 단위라서 픽셀로 보정(대충 16px)
 			if (e.deltaMode === 1) {
 				dx *= 16;
 				dy *= 16;
 			}
 
-			// ✅ 스크롤 가속
 			dx *= WHEEL_MULTIPLIER;
 			dy *= WHEEL_MULTIPLIER;
 
 			const root = scrollRoot();
-
-			// ✅ window.scrollBy 대신 실제 스크롤 엘리먼트를 직접 움직임
 			root.scrollLeft += dx;
 			root.scrollTop += dy;
 		};
@@ -216,12 +288,10 @@ document.addEventListener("DOMContentLoaded", () => {
 			filter: "a, button, input, label, select",
 			preventOnFilter: true,
 
-			// ✅ 핵심 (네이티브 드래그 끄고 fallback 사용)
 			forceFallback: true,
-			fallbackOnBody: true,     // 드래그 복제 엘리먼트를 body에 붙임(레이아웃 영향 줄임)
-			fallbackTolerance: 3,     // 클릭/드래그 판정 살짝 완화(선택)
+			fallbackOnBody: true,
+			fallbackTolerance: 3,
 
-			// (선택) 자동 스크롤(가장자리로 드래그하면 스크롤)
 			scroll: true,
 			scrollSensitivity: 60,
 			scrollSpeed: 12,
@@ -239,33 +309,25 @@ document.addEventListener("DOMContentLoaded", () => {
 			onStart: () => {
 				isDragging = true;
 
-				// ✅ 여기서 wheel 리스너 붙임
 				document.addEventListener("wheel", wheelWhileDrag, {
 					capture: true,
 					passive: false
 				});
 
-				// ✅ 드래그 중 스크롤 잠금(overflow hidden) 걸리면 풀어버리기
 				prevOverflow = {
 					html: document.documentElement.style.overflow,
-					body: document.body.style.overflow,
+					body: document.body.style.overflow
 				};
 				document.documentElement.style.overflow = "";
 				document.body.style.overflow = "";
-
 			},
 
 			onEnd: async () => {
 				isDragging = false;
 
-				// ✅ 여기서 제거
-				document.removeEventListener("wheel", wheelWhileDrag, {
-					capture: true
-				});
-
+				// ✅ 중복 remove는 필요없음(한 번만)
 				document.removeEventListener("wheel", wheelWhileDrag, { capture: true });
 
-				// ✅ overflow 원복
 				if (prevOverflow) {
 					document.documentElement.style.overflow = prevOverflow.html;
 					document.body.style.overflow = prevOverflow.body;
@@ -303,7 +365,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	}
 
 	// =========================
-	// ✅ 모달 목록 조작 함수들
+	// ✅ 모달 목록 조작 함수들 (체크박스 기반)
 	// =========================
 	function getExistingTypesInGrid() {
 		return new Set(
@@ -316,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	function getExistingAddableTypesInModal() {
 		if (!modalEl) return new Set();
 		return new Set(
-			Array.from(modalEl.querySelectorAll(".add-block-item"))
+			Array.from(modalEl.querySelectorAll(".add-block-chk"))
 				.map((el) => (el.dataset.type || "").toUpperCase())
 				.filter(Boolean)
 		);
@@ -334,15 +396,25 @@ document.addEventListener("DOMContentLoaded", () => {
 		const inModal = getExistingAddableTypesInModal().has(t);
 		if (inModal) return;
 
-		const label = BLOCK_LABEL[t] || t;
+		const label = getBlockLabel(t); // ✅ 모드별 라벨
 
-		const btn = document.createElement("button");
-		btn.type = "button";
-		btn.className = "list-group-item list-group-item-action add-block-item";
-		btn.dataset.type = t;
-		btn.textContent = label;
+		// ✅ 체크박스 항목(list-group-item) 생성
+		const item = document.createElement("label");
+		item.className = "list-group-item d-flex align-items-center gap-2";
 
-		modalList.appendChild(btn);
+		const chk = document.createElement("input");
+		chk.type = "checkbox";
+		chk.className = "form-check-input add-block-chk";
+		chk.dataset.type = t;
+
+		const span = document.createElement("span");
+		span.className = "add-block-label";
+		span.textContent = label;
+
+		item.appendChild(chk);
+		item.appendChild(span);
+
+		modalList.appendChild(item);
 	}
 
 	function removeAddable(type) {
@@ -351,20 +423,18 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (!t) return;
 
 		modalEl
-			.querySelectorAll(`.add-block-item[data-type="${CSS.escape(t)}"]`)
-			.forEach((el) => el.remove());
+			.querySelectorAll(`.add-block-chk[data-type="${CSS.escape(t)}"]`)
+			.forEach((chk) => chk.closest(".list-group-item")?.remove());
 	}
 
 	function syncModalEmptyHint() {
 		if (!modalEl) return;
-
-		const hasAny = modalEl.querySelectorAll(".add-block-item").length > 0;
-
-		if (emptyHint) {
-			emptyHint.style.display = hasAny ? "none" : "";
-		}
+		const hasAny = modalEl.querySelectorAll(".add-block-chk").length > 0;
+		if (emptyHint) emptyHint.style.display = hasAny ? "none" : "";
 	}
 
+	// ✅ 초기 1회: 서버 렌더 항목도 모드별 라벨로 정리
+	relabelModalByMode();
 	syncModalEmptyHint();
 
 	// =========================
@@ -444,7 +514,6 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 
 	const hasBS = !!(window.bootstrap && bootstrap.Tooltip);
 
-	// ✅ itemSelector는 "원본 리스트"를 의미 (dummy 제외)
 	const getRealItems = () =>
 		Array.from(document.querySelectorAll(itemSelector)).filter(
 			(el) => !el.dataset.pagerDummy
@@ -514,18 +583,13 @@ function setupPager({ itemSelector, pagerSelector, pageSize, fillMode }) {
 		}
 	};
 
-	// ✅ 페이징 후 “말줄임 툴팁” 재적용
 	function reapplyTooltipsAfterPaging() {
 		if (!hasBS) return;
 
-		// 숨김/표시가 끝난 다음 프레임에 측정해야 정확함
 		requestAnimationFrame(() => {
 			const scope = pager.closest(".my-block") || document;
-			// my-page.js 상단에 정의된 applyEllipsisTooltips가 스코프 내에서 동작하도록
-			// (전역이 아니라면 아래처럼 직접 구현해야 하는데, 여기선 전역 함수가 아니라 지역이라 호출 불가)
-			// => 안전하게: 여기서 "간단 재호출" 로직을 한 번 더 만든다.
-
 			const targets = scope.querySelectorAll('[data-ellipsis-scope="1"] .text-truncate');
+
 			targets.forEach((el) => {
 				if (el.offsetParent === null) return;
 				if (el.classList.contains("gantt-bar") || el.closest(".gantt")) return;
@@ -806,7 +870,7 @@ function initWorklogAjax() {
 			const select = form.querySelector('select[name="days"]');
 			const days = select ? select.value : "7";
 
-			const url = new URL(window.location.href);   // ✅ 현재 mode/projectCode 포함
+			const url = new URL(window.location.href);
 			url.searchParams.set("days", days);
 
 			const body = worklogBlock.querySelector(".card-body");
@@ -896,24 +960,20 @@ function initAdminDrilldown() {
 				const userCode = row.dataset.user;
 				if (!userCode) return;
 
-				// ✅ 같은 행 클릭: 열려있으면 닫기
 				const next = row.nextElementSibling;
 				const alreadyOpen = next && next.classList.contains("admin-drill-row");
 
-				// 다른 열린 드릴다운은 닫기
 				closeAll(tbody);
 
-				statRows.forEach(r => r.classList.remove("table-active"));
+				statRows.forEach((r) => r.classList.remove("table-active"));
 				row.classList.add("table-active");
 
 				if (alreadyOpen) {
-					// 닫기
 					row.classList.remove("table-active");
 					next.remove();
 					return;
 				}
 
-				// ✅ 드릴다운 row 생성
 				const colCount = table.querySelectorAll("thead th").length || 1;
 
 				const drillTr = document.createElement("tr");
@@ -927,7 +987,6 @@ function initAdminDrilldown() {
 				row.insertAdjacentElement("afterend", drillTr);
 
 				const box = drillTr.querySelector(".admin-drill-box");
-				const hint = box.querySelector(".text-muted");
 
 				try {
 					const url = new URL("/my/admin/issues", location.origin);
@@ -936,7 +995,9 @@ function initAdminDrilldown() {
 					url.searchParams.set("userCode", userCode);
 					url.searchParams.set("limit", "200");
 
-					const res = await fetch(url.toString(), { headers: { "X-Requested-With": "fetch" } });
+					const res = await fetch(url.toString(), {
+						headers: { "X-Requested-With": "fetch" }
+					});
 					if (!res.ok) throw new Error("drilldown fetch failed " + res.status);
 
 					const list = await res.json();
@@ -946,7 +1007,6 @@ function initAdminDrilldown() {
 						return;
 					}
 
-					// ✅ 리스트 렌더
 					const ul = document.createElement("ul");
 					ul.className = "admin-drill-list";
 
@@ -974,37 +1034,37 @@ function initAdminDrilldown() {
 					box.innerHTML = "";
 					box.appendChild(ul);
 
-					// ✅ 드릴다운 렌더 후 말줄임 툴팁 적용
 					requestAnimationFrame(() => {
 						if (!(window.bootstrap && bootstrap.Tooltip)) return;
 
-						box.querySelectorAll('[data-ellipsis-scope="1"] .text-truncate').forEach((el) => {
-							if (el.offsetParent === null) return;
+						box.querySelectorAll('[data-ellipsis-scope="1"] .text-truncate').forEach(
+							(el) => {
+								if (el.offsetParent === null) return;
 
-							const text = (el.textContent || "").trim();
-							if (!text) return;
+								const text = (el.textContent || "").trim();
+								if (!text) return;
 
-							const isTruncated = el.scrollWidth > el.clientWidth;
+								const isTruncated = el.scrollWidth > el.clientWidth;
 
-							const inst = bootstrap.Tooltip.getInstance(el);
-							if (inst) inst.dispose();
+								const inst = bootstrap.Tooltip.getInstance(el);
+								if (inst) inst.dispose();
 
-							if (!isTruncated) {
-								el.removeAttribute("data-bs-toggle");
-								el.removeAttribute("data-bs-placement");
-								el.removeAttribute("data-bs-title");
-								el.removeAttribute("data-bs-html");
-								return;
+								if (!isTruncated) {
+									el.removeAttribute("data-bs-toggle");
+									el.removeAttribute("data-bs-placement");
+									el.removeAttribute("data-bs-title");
+									el.removeAttribute("data-bs-html");
+									return;
+								}
+
+								el.setAttribute("data-bs-toggle", "tooltip");
+								el.setAttribute("data-bs-placement", "top");
+								el.setAttribute("data-bs-title", text);
+								el.setAttribute("data-bs-html", "false");
+								new bootstrap.Tooltip(el, { trigger: "hover", container: "body" });
 							}
-
-							el.setAttribute("data-bs-toggle", "tooltip");
-							el.setAttribute("data-bs-placement", "top");
-							el.setAttribute("data-bs-title", text);
-							el.setAttribute("data-bs-html", "false");
-							new bootstrap.Tooltip(el, { trigger: "hover", container: "body" });
-						});
+						);
 					});
-
 				} catch (e) {
 					console.error(e);
 					box.innerHTML = `<div class="text-muted small">목록을 불러오지 못했습니다.</div>`;
@@ -1014,7 +1074,7 @@ function initAdminDrilldown() {
 	}
 
 	function closeAll(tbody) {
-		tbody.querySelectorAll("tr.admin-drill-row").forEach(tr => tr.remove());
+		tbody.querySelectorAll("tr.admin-drill-row").forEach((tr) => tr.remove());
 	}
 
 	function escapeHtmlLite(s) {
@@ -1022,11 +1082,10 @@ function initAdminDrilldown() {
 			.replaceAll("&", "&amp;")
 			.replaceAll("<", "&lt;")
 			.replaceAll(">", "&gt;")
-			.replaceAll("\"", "&quot;")
+			.replaceAll('"', "&quot;")
 			.replaceAll("'", "&#39;");
 	}
 
-	// ✅ ADMIN 드릴다운: 부트스트랩 상태 칩(이름 기준)
 	function bsStatusChipClassByName(name) {
 		const s = (name || "").trim();
 		if (s.includes("신규")) return "text-bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25";
@@ -1069,12 +1128,17 @@ function initAdminDrilldown() {
 
 function bsStatusChipClass(statusId) {
 	switch ((statusId || "").trim()) {
-		case "OB1": return "text-bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25";
-		case "OB2": return "text-bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25";
-		case "OB3": return "text-bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25";
-		case "OB4": return "text-bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25";
-		case "OB5": return "text-bg-success bg-opacity-25 text-success border border-success border-opacity-25";
-		default: return "text-bg-light text-dark border";
+		case "OB1":
+			return "text-bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25";
+		case "OB2":
+			return "text-bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25";
+		case "OB3":
+			return "text-bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25";
+		case "OB4":
+			return "text-bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25";
+		case "OB5":
+			return "text-bg-success bg-opacity-25 text-success border border-success border-opacity-25";
+		default:
+			return "text-bg-light text-dark border";
 	}
 }
-

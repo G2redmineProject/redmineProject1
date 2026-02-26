@@ -708,3 +708,23 @@
   background-color: rgba(255, 193, 7, 0.12) !important; /* 은은한 노랑 */
   border-color: rgba(255, 193, 7, 0.35) !important;
 }
+
+/* =========================
+   블록 추가 모달 hover
+   ========================= */
+#addBlockModal .list-group-item{
+  cursor: pointer;
+  transition: background-color .12s ease, transform .12s ease;
+}
+
+#addBlockModal .list-group-item:hover{
+  background:#f3f4f6;          /* 은은한 회색 */
+}
+
+#addBlockModal .list-group-item:active{
+  transform: translateY(1px);
+}
+
+#addBlockModal .list-group-item .form-check-input{
+  cursor: pointer;
+}

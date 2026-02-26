@@ -214,6 +214,8 @@ public class MyPageServiceImpl implements MyPageService {
 
 		// ✅ 모달에 보여줄 "추가 가능한 블록"만 구성 (이미 있으면 제외)
 		List<Map<String, String>> addables = new ArrayList<>();
+		addIfNotExists(addables, existed, "ASSIGNED",   "할당된 일감");
+		addIfNotExists(addables, existed, "REGISTERED", "등록한 일감");
 		addIfNotExists(addables, existed, "NOTICE", "최근공지");
 		addIfNotExists(addables, existed, "CALENDAR", "달력(주간)");
 		addIfNotExists(addables, existed, "WORKLOG", "작업내역");

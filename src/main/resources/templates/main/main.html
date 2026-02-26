@@ -20,7 +20,7 @@
 		<div class="main-grid">
 
 			<!-- 1) 프로젝트 현황 -->
-			<div class="card main-card">
+			<div class="card main-card has-skeleton" id="cardDonut">
 				<div
 					class="card-header d-flex align-items-center justify-content-between">
 					<div>
@@ -28,18 +28,46 @@
 					</div>
 					<div class="text-muted small">상태별 프로젝트 수</div>
 				</div>
+
 				<div class="card-body p-0">
-					<div class="chart-wrap">
+					<!-- ✅ prettier skeleton -->
+					<div class="skeleton-overlay sk-donut-overlay" aria-hidden="true">
+						<div class="sk sk-title w-50"></div>
+
+						<div class="sk-donut-center">
+							<div class="sk sk-ring"></div>
+							<div class="sk sk-ring-hole"></div>
+						</div>
+
+						<div class="sk-legend">
+							<div class="sk sk-legend-item">
+								<div class="sk sk-dot"></div>
+								<div class="sk sk-line w-40"></div>
+							</div>
+							<div class="sk sk-legend-item">
+								<div class="sk sk-dot"></div>
+								<div class="sk sk-line w-55"></div>
+							</div>
+							<div class="sk sk-legend-item">
+								<div class="sk sk-dot"></div>
+								<div class="sk sk-line w-35"></div>
+							</div>
+						</div>
+					</div>
+
+					<!-- ✅ real content -->
+					<div class="chart-wrap skeleton-hide">
 						<div id="donutchart" class="chart-box"></div>
 					</div>
 				</div>
 			</div>
 
-			<!-- 4) 오른쪽 아래: 진행률 + 메모달력 (반반 분할) -->
+			<!-- 2) 오른쪽 아래: 진행률 + 메모달력 (반반 분할) -->
 			<div class="main-split">
 
-				<!-- (상) 오늘의 진행률 -->
-				<div class="card main-card split-card">
+				<!-- (좌) 오늘의 진행률 -->
+				<div class="card main-card split-card has-skeleton"
+					id="cardProgress">
 					<div
 						class="card-header d-flex align-items-center justify-content-between">
 						<div>
@@ -47,30 +75,49 @@
 						</div>
 						<div class="text-muted small">
 							<span
-								th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">
-								오늘 </span>
+								th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">오늘</span>
 						</div>
 					</div>
 
 					<div class="card-body d-flex flex-column justify-content-center">
-						<div class="today-rate-value">
-							<span th:text="${todayProgressRate}">0</span>%
+						<!-- ✅ prettier skeleton -->
+						<div class="skeleton-overlay sk-progress-overlay"
+							aria-hidden="true">
+							<div class="sk sk-title w-35"></div>
+
+							<!-- big percent placeholder -->
+							<div class="sk-percent">
+								<div class="sk sk-percent-num"></div>
+								<div class="sk sk-percent-suffix"></div>
+							</div>
+
+							<!-- progress bar placeholder -->
+							<div class="sk sk-progress-track"></div>
+
+							<div class="sk sk-desc w-60"></div>
 						</div>
 
-						<div class="progress progress-lg mt-3">
-							<div class="progress-bar" role="progressbar"
-								th:style="|width:${todayProgressRate}%;|"
-								th:attr="aria-valuenow=${todayProgressRate}" aria-valuemin="0"
-								aria-valuemax="100"></div>
-						</div>
+						<!-- ✅ real content -->
+						<div class="skeleton-hide">
+							<div class="today-rate-value">
+								<span id="todayProgressRateValue">0</span>%
+							</div>
 
-						<div class="text-muted small mt-2 text-center">오늘까지 처리된 일감
-							기준 진행률</div>
+							<div class="progress progress-lg mt-3">
+								<div class="progress-bar" id="todayProgressRateBar"
+									role="progressbar" style="width: 0%;" aria-valuenow="0"
+									aria-valuemin="0" aria-valuemax="100"></div>
+							</div>
+
+							<div class="text-muted small mt-2 text-center">오늘까지 처리된 일감
+								기준 진행률</div>
+						</div>
 					</div>
 				</div>
 
-				<!-- (하) 메모 달력 -->
-				<div class="card main-card split-card memo-cal-card">
+				<!-- (우) 메모 달력 -->
+				<div class="card main-card split-card memo-cal-card has-skeleton"
+					id="cardMemoCal">
 					<div
 						class="card-header d-flex align-items-center justify-content-between">
 						<div>
@@ -91,7 +138,16 @@
 					</div>
 
 					<div class="card-body p-0">
-						<div class="memo-cal-wrap" id="memoCalendar"></div>
+						<div class="memo-cal-wrap" id="memoCalendar">
+
+							<!-- ✅ 스켈레톤 오버레이 -->
+							<div class="skeleton-overlay" aria-hidden="true">
+								<div class="sk sk-row w-45"></div>
+								<div class="sk sk-cal"></div>
+							</div>
+
+							<!-- ✅ 실제 달력은 JS가 렌더 (기존 그대로) -->
+						</div>
 					</div>
 				</div>
 
@@ -178,7 +234,7 @@
 				</div>
 			</div>
 
-			<!-- 2) 일감현황 -->
+			<!-- 4) 일감현황 -->
 			<div class="card main-card">
 				<div
 					class="card-header d-flex align-items-center justify-content-between">
@@ -321,11 +377,6 @@
 
 	<th:block layout:fragment="pageScript">
 		<script src="https://www.gstatic.com/charts/loader.js"></script>
-
-		<script th:inline="javascript">
-			window.__statusListCnt = /*[[${statusListCnt}]]*/[];
-		</script>
-
 		<script th:src="@{/js/main/main.js}"></script>
 	</th:block>
 

@@ -61,13 +61,8 @@ public class FindPwController {
 		session.setAttribute(S_OTP, otp);
 		session.setAttribute(S_EXPIRES, System.currentTimeMillis() + OTP_TTL_MS); //현재 시간부터 10분 뒤 만료
 		
-		// 이메일 발송
-		try {
-			findPwService.sendOtpMail(findUser.getEmail(), otp);
-		} catch(Exception e) {
-			ra.addFlashAttribute("findPwErrorMsg", "메일 전송에 실패했습니다. 관리자에게 문의하세요.");
-	        return "redirect:/findPw";
-		}
+		// ✅ 비동기 메일 발송 (바로 리턴)
+		findPwService.sendOtpMailAsync(findUser.getEmail(), otp);
 		
 		
 		return "redirect:/findPw/verify";
