@@ -12,6 +12,9 @@
     <link rel="stylesheet" th:href="@{/css/kanban/kanban-board.css}" />
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script defer th:src="@{/js/kanban/kanban-board.js}"></script>
   </head>
 

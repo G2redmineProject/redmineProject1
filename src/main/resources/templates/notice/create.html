@@ -17,13 +17,6 @@
       <div class="page-title-sub">프로젝트 공지를 등록할 수 있습니다.</div>
     </div>
 
-    <!-- 서버에서 내려온 에러(권한없음 등) -->
-    <div
-      th:if="${errorMessage != null}"
-      class="alert alert-danger mb-3"
-      th:text="${errorMessage}"
-    ></div>
-
     <div class="card notice-card mb-4">
       <div class="card-header">
         <div class="card-header-title">공지 등록</div>
@@ -183,6 +176,9 @@
     </div>
 
     <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script th:src="@{/js/notice/notice-create.js}"></script>
   </body>
 </html>

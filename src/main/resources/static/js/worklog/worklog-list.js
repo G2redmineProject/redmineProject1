@@ -114,6 +114,19 @@
 
   if (!ui.tbody) return;
 
+  const cpRaw = window.__CP__ || null;
+  const CURRENT_PROJECT =
+    cpRaw && cpRaw.projectCode
+      ? {
+          projectCode: String(cpRaw.projectCode).trim(),
+          projectName: String(cpRaw.projectName || "").trim(),
+          adminCk: String(cpRaw.adminCk || cpRaw.admin_ck || "").trim(),
+        }
+      : null;
+
+  const hasCurrentProject = () =>
+    !!(CURRENT_PROJECT && CURRENT_PROJECT.projectCode);
+
   // -------------------------
   // Toast
   // -------------------------
@@ -242,8 +255,9 @@
     };
 
     addBtn("이전", Math.max(1, page - 1), page === 1, false);
-    for (let p = 1; p <= totalPages; p++)
+    for (let p = 1; p <= totalPages; p++) {
       addBtn(String(p), p, false, p === page);
+    }
     addBtn("다음", Math.min(totalPages, page + 1), page === totalPages, false);
   };
 
@@ -311,7 +325,6 @@
     return hh * 60 + mm;
   };
 
-  // 초기 hidden 값이 있으면 split에 반영
   (() => {
     if (!ui.workTimeHidden) return;
     const v = (ui.workTimeHidden.value || "").trim();
@@ -345,12 +358,13 @@
       if (pCode) ok = ok && d.projectCode === pCode;
       if (tCode) ok = ok && d.typeCode === tCode;
       if (wCode) ok = ok && d.workerCode === wCode;
-      if (title)
+      if (title) {
         ok =
           ok &&
           String(d.issueTitle || "")
             .toLowerCase()
             .includes(title);
+      }
       if (workDate) ok = ok && sameDay(d.workDate, workDate);
       if (minSpent != null) ok = ok && Number(d.spentMinutes || 0) >= minSpent;
 
@@ -484,8 +498,8 @@
   // =========================================================
   // 1) 필터: 프로젝트 모달
   // =========================================================
-  let projectPickTarget = "filter"; // filter | create | edit
-  let reopenAfterProjectPick = null; // "create" | "edit" | null
+  let projectPickTarget = "filter";
+  let reopenAfterProjectPick = null;
 
   const renderProjectList = (list) => {
     if (!ui.projectModalList) return;
@@ -502,7 +516,6 @@
     list.forEach((p) => {
       const code = String(p.projectCode ?? p.code ?? "").trim();
       const name = String(p.projectName ?? p.name ?? "").trim();
-
       const adminCk = String(p.adminCk ?? p.admin_ck ?? "N").trim();
 
       const btn = document.createElement("button");
@@ -519,7 +532,6 @@
   const fetchProjectsForModal = async () => {
     const q = (ui.projectModalSearch?.value || "").trim();
 
-    // 핵심: 등록(create)일 때는 create 엔드포인트를 친다 (adminCk 내려옴)
     const base =
       projectPickTarget === "create"
         ? "/api/projects/modal/create"
@@ -611,7 +623,6 @@
     openProjectModal("create");
   });
 
-  // 수정에서는 프로젝트 변경 불가
   ui.btnEditPickProject?.addEventListener("click", (e) => {
     e.preventDefault();
     showToast("수정에서는 프로젝트를 변경할 수 없습니다.");
@@ -673,13 +684,64 @@
     }
   };
 
+  const fetchIsAdminOfProject = async (projectCode) => {
+    const p = String(projectCode || "").trim();
+    if (!p) return false;
+
+    const qs = new URLSearchParams({ projectCode: p });
+    const res = await fetch(`/api/authority/project/isAdmin?${qs.toString()}`, {
+      headers: { Accept: "application/json" },
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.success !== true) return false;
+    return data?.isAdmin === true;
+  };
+
+  const applyCurrentProjectToFilter = () => {
+    if (!hasCurrentProject()) return false;
+    if (ui.projectValue?.value?.trim()) return false;
+
+    if (ui.projectValue) ui.projectValue.value = CURRENT_PROJECT.projectCode;
+    if (ui.projectText)
+      ui.projectText.value = CURRENT_PROJECT.projectName || "";
+    return true;
+  };
+
+  const applyCurrentProjectToCreate = async () => {
+    if (!hasCurrentProject()) return false;
+
+    if (ui.wlProjectCode) ui.wlProjectCode.value = CURRENT_PROJECT.projectCode;
+    if (ui.wlProjectText)
+      ui.wlProjectText.value = CURRENT_PROJECT.projectName || "";
+
+    if (ui.wlIssueText) ui.wlIssueText.value = "";
+    if (ui.wlIssueCode) ui.wlIssueCode.value = "";
+
+    if (ui.wlWorkerText) ui.wlWorkerText.value = "";
+    if (ui.wlWorkerCode) ui.wlWorkerCode.value = "";
+
+    clearIssueCache("create");
+
+    let isAdmin = false;
+    if (CURRENT_PROJECT.adminCk) {
+      isAdmin = CURRENT_PROJECT.adminCk.toUpperCase() === "Y";
+    } else {
+      isAdmin = await fetchIsAdminOfProject(CURRENT_PROJECT.projectCode);
+    }
+
+    createProjectAdminCk = isAdmin ? "Y" : "N";
+    applyWorkerRuleByAdminCk("create");
+    return true;
+  };
+
   // =========================================================
   // 등록 모달 초기화
   // =========================================================
   let workerCreateCache = [];
   let workerCreateCacheProjectCode = "";
 
-  const resetCreateForm = () => {
+  const resetCreateForm = async () => {
     if (ui.wlProjectText) ui.wlProjectText.value = "";
     if (ui.wlProjectCode) ui.wlProjectCode.value = "";
 
@@ -700,11 +762,21 @@
     createProjectAdminCk = "N";
     setWorkerPickEnabled(ui.btnPickWorker, true);
 
+    if (ui.btnPickProject) {
+      ui.btnPickProject.disabled = false;
+      ui.btnPickProject.classList.remove("disabled");
+      ui.btnPickProject.setAttribute("aria-disabled", "false");
+    }
+
     clearIssueCache("create");
+
+    if (hasCurrentProject()) {
+      await applyCurrentProjectToCreate();
+    }
   };
 
-  ui.createModalEl?.addEventListener("hidden.bs.modal", () => {
-    if (!suppressCreateReset) resetCreateForm();
+  ui.createModalEl?.addEventListener("hidden.bs.modal", async () => {
+    if (!suppressCreateReset) await resetCreateForm();
 
     if (refreshListOnCreateClose) {
       refreshListOnCreateClose = false;
@@ -712,8 +784,9 @@
     }
   });
 
-  ui.btnOpenCreate?.addEventListener("click", (e) => {
+  ui.btnOpenCreate?.addEventListener("click", async (e) => {
     e.preventDefault();
+    await resetCreateForm();
     modal.create?.show();
   });
 
@@ -751,7 +824,6 @@
     editProjectAdminCk = "N";
     setWorkerPickEnabled(ui.btnEditPickWorker, true);
 
-    // 다음번에 혹시 재사용될 수 있으니 복구
     if (ui.btnEditPickProject) ui.btnEditPickProject.disabled = false;
     if (ui.btnEditPickIssue) ui.btnEditPickIssue.disabled = false;
 
@@ -808,7 +880,7 @@
   });
 
   // =========================================================
-  // 필터: 유형 모달 (issue-list와 동일)
+  // 필터: 유형 모달
   // =========================================================
   let typeCache = [];
 
@@ -1140,8 +1212,7 @@
     container.appendChild(ul);
   };
 
-  // 작업자 모달 복귀 플래그
-  let reopenAfterWorkerPick = null; // "create" | "edit" | null
+  let reopenAfterWorkerPick = null;
 
   ui.workerModalEl?.addEventListener("hidden.bs.modal", () => {
     const t = reopenAfterWorkerPick;
@@ -1203,20 +1274,6 @@
     }
 
     await showWorkerModal();
-  };
-
-  const fetchIsAdminOfProject = async (projectCode) => {
-    const p = String(projectCode || "").trim();
-    if (!p) return false;
-
-    const qs = new URLSearchParams({ projectCode: p });
-    const res = await fetch(`/api/authority/project/isAdmin?${qs.toString()}`, {
-      headers: { Accept: "application/json" },
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || data?.success !== true) return false;
-    return data?.isAdmin === true;
   };
 
   const openWorkerModalForEdit = async () => {
@@ -1284,16 +1341,15 @@
   });
 
   // =========================================================
-  // 등록/수정: 일감 선택 모달 (worklog용)
+  // 등록/수정: 일감 선택 모달
   // =========================================================
   let issueCreateCache = [];
   let issueEditCache = [];
   let issueCacheKeyCreate = "";
   let issueCacheKeyEdit = "";
 
-  // 일감 모달 복귀 플래그 (핵심)
-  let reopenAfterIssuePick = null; // "create" | "edit" | null
-  let currentIssueMode = "create"; // 검색 분기 안정화
+  let reopenAfterIssuePick = null;
+  let currentIssueMode = "create";
 
   const fetchIssuesForProject = async (projectCode, adminCk) => {
     const pCode = String(projectCode || "").trim();
@@ -1434,7 +1490,6 @@
     const parentModalEl = isCreate ? ui.createModalEl : ui.editModalEl;
     const parentModal = isCreate ? modal.create : modal.edit;
 
-    // 부모 모달 숨겼다가 일감 모달 닫히면 원복시키기 위한 플래그 세팅
     if (parentModalEl && parentModal) {
       if (isCreate) {
         suppressCreateReset = true;
@@ -1464,13 +1519,11 @@
     openIssueModal("create");
   });
 
-  // 수정에서는 일감 변경 불가
   ui.btnEditPickIssue?.addEventListener("click", (e) => {
     e.preventDefault();
     showToast("수정에서는 일감을 변경할 수 없습니다.");
   });
 
-  // 일감 모달 닫힐 때: create/edit로 정확히 복귀 (핵심)
   ui.issueModalEl?.addEventListener("hidden.bs.modal", () => {
     const t = reopenAfterIssuePick;
     reopenAfterIssuePick = null;
@@ -1487,7 +1540,6 @@
     }
   });
 
-  // 검색은 currentIssueMode로 분기해서 안정화
   ui.issueModalSearch?.addEventListener("input", () => {
     const q = ui.issueModalSearch?.value || "";
 
@@ -1624,10 +1676,14 @@
     return data;
   };
 
-  const resetCreateForContinue = () => {
+  const resetCreateForContinue = async () => {
     if (ui.wlHour) ui.wlHour.value = "";
     if (ui.wlMinute) ui.wlMinute.value = "";
     if (ui.wlDesc) ui.wlDesc.value = "";
+
+    if (hasCurrentProject()) {
+      await applyCurrentProjectToCreate();
+    }
   };
 
   ui.btnWlSaveContinue?.addEventListener("click", async (e) => {
@@ -1644,7 +1700,7 @@
       await postCreate();
       refreshListOnCreateClose = true;
       showToast("등록되었습니다.");
-      resetCreateForContinue();
+      await resetCreateForContinue();
     } catch (err) {
       showToast(err?.message || "등록에 실패했습니다.");
     } finally {
@@ -1769,10 +1825,9 @@
   });
 
   // =========================================================
-  // 컨텍스트 메뉴 (worklog)
-  // issue-list처럼 body 이동 + fixed 배치
+  // 컨텍스트 메뉴
   // =========================================================
-  const permCache = new Map(); // key: `${projectCode}:${workLogCode}` -> { canEdit, canDelete }
+  const permCache = new Map();
 
   const fetchWorklogMenuPerms = async (projectCode, workLogCode) => {
     const p = String(projectCode || "").trim();
@@ -2057,7 +2112,6 @@
 
     if (ui.weDesc) ui.weDesc.value = description || "";
 
-    // 수정에서는 프로젝트/일감 변경 불가(버튼 비활성화)
     if (ui.btnEditPickProject) ui.btnEditPickProject.disabled = true;
     if (ui.btnEditPickIssue) ui.btnEditPickIssue.disabled = true;
 
@@ -2145,6 +2199,12 @@
   // -------------------------
   // 초기 렌더
   // -------------------------
-  rows().forEach((tr) => (tr.dataset.filtered = "0"));
-  render();
+  const applied = applyCurrentProjectToFilter();
+
+  if (applied) {
+    applyFiltersClient();
+  } else {
+    rows().forEach((tr) => (tr.dataset.filtered = "0"));
+    render();
+  }
 })();

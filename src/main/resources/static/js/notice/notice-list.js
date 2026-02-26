@@ -553,6 +553,16 @@
     location.href = "/noticeCreate";
   });
 
-  rows().forEach((tr) => (tr.dataset.filtered = "0"));
-  render();
+  // 초기 렌더
+  const cp = window.__CP__;
+  if (!ui.projectValue?.value?.trim() && cp?.projectCode) {
+    ui.projectValue.value = String(cp.projectCode);
+    ui.projectText.value = cp.projectName || "";
+    if (ui.projectNameHidden) ui.projectNameHidden.value = ui.projectText.value;
+
+    applyFiltersClient(); // render 포함
+  } else {
+    rows().forEach((tr) => (tr.dataset.filtered = "0"));
+    render();
+  }
 })();

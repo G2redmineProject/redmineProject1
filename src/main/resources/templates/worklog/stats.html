@@ -380,6 +380,9 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script th:src="@{/js/worklog/worklog-stats.js}"></script>
   </body>
 </html>

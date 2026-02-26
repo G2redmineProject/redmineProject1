@@ -248,6 +248,9 @@
     <input type="hidden" name="projectName" id="filterProjectNameHidden" />
     <input type="hidden" name="userName" id="filterUserNameHidden" />
 
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script th:src="@{/js/log/logs.js}"></script>
   </body>
 </html>

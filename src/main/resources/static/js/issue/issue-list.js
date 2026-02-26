@@ -1172,6 +1172,13 @@
   });
 
   // 초기 렌더
-  rows().forEach((tr) => (tr.dataset.filtered = "0"));
-  render();
+  const cp = window.__CP__;
+  if (!ui.projectValue?.value && !ui.projectText?.value && cp?.projectCode) {
+    ui.projectValue.value = String(cp.projectCode);
+    ui.projectText.value = cp.projectName || "";
+    applyFiltersClient(); // render 포함
+  } else {
+    rows().forEach((tr) => (tr.dataset.filtered = "0"));
+    render();
+  }
 })();

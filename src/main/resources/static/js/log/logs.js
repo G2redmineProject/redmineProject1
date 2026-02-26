@@ -722,7 +722,14 @@
     return "#";
   };
 
-  // 초기: 최근 7일 기본값 세팅 + 자동 적용
+  // 초기 렌더
+  const cp = window.__CP__;
+  if (!ui.projectValue?.value?.trim() && cp?.projectCode) {
+    ui.projectValue.value = String(cp.projectCode);
+    ui.projectText.value = cp.projectName || "";
+    syncHiddenNames();
+  }
+
   setDefault7DaysIfEmpty();
   applyFiltersClient();
 })();

@@ -1241,6 +1241,12 @@
       clearKeepFields();
     }
 
+    const cp = window.__CP__;
+    if (!projectCode?.value?.trim() && cp?.projectCode) {
+      projectCode.value = String(cp.projectCode);
+      projectText.value = cp.projectName || "";
+    }
+
     const p = projectCode?.value?.trim();
     if (p) await refreshCanCreate(p);
 
