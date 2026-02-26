@@ -1,15 +1,26 @@
 package com.yedam.app.docs.web;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -20,6 +31,7 @@ import com.yedam.app.docs.service.DocsService;
 import com.yedam.app.docs.service.DocsVO;
 import com.yedam.app.login.service.UserVO;
 
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 
@@ -140,5 +152,80 @@ public class DocsController {
 			e.printStackTrace();
 			return "redirect:/docs";
 		}
+	}
+
+	// 파일 다운로드
+	@GetMapping("/docsDownload")
+	public ResponseEntity<Resource> downloadFile(@RequestParam Integer fileCode, HttpSession session) {
+		try {
+			UserVO user = (UserVO) session.getAttribute("user");
+			if (user == null)
+				return ResponseEntity.status(401).build();
+
+			DocsVO file = docsService.getFileInfo(fileCode);
+			if (file == null)
+				return ResponseEntity.notFound().build();
+
+			Path filePath = Paths.get(file.getPath());
+			Resource resource = new FileSystemResource(filePath);
+			if (!resource.exists())
+				return ResponseEntity.notFound().build();
+
+			String encodedName = URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8).replace("+", "%20");
+
+			return ResponseEntity.ok()
+					.header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + encodedName)
+					.header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE).body(resource);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return ResponseEntity.internalServerError().build();
+		}
+	}
+	
+	// 폴더 다운로드
+	@GetMapping("/api/folders/{folderCode}/download")
+	public void downloadFolder(@PathVariable Integer folderCode, HttpSession session,
+	                           HttpServletResponse response) throws IOException {
+	    UserVO user = (UserVO) session.getAttribute("user");
+	    if (user == null) {
+	        response.sendError(401);
+	        return;
+	    }
+	    docsService.downloadFolderAsZip(folderCode, response);
+	}
+	
+	// 파일 삭제
+	@DeleteMapping("/api/docs/{fileCode}")
+	@ResponseBody
+	public ResponseEntity<?> deleteFile(@PathVariable Integer fileCode, HttpSession session) {
+	    try {
+	        UserVO user = (UserVO) session.getAttribute("user");
+	        if (user == null) return ResponseEntity.status(401).body("{\"message\":\"로그인이 필요합니다.\"}");
+
+	        int result = docsService.removeFile(fileCode);
+	        if (result > 0) return ResponseEntity.ok().body("{\"message\":\"success\"}");
+	        else return ResponseEntity.badRequest().body("{\"message\":\"삭제 실패\"}");
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.internalServerError().body("{\"message\":\"서버 오류\"}");
+	    }
+	}
+	
+	// 폴더 삭제
+	@DeleteMapping("/api/folders/{folderCode}")
+	@ResponseBody
+	public ResponseEntity<?> deleteFolder(@PathVariable Integer folderCode, HttpSession session) {
+	    try {
+	        UserVO user = (UserVO) session.getAttribute("user");
+	        if (user == null) return ResponseEntity.status(401).body("{\"message\":\"로그인이 필요합니다.\"}");
+
+	        docsService.removeFolder(folderCode);
+	        return ResponseEntity.ok().body("{\"message\":\"success\"}");
+	    } catch (RuntimeException e) {
+	        return ResponseEntity.badRequest().body("{\"message\":\"" + e.getMessage() + "\"}");
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.internalServerError().body("{\"message\":\"서버 오류\"}");
+	    }
 	}
 }

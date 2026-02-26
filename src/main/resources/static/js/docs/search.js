@@ -76,6 +76,10 @@ document.addEventListener("DOMContentLoaded", () => {
 		if (projectCache.length) return true;
 		try {
 			const res = await fetch("/api/projects/modal", { headers: { Accept: "application/json" } });
+			if (res.status === 403) {
+			    alert('권한이 없습니다.');
+			    return;
+			}
 			if (!res.ok) throw new Error("프로젝트 목록을 불러오지 못했습니다.");
 			projectCache = (await res.json()).map(p => ({ code: String(p.projectCode), name: p.projectName }));
 			return true;
@@ -605,6 +609,45 @@ document.addEventListener("DOMContentLoaded", () => {
 			});
 
 			div.appendChild(nameSpan);
+
+			// 폴더 삭제 버튼 (upload context에서만 표시)
+			const delBtn = document.createElement("button");
+			delBtn.type = "button";
+			delBtn.className = "btn btn-sm btn-danger ms-2 btn-folder-delete";
+			delBtn.innerHTML = '<i class="fas fa-trash"></i>';
+			delBtn.dataset.folderCode = folder.code;
+			delBtn.dataset.folderName = folder.name;
+			delBtn.addEventListener("click", async (e) => {
+				e.stopPropagation();
+				if (!confirm(`'${folder.name}' 폴더를 삭제하시겠습니까?\n비어있는 폴더만 삭제 가능합니다.`)) return;
+				try {
+					const res = await fetch(`/api/folders/${folder.code}`, { method: "DELETE" });
+					const data = await res.json();
+					if (res.status === 403) {
+						alert('권한이 없습니다.');
+						return;
+					}
+					if (!res.ok) {
+						alert(data.message);
+						return;
+					}
+					// 캐시 초기화 후 트리 갱신
+					folderCache = null;
+					await ensureFolderCache();
+					const treeData = buildFolderTreeForJS(folderCache);
+					const selectedProjectCode = currentFolderContext === "upload"
+						? ui.uploadProjectValue?.value
+						: ui.filterProjectValue?.value;
+					const filtered = selectedProjectCode
+						? treeData.filter(p => String(p.code) === String(selectedProjectCode))
+						: treeData;
+					renderFolderTree(filtered, document.getElementById("folderModalTree"));
+				} catch (e) {
+					alert("서버 오류가 발생했습니다.");
+				}
+			});
+			div.appendChild(delBtn);
+
 			li.appendChild(div);
 
 			// 자식 노드 ul
@@ -804,6 +847,11 @@ document.addEventListener("DOMContentLoaded", () => {
 				})
 			});
 
+			if (res.status === 403) {
+			    alert('권한이 없습니다.');
+			    return;
+			}
+			
 			if (!res.ok) throw new Error("폴더 생성에 실패했습니다.");
 
 			showToast(`'${name}' 폴더가 생성되었습니다.`);

@@ -18,7 +18,7 @@ public class DocsVO {
 	// 파일
 	private Integer fileCode; // Not Null
 	private String originalName;
-	private String storedName;
+	private String storedName; 
 	private String path;
 	private String mimeType;
 	private Integer sizeBytes; // Not Null
