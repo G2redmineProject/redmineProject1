@@ -363,7 +363,29 @@
     });
   });
 
-  // 초기 counter 세팅 + 에디터
+  // 초기 렌더
+  const cp = window.__CP__;
+  if (!ui.projectCode?.value?.trim() && cp?.projectCode) {
+    ui.projectCode.value = String(cp.projectCode);
+    ui.projectText.value = cp.projectName || "";
+
+    fetch(
+      `/api/authority/notice/canWrite?projectCode=${encodeURIComponent(ui.projectCode.value)}`,
+      {
+        headers: { Accept: "application/json" },
+      },
+    )
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => {
+        const canWrite = !!d.canWrite;
+        if (ui.btnSave) ui.btnSave.dataset.canWrite = String(canWrite);
+        if (!canWrite) showToast("이 프로젝트는 공지 등록 권한이 없습니다.");
+      })
+      .catch(() => {
+        if (ui.btnSave) ui.btnSave.dataset.canWrite = "false";
+      });
+  }
+
   updateTitleCounter();
   updateContentCounter();
   initEditor();

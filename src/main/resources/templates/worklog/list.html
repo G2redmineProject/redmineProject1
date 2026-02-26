@@ -829,6 +829,9 @@
       </div>
     </div>
 
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script th:src="@{/js/worklog/worklog-list.js}"></script>
   </body>
 </html>

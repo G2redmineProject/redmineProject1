@@ -401,6 +401,9 @@
 
     <script src="https://cdn.ckeditor.com/ckeditor5/41.0.0/classic/ckeditor.js"></script>
     <script th:src="@{/js/ckeditor5.js}"></script>
+    <script th:inline="javascript">
+      window.__CP__ = /*[[${session.currentProject}]]*/ null;
+    </script>
     <script th:src="@{/js/issue/issue-insert.js}"></script>
   </body>
 </html>

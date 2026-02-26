@@ -1597,6 +1597,11 @@
   };
 
   const initView = () => {
+    const cp = window.__CP__;
+    if (!ui.projectValue?.value?.trim() && cp?.projectCode) {
+      ui.projectValue.value = String(cp.projectCode);
+      ui.projectText.value = cp.projectName || "";
+    }
     forceScopeME();
     applyFiltersClient();
     updateCounts();
