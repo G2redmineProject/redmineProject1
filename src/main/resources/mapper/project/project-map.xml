@@ -237,6 +237,7 @@
 	    SELECT 
 		    user_code,
 		    name,
+		    project_code,
 		    category,  -- 카테고리별로 그룹화
 		    MAX(admin) AS admin,
 		    MAX(rd_rol) AS rd_rol,
@@ -249,6 +250,7 @@
 		        u.user_code,
 		        u.name,
 		        ra.category,
+		        pru.project_code,
 		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
 		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol,ra.ra_code
 		    FROM users u
@@ -264,6 +266,7 @@
 		        u.user_code,
 		        u.name,
 		        ra.category,
+		        gpr.project_code,
 		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
 		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol,ra.ra_code
 		    FROM users u
@@ -273,8 +276,8 @@
 		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
 		    WHERE u.user_code = #{userCode} AND ra.category IS NOT NULL
 		) combined_auth
-		GROUP BY user_code, name, category
-		ORDER BY max(ra_code) asc 
+		GROUP BY user_code, name, project_code, category
+		ORDER BY max(ra_code) ASC 
     </select>
     
     
@@ -440,4 +443,18 @@
 	       SET stored_name = #{newStoredName}
 	     WHERE file_detail_code = #{fileDetailCode}
 	</update>
+	
+	
+	<select id="selectManager" parameterType="Integer"
+		resultType="ProjectManagerVO">
+		SELECT DISTINCT 
+			u.user_code,
+	    	u.name AS name
+			FROM vw_user_auth vua
+			JOIN projects p ON vua.project_code = p.project_code
+			JOIN users u    ON p.user_code = u.user_code  -- 프로젝트 테이블의 담당자 ID와 사용자 테이블 조인
+			WHERE vua.user_code = #{userCode}                       -- '본인'의 user_code
+			  AND ( vua.status = 'OD1' 
+			        OR (vua.status = 'OD3' AND vua.admin_ck = 'Y') )
+	</select>
 </mapper>

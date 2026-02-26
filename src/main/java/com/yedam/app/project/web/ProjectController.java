@@ -17,6 +17,7 @@ import com.yedam.app.project.service.GroupVO;
 import com.yedam.app.project.service.ProjectCopyVO;
 import com.yedam.app.project.service.ProjectDetailVO;
 import com.yedam.app.project.service.ProjectGroupDetailVO;
+import com.yedam.app.project.service.ProjectManagerVO;
 import com.yedam.app.project.service.ProjectMemberDetailVO;
 import com.yedam.app.project.service.ProjectPrVO;
 import com.yedam.app.project.service.ProjectRequestDTO;
@@ -39,6 +40,7 @@ public class ProjectController {
 	@GetMapping("projects")
 	public String projectList(HttpSession session, Model model) {
 		UserVO user = (UserVO) session.getAttribute("user");
+		session.removeAttribute("currentProject");
 
 		if (user == null) {
 			return "redirect:/login";
@@ -58,11 +60,14 @@ public class ProjectController {
 			progMap.put(prog.getProjectCode(), prog);
 		}
 
+		// 4. 프로젝트 매니저
+		List<ProjectManagerVO> manager = projectService.findSelectManager(userCode);
+
 		model.addAttribute("list", projects);
 		model.addAttribute("progMap", progMap);
 		model.addAttribute("auth", auth);
 		model.addAttribute("userCode", userCode); // userCode 추가
-
+		model.addAttribute("manager", manager);
 		return "project/projects";
 	}
 
@@ -70,7 +75,7 @@ public class ProjectController {
 	@GetMapping("projectsmgr")
 	public String projectmgrList(HttpSession session, Model model) {
 		UserVO user = (UserVO) session.getAttribute("user");
-
+		session.removeAttribute("currentProject");
 		if (user == null) {
 			return "redirect:/login";
 		}
@@ -88,12 +93,14 @@ public class ProjectController {
 		for (ProjectPrVO prog : progVO) {
 			progMap.put(prog.getProjectCode(), prog);
 		}
+		// 4. 프로젝트 매니저
+		List<ProjectManagerVO> manager = projectService.findSelectManager(userCode);
 
 		model.addAttribute("list", projects);
 		model.addAttribute("progMap", progMap);
 		model.addAttribute("auth", auth);
 		model.addAttribute("userCode", userCode); // userCode 추가
-
+		model.addAttribute("manager", manager);
 		return "project/projectsmgr";
 	}
 
@@ -249,6 +256,13 @@ public class ProjectController {
 		model.addAttribute("users", allUsers);
 		model.addAttribute("roles", allRoles);
 		model.addAttribute("allGroups", allGroups);
+		
+		// 프로젝트 컨텍스트용 세션저장
+		// currentProject에 코드 + 이름 같이 저장
+		Map<String, Object> currentProject = new HashMap<>();
+		currentProject.put("projectCode", projectCode);
+		currentProject.put("projectName", project.getProjectName());
+		session.setAttribute("currentProject", currentProject);
 
 		return "project/projectinfo";
 	}
