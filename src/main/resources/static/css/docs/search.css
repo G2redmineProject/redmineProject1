@@ -236,3 +236,22 @@
 	line-height: 1;
 	user-select: none;
 }
+
+.btn-folder-delete {
+	opacity: 0;
+	transition: opacity 0.15s;
+	margin-left: auto !important; /* 오른쪽 끝 대신 */
+	margin-right: 8px; /* 오른쪽 여백 */
+	width: 32px;
+	height: 32px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+	align-self: center;
+}
+
+.folder-item:hover .btn-folder-delete {
+	opacity: 1;
+}

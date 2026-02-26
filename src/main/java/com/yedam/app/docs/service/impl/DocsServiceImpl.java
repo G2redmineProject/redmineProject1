@@ -1,14 +1,25 @@
 package com.yedam.app.docs.service.impl;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
+import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Service;
 
 import com.yedam.app.docs.mapper.DocsMapper;
 import com.yedam.app.docs.service.DocsService;
 import com.yedam.app.docs.service.DocsVO;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -40,5 +51,103 @@ public class DocsServiceImpl implements DocsService {
 			}
 		});
 		return list;
+	}
+
+	// 문서 단건 조회(다운로드용)
+	@Override
+	public DocsVO getFileInfo(Integer fileCode) {
+		return docsMapper.selectFileByCode(fileCode);
+	}
+
+	// 폴더 내 모든 파일 조회 하위 폴더 포함(폴더 다운로드용)
+	@Override
+	public void downloadFolderAsZip(Integer folderCode, HttpServletResponse response) throws IOException {
+		// 폴더명 조회
+		List<DocsVO> files = docsMapper.selectFilesByFolder(folderCode);
+
+		// 루트 폴더명 가져오기 (첫 번째 파일의 folderPath 첫 세그먼트)
+		String rootFolderName = "folder_" + folderCode;
+		if (!files.isEmpty() && files.get(0).getFolderPath() != null) {
+			String[] parts = files.get(0).getFolderPath().split("/");
+			if (parts.length > 0)
+				rootFolderName = parts[1]; // SYS_CONNECT_BY_PATH는 앞에 /가 붙음
+		}
+
+		String zipName = rootFolderName + ".zip";
+		response.setContentType("application/zip");
+		response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''"
+				+ URLEncoder.encode(zipName, StandardCharsets.UTF_8).replace("+", "%20"));
+
+		try (ZipOutputStream zos = new ZipOutputStream(response.getOutputStream())) {
+			// 중복 방지용
+			Set<String> addedEntries = new HashSet<>();
+
+			for (DocsVO file : files) {
+				File f = new File(file.getPath());
+				if (!f.exists())
+					continue;
+
+				// folderPath: /루트폴더/하위폴더 형태
+				// 앞의 / 제거 후 파일명 붙이기
+				String folderPath = file.getFolderPath() != null ? file.getFolderPath().replaceFirst("^/", "")
+						: rootFolderName;
+
+				String entryName = folderPath + "/" + file.getOriginalName();
+
+				// 중복 파일명 처리
+				String finalEntry = entryName;
+				int count = 1;
+				while (addedEntries.contains(finalEntry)) {
+					String nameOnly = file.getOriginalName();
+					int dotIdx = nameOnly.lastIndexOf(".");
+					if (dotIdx > 0) {
+						finalEntry = folderPath + "/" + nameOnly.substring(0, dotIdx) + "(" + count + ")"
+								+ nameOnly.substring(dotIdx);
+					} else {
+						finalEntry = folderPath + "/" + nameOnly + "(" + count + ")";
+					}
+					count++;
+				}
+				addedEntries.add(finalEntry);
+
+				ZipEntry entry = new ZipEntry(finalEntry);
+				zos.putNextEntry(entry);
+
+				try (FileInputStream fis = new FileInputStream(f)) {
+					byte[] buffer = new byte[4096];
+					int len;
+					while ((len = fis.read(buffer)) > 0) {
+						zos.write(buffer, 0, len);
+					}
+				}
+				zos.closeEntry();
+			}
+		}
+	}
+
+	// 파일 삭제
+	@Override
+	public int removeFile(Integer fileCode) {
+		DocsVO file = docsMapper.selectFileByCode(fileCode);
+		if (file != null) {
+			File f = new File(file.getPath());
+			if (f.exists())
+				f.delete();
+		}
+		return docsMapper.deleteFile(fileCode);
+	}
+
+	// 폴더 삭제
+	@Override
+	public int removeFolder(Integer folderCode) {
+		int fileCount = docsMapper.countFilesByFolder(folderCode);
+		if (fileCount > 0)
+			throw new RuntimeException("파일이 있는 폴더는 삭제할 수 없습니다.");
+
+		int childCount = docsMapper.countChildFolders(folderCode);
+		if (childCount > 0)
+			throw new RuntimeException("하위 폴더가 있는 폴더는 삭제할 수 없습니다.");
+
+		return docsMapper.deleteFolder(folderCode);
 	}
 }
