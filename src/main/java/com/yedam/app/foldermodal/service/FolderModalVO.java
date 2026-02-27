@@ -17,4 +17,8 @@ public class FolderModalVO {
 	private Integer projectCode; // Not Null
 	private String projectName;
 	private List<FolderModalVO> children; // 하위 유형 재귀
+	
+	// 권한 체크
+	private Integer admin;
+	private String rdRol;
 }

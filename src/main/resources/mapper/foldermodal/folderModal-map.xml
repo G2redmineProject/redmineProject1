@@ -18,16 +18,17 @@
 		  ON u.user_code = df.user_code
 		LEFT JOIN projects p
 		  ON df.project_code = p.project_code
-		WHERE EXISTS (
-		    SELECT 1
-		    FROM VW_USER_PROJECT_AUTH v
-		    WHERE v.user_code = #{userCode}
-		      AND v.project_code = df.project_code
-			  AND (
-		            (v.role_code = 1 AND p.status IN ('OD1','OD3'))
-		         OR (v.role_code = 2 AND p.status = 'OD1')
-			  )
-		)
+		WHERE (
+	        #{admin} = 1 
+	        OR EXISTS (
+	            SELECT 1
+	            FROM VW_USER_PROJECT_AUTH vupa
+	            WHERE vupa.user_code = #{userCode}
+	              AND vupa.project_code = df.project_code
+	              AND vupa.category = '문서'
+	              AND vupa.rd_rol = 'Y'
+	        )
+	    )
 		ORDER BY NVL(dfh.folder_name, df.folder_name), df.folder_name
 	</select>
 	
@@ -38,14 +39,13 @@
     FROM projects p
     WHERE EXISTS (
         SELECT 1
-        FROM VW_USER_PROJECT_AUTH v
-        WHERE v.user_code = #{userCode}
-          AND v.project_code = p.project_code
-          AND (
-                (v.role_code = 1 AND p.status IN ('OD1','OD3'))
-             OR (v.role_code = 2 AND p.status = 'OD1')
-          )
+        FROM VW_USER_PROJECT_AUTH vupa
+        WHERE vupa.user_code = #{userCode}
+          AND vupa.project_code = p.project_code
+          AND vupa.category = '문서'  
+          AND vupa.rd_rol = 'Y' 
+          AND p.status IN ('OD1','OD3') /* 필요하다면 상태 조건 유지 */ 
     )
     ORDER BY p.project_code
-</select>
+	</select>
 </mapper>
