@@ -458,20 +458,27 @@
 								<div th:each="w : ${dayEntry.value}" class="work-card">
 									<div class="work-head">
 										<span class="work-time" th:text="${w.time}">17:06</span> <span
-											class="work-slash">/</span> <span class="work-action"
-											th:text="${w.actionLabel}">수정</span> <span class="work-slash">/</span>
-										<span class="work-actor" th:text="${w.actorName}">나</span>
+											class="work-slash">/</span>
+
+										<!-- ✅ [일감] + 수정 -->
+										<span class="work-kind" th:text="|[${w.targetTypeLabel}]|">[일감]</span>
+										<span class="work-action" th:text="${w.actionLabel}">수정</span>
+
+										<span class="work-slash">/</span> <span class="work-actor"
+											th:text="${w.actorName}">나</span>
 									</div>
 
 									<div class="work-title">
 										<span class="work-proj" th:text="${w.projectName}">프로젝트</span>
 										<span> / </span> <a th:if="${w.targetLink}" class="work-link"
 											th:href="${w.targetUrl}"
-											th:text="${w.issueTitle != null ? w.issueTitle : '-'}">[일감]
-											제목</a> <span th:if="${!w.targetLink}" class="work-nolink"
-											th:text="${w.issueTitle != null ? w.issueTitle : '-'}">[문서]
-											파일명</span> <span
-											th:if="${!w.targetLink and #strings.contains(w.issueTitle,'[문서]')}"
+											th:text="${w.issueTitle != null ? w.issueTitle : '-'}">제목</a>
+
+										<span th:if="${!w.targetLink}" class="work-nolink"
+											th:text="${w.issueTitle != null ? w.issueTitle : '-'}">파일명</span>
+
+										<!-- ✅ 문서만 준비중 유지하고 싶으면 targetTypeLabel로 체크 -->
+										<span th:if="${!w.targetLink and w.targetTypeLabel == '문서'}"
 											class="work-badge">준비중</span>
 									</div>
 
