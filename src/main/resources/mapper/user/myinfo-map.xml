@@ -40,49 +40,73 @@
   		WHERE user_code = #{userCode}
 	</update>
 	
-	<!-- 
-	   - 내가 속한 프로젝트 + 역할 + 상태명
-       - 종료(OD3)는 기본 숨김
-       - 단, 내가 관리자 역할(admin_ck='Y')로 속한 프로젝트면 종료도 보이게
-  	-->
-  	<select id="selectMyProjectsWithRoles" resultType="MyProjectRoleVO">
-  	<![CDATA[
-    	SELECT
-      		p.project_code AS projectCode,
-      		p.project_name AS projectName,
-      		p.status       AS status,
-      		cc.code_name   AS statusName,
-      		LISTAGG(r.role_name, ', ') WITHIN GROUP (ORDER BY r.role_name) AS roles
-    	FROM project_role_user pru
-    		
-    	JOIN projects p
-      	ON p.project_code = pru.project_code
-      	
-    	JOIN role r
-      	ON r.role_code = pru.role_code
-      	
-    	LEFT JOIN common_code cc
-      	ON cc.group_code = 'OD'
-     	AND cc.code_id = p.status
-     	
-    	WHERE pru.user_code = #{userCode}
-    	AND p.status <> 'OD2'
-      		AND (
-        		p.status <> 'OD3'
-        		OR EXISTS (
-          			SELECT 1
-          			FROM project_role_user pru2
-          			JOIN role r2
-            		ON r2.role_code = pru2.role_code
-          			WHERE pru2.user_code = #{userCode}
-            		AND pru2.project_code = p.project_code
-            		AND r2.admin_ck = 'Y'
-        		)
-      		)
-    	GROUP BY p.project_code, p.project_name, p.status, cc.code_name
-    	ORDER BY p.project_name
-    ]]>
-  	</select>
+<select id="selectMyProjectsWithRoles" resultType="MyProjectRoleVO">
+<![CDATA[
+WITH role_map AS (
+  /* 직접 + 그룹 역할 매핑 (중복 제거) */
+  SELECT pru.project_code, pru.role_code
+  FROM project_role_user pru
+  WHERE pru.user_code = #{userCode}
+
+  UNION
+
+  SELECT gpr.project_code, gpr.role_code
+  FROM group_member gm
+  JOIN gr_pro_role gpr
+    ON gpr.gr_code = gm.gr_code
+  WHERE gm.user_code = #{userCode}
+),
+/* 프로젝트 단위 admin 여부 */
+admin_proj AS (
+  SELECT rm.project_code,
+         MAX(CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END) AS is_admin
+  FROM role_map rm
+  JOIN role r
+    ON r.role_code = rm.role_code
+  GROUP BY rm.project_code
+),
+/* 프로젝트 읽기 게이트(카테고리=프로젝트 rdRol=Y 하나라도) */
+proj_read AS (
+  SELECT rm.project_code,
+         MAX(CASE WHEN ra.rd_rol = 'Y' THEN 1 ELSE 0 END) AS can_read_project
+  FROM role_map rm
+  JOIN role_authority ra
+    ON ra.role_code = rm.role_code
+   AND ra.category = '프로젝트'
+  GROUP BY rm.project_code
+),
+/* LISTAGG 전에 role_name 중복 제거 */
+roles_src AS (
+  SELECT DISTINCT rm.project_code, r.role_name
+  FROM role_map rm
+  JOIN role r
+    ON r.role_code = rm.role_code
+)
+SELECT
+  p.project_code AS projectCode,
+  p.project_name AS projectName,
+  p.status       AS status,
+  cc.code_name   AS statusName,
+  LISTAGG(rs.role_name, ', ') WITHIN GROUP (ORDER BY rs.role_name) AS roles
+FROM roles_src rs
+JOIN projects p
+  ON p.project_code = rs.project_code
+LEFT JOIN common_code cc
+  ON cc.group_code = 'OD'
+ AND cc.code_id    = p.status
+LEFT JOIN admin_proj ap
+  ON ap.project_code = p.project_code
+LEFT JOIN proj_read pr
+  ON pr.project_code = p.project_code
+WHERE p.status <> 'OD2'
+  /* 프로젝트 목록 노출 기준: admin 이거나 프로젝트 read 가능 */
+  AND (NVL(ap.is_admin, 0) = 1 OR NVL(pr.can_read_project, 0) = 1)
+  /* 종료(OD3)는 admin만 노출 */
+  AND (p.status <> 'OD3' OR NVL(ap.is_admin, 0) = 1)
+GROUP BY p.project_code, p.project_name, p.status, cc.code_name
+ORDER BY p.project_name
+]]>
+</select>
 
   	<!-- 내가 속한 그룹 (인원수, 설명) -->
   	<select id="selectMyGroupsInfo" resultType="com.yedam.app.user.service.MyGroupInfoVO">

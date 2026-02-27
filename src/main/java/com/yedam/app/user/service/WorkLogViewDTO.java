@@ -18,4 +18,5 @@ public class WorkLogViewDTO {
 	private Boolean targetLink; // 링크 가능 여부(있으면 true)
 	
 	private Long targetCode;
+	private String targetTypeLabel; // "일감" / "공지" / "문서"
 }

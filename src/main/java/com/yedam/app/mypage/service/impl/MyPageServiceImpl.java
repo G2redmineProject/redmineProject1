@@ -395,7 +395,8 @@ public class MyPageServiceImpl implements MyPageService {
         default       -> { targetUrl = null; linkable = false; }
       }
 
-      dto.setIssueTitle("[" + typeLabel + "] " + title);
+      dto.setTargetTypeLabel(typeLabel);  // "일감" / "공지" / "문서"
+      dto.setIssueTitle(title);           // 제목만 (링크 텍스트로 쓸 거)
       dto.setDetailHtml(buildDetailHtml(log.getMeta(), om));
       dto.setTargetUrl(targetUrl);
       dto.setTargetLink(linkable);

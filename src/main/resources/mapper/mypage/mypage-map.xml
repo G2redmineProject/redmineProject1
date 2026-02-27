@@ -92,7 +92,6 @@
       WHERE p.status = 'OD1'
         AND i.assignee_code = #{userCode}
 
-        <!-- ✅ ME 권한 필터: 프로젝트(CAT_PROJECT gate + CAT_ISSUE rdRol) -->
         <include refid="ME_READABLE_FILTER"/>
 
       ORDER BY i.updated_at DESC NULLS LAST, i.issue_code DESC
@@ -136,7 +135,6 @@
       WHERE p.status = 'OD1'
         AND i.created_by_code = #{userCode}
 
-        <!-- ✅ ME 권한 필터: 프로젝트(CAT_PROJECT gate + CAT_ISSUE rdRol) -->
         <include refid="ME_READABLE_FILTER"/>
 
       ORDER BY i.updated_at DESC NULLS LAST, i.issue_code DESC
@@ -208,7 +206,6 @@
       AND i.due_at <![CDATA[ >= ]]> #{from}
       AND i.due_at <![CDATA[ <  ]]> #{to}
 
-      <!-- ✅ ME 권한 필터: 프로젝트(CAT_PROJECT gate + CAT_ISSUE rdRol) -->
       <include refid="ME_READABLE_FILTER"/>
 
     ORDER BY i.due_at ASC, i.issue_code ASC
@@ -250,7 +247,6 @@
       AND l.created_at <![CDATA[ >= ]]> #{from}
       AND l.created_at <![CDATA[ <= ]]> #{to}
 
-      <!-- ✅ ME 권한 필터: 프로젝트(CAT_PROJECT gate + CAT_ISSUE rdRol) -->
       <!-- (WORKLOG를 '일감' 권한과 묶어서 처리하는 네 서비스 기준) -->
       <if test="isSys == false">
         <if test="readableProjectCodes != null and readableProjectCodes.size() > 0">
@@ -304,7 +300,6 @@
     WHERE p.status = 'OD1'
       AND (i.assignee_code = #{userCode} OR i.created_by_code = #{userCode})
 
-      <!-- ✅ ME 권한 필터: 프로젝트(CAT_PROJECT gate + CAT_ISSUE rdRol) -->
       <include refid="ME_READABLE_FILTER"/>
 
       AND NVL(i.started_at, i.created_at) <![CDATA[ <  ]]> #{to}
