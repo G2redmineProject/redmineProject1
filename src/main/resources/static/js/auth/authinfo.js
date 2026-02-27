@@ -203,7 +203,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
 	if (roleName) document.getElementById('roleNameCount').textContent = roleName.value.length;
 	if (explanation) document.getElementById('explanationCount').textContent = explanation.value.length;
+	// ============================================
+	// 프로젝트 카테고리 등록(wrRol) 체크박스 비활성화
+	// ============================================
+	const rows = document.querySelectorAll('#projectTbody tr');
 
+	rows.forEach(row => {
+		const category = row.cells[0].textContent.trim();
+
+		if (category === '프로젝트') {
+			const wrRolCb = row.querySelector('.wr_rol');
+			wrRolCb.checked = false;
+			wrRolCb.disabled = true;
+		}
+	});
 	// 저장 버튼에 이벤트 리스너 추가
 	const registerButton = document.querySelector('#updateRoleBtn');
 	if (registerButton) {

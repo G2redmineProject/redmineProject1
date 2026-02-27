@@ -39,8 +39,8 @@ public class ProjectController {
 
 	@GetMapping("projects")
 	public String projectList(HttpSession session, Model model) {
-		UserVO user = (UserVO) session.getAttribute("user");
 		session.removeAttribute("currentProject");
+		UserVO user = (UserVO) session.getAttribute("user");
 
 		if (user == null) {
 			return "redirect:/login";
