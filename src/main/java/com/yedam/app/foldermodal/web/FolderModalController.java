@@ -28,6 +28,13 @@ public class FolderModalController {
 			return Map.of("projects", List.of(), "folders", List.of());
 		}
 
+		FolderModalVO param = new FolderModalVO();
+		param.setUserCode(user.getUserCode());
+
+		// 시스템 관리자 여부만 확실히 세팅 (isAdmin이면 1, 아니면 0)
+		boolean isAdmin = "Y".equals(user.getSysCk());
+		param.setAdmin(isAdmin ? 1 : 0);
+
 		List<FolderModalVO> projects = folderModalService.findProjectListByUser(user.getUserCode());
 		List<FolderModalVO> folders = folderModalService.findFolderModalListByUser(user.getUserCode());
 
