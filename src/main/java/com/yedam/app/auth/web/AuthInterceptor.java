@@ -104,9 +104,13 @@ public class AuthInterceptor implements HandlerInterceptor {
 		}
 
 		boolean hasPermission = checkPermission(uriInfo.getType(), effectiveAuth, user);
+		// AuthInterceptor.java - checkPermission 실패 시
 		if (!hasPermission) {
+			String accept = request.getHeader("Accept");
 			String contentType = request.getHeader("Content-Type");
-			if (contentType != null && contentType.contains("application/json")) {
+
+			// AJAX/API 요청이면 403 반환
+			if ((accept != null && accept.contains("application/json")) || requestUri.startsWith("/api/")) {
 				response.sendError(HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다.");
 			} else {
 				response.sendRedirect("/accessDenied");
