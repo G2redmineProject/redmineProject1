@@ -162,6 +162,14 @@ function rebuildDocsTable(rows, tbody) {
 			if (!confirm(`'${fileName}' 파일을 삭제하시겠습니까?`)) return;
 			try {
 				const res = await fetch(`/api/docs/${fileCode}?projectCode=${projectCode}`, { method: "DELETE" });
+				if (res.status === 403) {
+					showToast('권한이 없습니다.');
+					return;
+				}
+				if (res.status === 405) {
+					showToast('지원하지 않는 요청입니다.');
+					return;
+				}
 				if (!res.ok) throw new Error("삭제 실패");
 				btn.closest("tr").remove();
 			} catch (e) {
@@ -180,6 +188,15 @@ function rebuildDocsTable(rows, tbody) {
 			if (!confirm(`'${folderName}' 폴더를 삭제하시겠습니까?\n비어있는 폴더만 삭제 가능합니다.`)) return;
 			try {
 				const res = await fetch(`/api/folders/delete/${folderCode}?projectCode=${projectCode}`, { method: "DELETE" });
+
+				if (res.status === 403) {
+					showToast('권한이 없습니다.');
+					return;
+				}
+				if (res.status === 405) {
+					showToast('지원하지 않는 요청입니다.');
+					return;
+				}
 				const data = await res.json();
 				if (!res.ok) {
 					alert(data.message);
@@ -364,7 +381,6 @@ window.docsReload = async (filters = {}) => {
 		tr.dataset.uploaderCode = doc.createdCode || "";
 		tr.dataset.uploader = doc.uploaderName || "";
 		tr.dataset.rowType = doc.rowType || "";
-		tr.style.display = "none";
 		return tr;
 	});
 
