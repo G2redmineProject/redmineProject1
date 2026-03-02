@@ -82,9 +82,10 @@ public class AuthInterceptor implements HandlerInterceptor {
 		}
 
 		// 일반 사용자 권한 체크
-		/* 프로젝트 등록이 안된사람도 로그인 가능해야함 (일단 보류)
-		 * if (userAuths == null || userAuths.isEmpty()) {
-		 * response.sendRedirect("/accessDenied"); return false; }
+		/*
+		 * 프로젝트 등록이 안된사람도 로그인 가능해야함 (일단 보류) if (userAuths == null ||
+		 * userAuths.isEmpty()) { response.sendRedirect("/accessDenied"); return false;
+		 * }
 		 */
 
 		// 현재 프로젝트 컨텍스트
@@ -103,9 +104,13 @@ public class AuthInterceptor implements HandlerInterceptor {
 		}
 
 		boolean hasPermission = checkPermission(uriInfo.getType(), effectiveAuth, user);
+		// AuthInterceptor.java - checkPermission 실패 시
 		if (!hasPermission) {
+			String accept = request.getHeader("Accept");
 			String contentType = request.getHeader("Content-Type");
-			if (contentType != null && contentType.contains("application/json")) {
+
+			// AJAX/API 요청이면 403 반환
+			if ((accept != null && accept.contains("application/json")) || requestUri.startsWith("/api/")) {
 				response.sendError(HttpServletResponse.SC_FORBIDDEN, "접근 권한이 없습니다.");
 			} else {
 				response.sendRedirect("/accessDenied");
@@ -217,6 +222,9 @@ public class AuthInterceptor implements HandlerInterceptor {
 			System.out.println("관리자 → 모든 권한 허용");
 			return true;
 		}
+		if ("sys".equals(type)) {
+			return "Y".equals(userVO.getSysCk());
+		}
 
 		// 마스터이면 모든 권한 허용
 		if (userAuth.getAdmin() == 1) {
@@ -237,6 +245,7 @@ public class AuthInterceptor implements HandlerInterceptor {
 			return "Y".equals(userVO.getSysCk());
 		case "main":
 			return true;
+
 		default:
 			return false;
 		}

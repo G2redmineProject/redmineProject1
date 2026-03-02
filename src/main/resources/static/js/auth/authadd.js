@@ -187,18 +187,31 @@ function clearErrors() {
 }
 // 역할 명 문자 수 체크
 document.getElementById('roleName').addEventListener('input', function() {
-    document.getElementById('roleNameCount').textContent = this.value.length;
+	document.getElementById('roleNameCount').textContent = this.value.length;
 });
 // 설명 문자 수 체크
 document.getElementById('explanation').addEventListener('input', function() {
-    document.getElementById('explanationCount').textContent = this.value.length;
+	document.getElementById('explanationCount').textContent = this.value.length;
 });
 // ============================================
 // 페이지 로드 시 초기화
 // ============================================
 document.addEventListener('DOMContentLoaded', function() {
 	setupSelectAll();
+	// ============================================
+	// 프로젝트 카테고리 등록(wrRol) 체크박스 비활성화
+	// ============================================
+	const rows = document.querySelectorAll('#projectTbody tr');
 
+	rows.forEach(row => {
+		const category = row.cells[0].textContent.trim();
+
+		if (category === '프로젝트') {
+			const wrRolCb = row.querySelector('.wr_rol');
+			wrRolCb.checked = false;
+			wrRolCb.disabled = true;
+		}
+	});
 	// 권한 등록 버튼에 이벤트 리스너 추가
 	const registerButton = document.querySelector('#registerRoleBtn');
 	if (registerButton) {
