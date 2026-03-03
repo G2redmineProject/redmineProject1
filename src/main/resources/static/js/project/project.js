@@ -318,16 +318,16 @@
 				const result = await response.json();
 
 				if (result.success) {
-					alert(result.message);
+					showToast(result.message);
 					row.dataset.filtered = "1";
 					row.style.display = "none";
 					renderPage();
 				} else {
-					alert(result.message);
+					showToast(result.message);
 				}
 			} catch (error) {
 				console.error('삭제 오류:', error);
-				alert('삭제 처리 중 오류가 발생했습니다.');
+				showToast('삭제 처리 중 오류가 발생했습니다.');
 			}
 		}
 
@@ -350,16 +350,16 @@
 				const result = await response.json();
 
 				if (result.success) {
-					alert(result.message);
+					showToast(result.message);
 					const statusCell = row.querySelectorAll("td")[6];
 					if (statusCell) statusCell.textContent = "종료";
 					updateRowStyle(row);
 				} else {
-					alert(result.message);
+					showToast(result.message);
 				}
 			} catch (error) {
 				console.error('종료 오류:', error);
-				alert('종료 처리 중 오류가 발생했습니다.');
+				showToast('종료 처리 중 오류가 발생했습니다.');
 			}
 		}
 	});

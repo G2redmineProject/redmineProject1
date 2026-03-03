@@ -886,12 +886,12 @@ function submitProject(formData) {
 			console.log('수정 권한 상태 : ' + response.status)
 			// 1. 상태 코드 체크
 			if (response.redirected && response.url.includes('/accessDenied')) {
-				alert('수정 권한이 없습니다.');
+				showToast('수정 권한이 없습니다.');
 				return null;
 			}
 
 			if (response.status === 401 || response.redirected) {
-				alert('로그인이 필요합니다.');
+				showToast('로그인이 필요합니다.');
 				window.location.href = '/login';
 				return null;
 			}
@@ -899,7 +899,7 @@ function submitProject(formData) {
 			// 2. Content-Type 체크
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
-				alert('서버 오류가 발생했습니다.');
+				showToast('서버 오류가 발생했습니다.');
 				return null;
 			}
 
@@ -910,15 +910,15 @@ function submitProject(formData) {
 			if (!data) return; // null이면 종료
 
 			if (data.success) {
-				alert(data.message);
+				showToast(data.message);
 				//window.location.href = '/projectsmgr';
 			} else {
-				alert(data.message);
+				showToast(data.message);
 			}
 		})
 		.catch(error => {
 			console.error('프로젝트 수정 오류:', error);
-			alert('프로젝트 수정 중 오류가 발생했습니다.');
+			showToast('프로젝트 수정 중 오류가 발생했습니다.');
 		});
 }
 
@@ -1033,6 +1033,15 @@ function handleBackNavigation(e) {
 		return;
 	}
 
-	// 그 외에는 정상적으로 이전 페이지 이동
-	history.back();
+	
+	// projects 관련 목록 페이지에서 온 경우 → 서버 요청으로 이동
+	if (ref.includes("/projectsmgr")) {
+		window.location.href = "/projectsmgr";
+	} else if (ref.includes("/projects")) {
+		window.location.href = "/projects";
+	} else {
+		// 그 외 다른 페이지(업무, 대시보드 등)에서 온 경우 → 그냥 뒤로가기
+		// 어차피 currentProject 세션이 필요없는 페이지이므로 무방
+		history.back();
+	}
 }

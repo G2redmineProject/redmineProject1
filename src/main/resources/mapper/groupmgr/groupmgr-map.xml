@@ -12,6 +12,7 @@
         FROM "GROUP" g
         LEFT JOIN group_member gm ON g.group_code = gm.gr_code
         WHERE g.group_code > 0
+        AND g.gr_name NOT LIKE '%-delete'
         GROUP BY g.group_code, g.gr_name, g.description
         ORDER BY g.group_code
     </select>
@@ -160,4 +161,11 @@
         WHERE gr_code = #{groupCode}
           AND project_code > 0
     </update>
+    
+    <!-- 그룹 소프트 삭제 (프로젝트 가 매핑 안되있는거) -->
+    <update id="softDeleteGroupMaster">
+	    UPDATE "GROUP"
+	    SET gr_name = gr_name || '-delete'
+	    WHERE group_code = #{groupCode}
+	</update>
 </mapper>

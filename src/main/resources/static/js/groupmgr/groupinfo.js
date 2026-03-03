@@ -120,14 +120,30 @@ function openMemberModal() {
 	} else {
 		available.forEach(u => {
 			const tr = document.createElement('tr');
+			tr.style.cursor = 'pointer';
+
 			tr.innerHTML = `
-                <td><div class="form-check">
-                    <input class="form-check-input member-checkbox" type="checkbox"
-                           value="${u.userCode}" id="mcheck_${u.userCode}"
-                           data-user-name="${u.name}" data-user-email="${u.email || ''}">
-                </div></td>
-                <td><label class="form-check-label w-100" for="mcheck_${u.userCode}" style="cursor:pointer;">${u.name}</label></td>
-                <td>${u.email || ''}</td>`;
+			    <td>
+			        <div class="form-check">
+			            <input class="form-check-input member-checkbox" type="checkbox"
+			                   value="${u.userCode}"
+			                   data-user-name="${u.name}" 
+			                   data-user-email="${u.email || ''}">
+			        </div>
+			    </td>
+			    <td>${u.name}</td>
+			    <td>${u.email || ''}</td>`;
+
+			tr.addEventListener('click', function(e) {
+				const checkbox = this.querySelector('.member-checkbox');
+
+				if (e.target !== checkbox) {
+					checkbox.checked = !checkbox.checked;
+				}
+
+				checkbox.dispatchEvent(new Event('change'));
+			});
+
 			tbody.appendChild(tr);
 		});
 	}
@@ -438,17 +454,17 @@ function handleFormSubmit() {
 	})
 		.then(res => {
 			if (res.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return null;
 			}
 			return res.json();
 		})
 		.then(data => {
 			if (!data) return;
-			if (data.success) { alert(data.message); window.location.reload(); }
-			else { alert(data.message); }
+			if (data.success) { showToast(data.message); window.location.reload(); }
+			else { showToast(data.message); }
 		})
-		.catch(() => alert('수정 처리 중 오류가 발생했습니다.'));
+		.catch(() => showToast('수정 처리 중 오류가 발생했습니다.'));
 }
 // ============================================
 // 목록으로(돌아가기) 

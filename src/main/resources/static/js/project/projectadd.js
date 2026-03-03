@@ -766,15 +766,15 @@ function submitProject(formData) {
 		.then(response => response.json())
 		.then(data => {
 			if (data.success) {
-				alert(data.message);
+				showToast(data.message);
 				window.location.href = '/projectsmgr';
 			} else {
-				alert(data.message);
+				showToast(data.message);
 			}
 		})
 		.catch(error => {
 			console.error('프로젝트 등록 오류:', error);
-			alert('프로젝트 등록 중 오류가 발생했습니다.');
+			showToast('프로젝트 등록 중 오류가 발생했습니다.');
 		});
 }
 

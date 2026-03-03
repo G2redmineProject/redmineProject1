@@ -151,37 +151,37 @@
 
 			// 리다이렉트 여부 확인
 			if (response.redirected) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return;
 			}
 
 			// 403 상태 코드 확인
 			if (response.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return;
 			}
 
 			// Content-Type 확인 (JSON이 아니면 에러)
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
-				alert('삭제 권한이 없습니다.');
+				showToast('삭제 권한이 없습니다.');
 				return;
 			}
 
 			const result = await response.json();
 
 			if (result.success) {
-				alert(result.message);
+				showToast(result.message);
 				// 화면에서 제거
 				row.dataset.filtered = "1";
 				row.style.display = "none";
 				renderPage();
 			} else {
-				alert(result.message); // "삭제 권한이 없습니다." 메시지 표시
+				showToast(result.message); // "삭제 권한이 없습니다." 메시지 표시
 			}
 		} catch (error) {
 			console.error('삭제 오류:', error);
-			alert('삭제 처리 중 오류가 발생했습니다.');
+			showToast('삭제 처리 중 오류가 발생했습니다.');
 		}
 	});
 
@@ -213,20 +213,20 @@
 
 			// 리다이렉트 여부 확인
 			if (response.redirected) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return;
 			}
 
 			// 403 상태 코드 확인
 			if (response.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return;
 			}
 
 			// Content-Type 확인 (JSON이 아니면 에러)
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
-				alert('삭제 권한이 없습니다.');
+				showToast('삭제 권한이 없습니다.');
 				return;
 			}
 
@@ -234,14 +234,14 @@
 
 			// 컨트롤러가 int(성공 시 1)를 반환하므로 숫자로 체크
 			if (result > 0) {
-				alert("권한 수정이 완료되었습니다.");
+				showToast("권한 수정이 완료되었습니다.");
 				// 성공 후 별도의 페이지 이동이 없다면 현재 상태 유지
 			} else {
-				alert("권한 수정에 실패했습니다.");
+				showToast("권한 수정에 실패했습니다.");
 			}
 		} catch (error) {
 			console.error('수정 오류:', error);
-			alert('처리 중 오류가 발생했습니다.');
+			showToast('처리 중 오류가 발생했습니다.');
 		}
 	});
 

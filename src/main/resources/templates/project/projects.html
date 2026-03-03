@@ -19,9 +19,9 @@
 		</div>
 		<div class="issue-filters mb-3 mt-3">
 			<div class="row g-2 align-items-end">
-			<!-- 	<div>[[ ${auth} ]]</div>
+				<!-- 				<div>[[ ${auth} ]]</div>
 				<div th:text="${session.userAuth}"></div>
-				<div>관리자 권한 : [[ ${session.user.sysCk} ]]</div> -->
+				<div>관리자 권한 : [[ ${session.user.sysCk} ]]</div>  -->
 				<!--입력 검색 -->
 				<div class="col-12 col-md-3">
 					<label class="form-label">프로젝트명</label> <input type="text"
@@ -92,9 +92,8 @@
 
 		</div>
 	</div>
-	<form id="issueDeleteForm" th:action="@{/issueDelete}" method="post"
-		style="display: none;"></form>
-	<div class="card mb-4">
+
+	<div class="card mb-4 issue-list-card">
 
 		<div
 			class="card-header d-flex align-items-center justify-content-between">
@@ -115,8 +114,8 @@
 							<th style="width: 100px;">프로젝트명</th>
 							<th style="width: 80px;">등록일</th>
 							<th style="width: 50px;">담당자</th>
-							<th style="width: 100px;">관리자번호</th>
-							<th>관리자메일</th>
+							<th style="width: 100px;">담당자 번호</th>
+							<th>담당자 메일</th>
 							<th style="width: 80px;">진행 상태</th>
 							<th style="width: 150px;">진척률(예상, 실제)</th>
 							<!-- <th style="width: 80px;">종료</th>
@@ -222,7 +221,7 @@
 			</div>
 		</div>
 
-
+		<script th:src="@{/js/common/toast.js}"></script>
 		<script th:src="@{/js/project/project.js}"></script>
 </body>
 </html>

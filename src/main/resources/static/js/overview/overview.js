@@ -6,9 +6,16 @@ document.addEventListener("DOMContentLoaded", function() {
 	backBtn.addEventListener("click", function(e) {
 		e.preventDefault();
 
-		if (history.length > 1) {
+		const ref = document.referrer || "";
+
+		if (ref.includes("/projectsmgr")) {
+			window.location.href = "/projectsmgr";
+		} else if (ref.endsWith("/projects")) {
+			window.location.href = "/projects";
+		} else if (history.length > 1) {
 			history.back();
 		} else {
+			// 히스토리 없으면 기본 목록으로
 			window.location.href = "/G2main";
 		}
 	});

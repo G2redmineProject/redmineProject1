@@ -48,4 +48,7 @@ public interface GroupMapper {
 
     // 그룹 소프트 삭제
 	public int softDeleteGroup(Integer groupCode);
+	
+	// 그룹 소프트 삭제(프로젝트 연동 없는것도)
+	int softDeleteGroupMaster(Integer groupCode); 
 }

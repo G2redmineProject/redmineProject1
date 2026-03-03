@@ -160,21 +160,21 @@
 			});
 
 			if (res.status === 403) {
-				alert('권한이 없습니다.', true);
+				showToast('권한이 없습니다.', true);
 				return;
 			}
 			const data = await res.json();
 
 			if (data.success) {
-				alert(data.message || "사용자가 등록되었습니다.");
+				showToast(data.message || "사용자가 등록되었습니다.");
 				bootstrap.Modal.getInstance($("#userRegisterModal"))?.hide();
 				location.reload();
 			} else {
-				alert(data.message || "등록에 실패했습니다.");
+				showToast(data.message || "등록에 실패했습니다.");
 			}
 		} catch (e) {
 			console.error("등록 오류:", e);
-			alert("사용자 등록 중 오류가 발생했습니다.");
+			showToast("사용자 등록 중 오류가 발생했습니다.");
 		}
 	};
 
@@ -194,7 +194,11 @@
 			});
 
 			if (res.status === 403) {
-				alert('권한이 없습니다.', true);
+				showToast('권한이 없습니다.');
+				return;
+			}
+			if (res.status === 405) {
+				showToast('권한이 없습니다.');
 				return;
 			}
 
@@ -212,14 +216,14 @@
 				const iconClass = (newLock === "1" ? "fa-solid fa-lock" : "fa-solid fa-lock-open");
 				btn.innerHTML = `<i class="${iconClass}"></i>`;
 
-				alert(data.message);
+				showToast(data.message);
 
 			} else {
-				alert(data.message || "처리에 실패했습니다.");
+				showToast(data.message || "처리에 실패했습니다.");
 			}
 		} catch (e) {
 			console.error("잠금 오류:", e);
-			alert("처리 중 오류가 발생했습니다.");
+			showToast("처리 중 오류가 발생했습니다.");
 		}
 	};
 
@@ -234,10 +238,13 @@
 				body: JSON.stringify({ userCode: parseInt(userCode) }),
 			});
 			if (res.status === 403) {
-				alert('권한이 없습니다.', true);
+				showToast('권한이 없습니다.');
 				return;
 			}
-
+			if (res.status === 405) {
+				showToast('권한이 없습니다.');
+				return;
+			}
 			const data = await res.json();
 
 			if (data.success) {
@@ -246,11 +253,11 @@
 				row.style.opacity = "0";
 				setTimeout(() => { row.remove(); render(); }, 300);
 			} else {
-				alert(data.message || "삭제에 실패했습니다.");
+				showToast(data.message || "삭제에 실패했습니다.");
 			}
 		} catch (e) {
 			console.error("삭제 오류:", e);
-			alert("삭제 중 오류가 발생했습니다.");
+			showToast("삭제 중 오류가 발생했습니다.");
 		}
 	};
 
