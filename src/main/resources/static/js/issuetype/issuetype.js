@@ -878,7 +878,9 @@
 	// 삭제
 	// ============================================
 	const deleteType = async (typeCode, typeName) => {
-		if (!confirm(`"${typeName}" 유형을 삭제하시겠습니까?`)) return;
+		const isConfirmed = await showConfirm(`"${typeName}" 유형을 삭제하시겠습니까?`);
+		if (!isConfirmed) return;
+		
 		try {
 			const res = await fetch(`/api/issuetype/${typeCode}/delete`, { method: "POST", headers: { "X-Requested-With": "XMLHttpRequest" } });
 			if (res.status === 403) { showToast("권한이 없습니다.", true); return; }

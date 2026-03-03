@@ -22,7 +22,7 @@
 
 		<!--/* 메인 + 푸터 */-->
 		<div id="layoutSidenav_content">
-			<main style="margin:0 20px 0 20px;">
+			<main style="margin: 0 20px 0 20px;">
 				<div class="container-fluid px-0" layout:fragment="Content"
 					th:inline="none"></div>
 			</main>
@@ -32,10 +32,22 @@
 				th:insert="~{common/fragments/default_footer :: DefaultFooter}"></footer>
 		</div>
 	</div>
-
+	<!-- 공통 Confirm 모달 -->
+	<div class="modal fade" id="confirmModal" tabindex="-1">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-body text-center" id="confirmMessage"></div>
+				<div class="modal-footer justify-content-center border-0">
+					<button type="button" class="btn btn-secondary"
+						data-bs-dismiss="modal">취소</button>
+					<button type="button" class="btn btn-primary" id="confirmOkBtn">확인</button>
+				</div>
+			</div>
+		</div>
+	</div>
 	<th:block
 		th:replace="~{common/configs/default_configs :: BottomScript}"></th:block>
-		<script th:src="@{/js/common/header.js}"></script>
+	<script th:src="@{/js/common/header.js}"></script>
 	<th:block layout:fragment="pageScript" th:inline="none"></th:block>
 </body>
 </html>

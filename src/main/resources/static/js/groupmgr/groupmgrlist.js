@@ -88,8 +88,10 @@ function renderPagination(total) {
 	ul.appendChild(mkLi('다음', currentPage + 1, currentPage === totalPages));
 }
 
-function deleteGroup(groupCode) {
-	if (!confirm('해당 그룹을 삭제하시겠습니까?')) return;
+async function deleteGroup(groupCode) {
+	const isConfirmed = await showConfirm('해당 그룹을 삭제하시겠습니까?');
+	if (!isConfirmed) return;
+
 
 	fetch(`/api/groupmgr/${groupCode}/delete`, {
 		method: 'POST',
@@ -106,7 +108,7 @@ function deleteGroup(groupCode) {
 			return res.json();
 		})
 		.then(data => {
-			if (!data) return;  
+			if (!data) return;
 			if (data.success) { showToast(data.message); window.location.reload(); }
 			else { showToast(data.message); }
 		})

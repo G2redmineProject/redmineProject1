@@ -182,8 +182,8 @@
 	const toggleLock = async (userCode, currentLock, btn) => {
 		const willLock = currentLock === "0";  // 현재 활성(0) → 잠금(1)으로
 		const actionMsg = willLock ? "비활성화(잠금)" : "활성화(잠금 해제)";
-		if (!confirm(`해당 사용자를 ${actionMsg} 하시겠습니까?`)) return;
-
+		const isConfirmed = await showConfirm(`해당 사용자를 ${actionMsg} 하시겠습니까?`);
+		if (!isConfirmed) return;
 		const newLock = willLock ? "1" : "0";
 
 		try {
@@ -229,8 +229,8 @@
 
 	// ── 소프트 삭제 ───────────────────────────────────────────────
 	const deleteUser = async (userCode, userName, btn) => {
-		if (!confirm(`'${userName}' 사용자를 삭제하시겠습니까?\n(삭제 후 목록에서 제외됩니다.)`)) return;
-
+		const isConfirmed = await showConfirm(`'${userName}' 사용자를 삭제하시겠습니까?`);
+		if (!isConfirmed) return;
 		try {
 			const res = await fetch("/userdelete", {
 				method: "POST",

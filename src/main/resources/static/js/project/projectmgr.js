@@ -1,8 +1,8 @@
 (() => {
 	// 모든 툴팁 활성화
 	const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-	const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-	  return new bootstrap.Tooltip(tooltipTriggerEl)
+	const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+		return new bootstrap.Tooltip(tooltipTriggerEl)
 	})
 	const $ = (sel) => document.querySelector(sel);
 	const $$ = (sel) => Array.from(document.querySelectorAll(sel));
@@ -72,7 +72,7 @@
 		});
 
 		if (!res.ok) {
-			alert("사용자 목록을 불러오지 못했습니다.");
+			showToast("사용자 목록을 불러오지 못했습니다.");
 			return false;
 		}
 
@@ -417,8 +417,8 @@
 
 		// 삭제 버튼 클릭
 		if (btn.classList.contains("btn-danger")) {
-			if (!confirm(`"${projectName}" 프로젝트를 삭제하시겠습니까?`)) return;
-
+			const isConfirmed = await showConfirm(`"${projectName}" 프로젝트를 삭제하시겠습니까?`);
+			if (!isConfirmed) return;
 			try {
 				const response = await fetch(`/api/projects/${projectCode}/delete`, {
 					method: 'POST',
@@ -449,8 +449,8 @@
 
 		// 종료 버튼 클릭
 		if (btn.classList.contains("btn-success")) {
-			if (!confirm(`"${projectName}" 프로젝트를 종료 처리하시겠습니까?`)) return;
-
+			const isConfirmed = await showConfirm(`"${projectName}" 프로젝트를 종료 처리하시겠습니까?`);
+			if (!isConfirmed) return;
 			try {
 				const response = await fetch(`/api/projects/${projectCode}/modify`, {
 					method: 'POST',

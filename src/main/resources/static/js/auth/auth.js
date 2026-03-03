@@ -137,8 +137,8 @@
 		const roleCode = rowData(row).code;
 		const roleName = rowData(row).roleName;
 
-		if (!confirm(`"${roleName}" 역할을 삭제하시겠습니까?`)) return;
-
+		const isConfirmed = await showConfirm(`"${roleName}" 역할을 삭제하시겠습니까?`);
+		if (!isConfirmed) return;
 		try {
 			const response = await fetch(`/api/auth/${roleCode}/delete`, {
 				method: 'POST',
@@ -200,7 +200,8 @@
 		const adminCkBox = row.querySelector('input[name="adminck"]');
 		const adminCk = adminCkBox.checked ? 'Y' : 'N';
 
-		if (!confirm(`"${roleName}"의 마스터 권한을 변경하시겠습니까?`)) return;
+		const isConfirmed = await showConfirm(`"${roleName}"의 마스터 권한을 변경하시겠습니까?`);
+		if (!isConfirmed) return;
 
 		try {
 			const response = await fetch(`/api/auth/${adminCk}/${roleCode}/adminmodify`, {

@@ -31,3 +31,34 @@ const showToast = (message) => {
 
 	bootstrap.Toast.getOrCreateInstance(toastEl, { delay: 1800 }).show();
 };
+
+// -------------------------
+// 공통 Confirm 함수 (안전 버전)
+// -------------------------
+const showConfirm = (message) => {
+    return new Promise((resolve) => {
+
+        const modalEl = document.getElementById('confirmModal');
+        const messageEl = document.getElementById('confirmMessage');
+        const okBtn = document.getElementById('confirmOkBtn');
+
+        messageEl.textContent = message;
+
+        const modal = new bootstrap.Modal(modalEl);
+
+        let isConfirmed = false; // 상태값 추가
+
+        // 확인 버튼 클릭
+        okBtn.onclick = () => {
+            isConfirmed = true;
+            modal.hide();
+        };
+
+        // 모달 완전히 닫혔을 때 처리
+        modalEl.addEventListener('hidden.bs.modal', () => {
+            resolve(isConfirmed);
+        }, { once: true });
+
+        modal.show();
+    });
+};

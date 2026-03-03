@@ -98,3 +98,20 @@
     display:none;
   }
 }
+
+
+
+/* 헤더 아이콘 항상 흰색 고정 */
+.sb-topnav .nav-link,
+.sb-topnav .nav-link:hover,
+.sb-topnav .nav-link:focus,
+.sb-topnav .btn-link,
+.sb-topnav .btn-link:hover,
+.sb-topnav .btn-link:focus {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.sb-topnav .nav-link:hover,
+.sb-topnav .btn-link:hover {
+  color: #ffffff !important;
+}
