@@ -124,6 +124,7 @@ ORDER BY p.project_name
       	ON g.group_code = gm.gr_code
       	
     	WHERE gm.user_code = #{userCode}
+    	AND g.gr_name NOT LIKE '%-delete'
     	ORDER BY g.gr_name
   	</select>
 </mapper>

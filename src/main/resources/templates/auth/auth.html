@@ -49,9 +49,7 @@
 
 			</div>
 		</div>
-		<form id="issueDeleteForm" th:action="@{/issueDelete}" method="post"
-			style="display: none;"></form>
-		<div class="card mb-4">
+		<div class="card mb-4 issue-list-card">
 
 			<div
 				class="card-header d-flex align-items-center justify-content-between">
@@ -85,7 +83,8 @@
 								<td>[[ ${status.index+1} ]]</td>
 								<td style="display: none;">[[ ${info.roleCode} ]]</td>
 								<td class="ellipsis" data-bs-toggle="tooltip"
-									data-bs-placement="top" th:title="${info.roleName}">[[ ${info.roleName} ]]</td>
+									data-bs-placement="top" th:title="${info.roleName}">[[
+									${info.roleName} ]]</td>
 								<td class="ellipsis" data-bs-toggle="tooltip"
 									data-bs-placement="top" th:title="${info.explanation}">[[
 									${info.explanation} ]]</td>
@@ -126,7 +125,7 @@
 
 
 
-
+			<script th:src="@{/js/common/toast.js}"></script>
 			<script th:src="@{/js/auth/auth.js}"></script>
 </body>
 </html>

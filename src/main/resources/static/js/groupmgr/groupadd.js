@@ -14,7 +14,7 @@ function initializeEventListeners() {
 	document.getElementById('btnAddProject').addEventListener('click', openProjectModal);
 	document.getElementById('btnReset').addEventListener('click', resetForm);
 	document.getElementById('btnSubmit').addEventListener('click', handleFormSubmit);
-	document.getElementById('memberModalSearch').addEventListener('input', e => filterModal(e, '#memberModalList'));
+	//document.getElementById('memberModalSearch').addEventListener('input', e => filterModal(e, '#memberModalList'));
 	document.getElementById('projectModalSearch').addEventListener('input', e => filterModal(e, '#projectModalList'));
 }
 
@@ -31,51 +31,127 @@ function filterModal(e, selector) {
 // ============================================
 // 구성원 모달
 // ============================================
+// 페이징 상태
+const PAGE_SIZE = 10;
+let memberModalPage = 0;
+let filteredMemberList = [];
+// openMemberModal 교체
 function openMemberModal() {
 	const users = window.serverData?.users || [];
 	const available = users.filter(u =>
 		!selectedMembers.some(m => String(m.userCode) === String(u.userCode))
 	);
-	renderMemberModalList(available);
+
+	filteredMemberList = available;
+	memberModalPage = 0;
+
+	//renderMemberModalPage(available);
+	renderMemberModalPage();
 	setupSelectAll('selectAllMembers', '.member-checkbox');
+
+	// 검색 재바인딩
+	const searchInput = document.getElementById('memberModalSearch');
+	const newInput = searchInput.cloneNode(true);
+	searchInput.parentNode.replaceChild(newInput, searchInput);
+	newInput.value = '';
+	newInput.addEventListener('input', function() {
+		const kw = this.value.toLowerCase();
+		filteredMemberList = available.filter(u =>
+			u.name.toLowerCase().includes(kw) || (u.email || '').toLowerCase().includes(kw)
+		);
+		memberModalPage = 0;
+		//renderMemberModalPage(available);
+		renderMemberModalPage();
+	});
 
 	const modal = new bootstrap.Modal(document.getElementById('memberSelectModal'));
 	modal.show();
-
 	rebindBtn('btnAddSelectedMembers', addSelectedMembers);
 }
 
-function renderMemberModalList(users) {
+// renderMemberModalList 교체
+function renderMemberModalPage() {
 	const tbody = document.getElementById('memberModalList');
 	tbody.innerHTML = '';
-	if (!users.length) {
+
+	if (!filteredMemberList.length) {
 		tbody.innerHTML = `<tr><td colspan="3" class="text-center text-muted py-3">추가 가능한 구성원이 없습니다.</td></tr>`;
+		renderMemberPaging(0);
 		return;
 	}
-	users.forEach(u => {
+
+	const start = memberModalPage * PAGE_SIZE;
+	const pageData = filteredMemberList.slice(start, start + PAGE_SIZE);
+
+	pageData.forEach(u => {
 		const tr = document.createElement('tr');
+		tr.style.cursor = 'pointer';
 		tr.innerHTML = `
             <td><div class="form-check">
                 <input class="form-check-input member-checkbox" type="checkbox"
-                       value="${u.userCode}" id="mcheck_${u.userCode}"
-                       data-user-name="${u.name}" data-user-email="${u.email || ''}">
+                       value="${u.userCode}"
+                       data-user-name="${u.name}"
+                       data-user-email="${u.email || ''}">
             </div></td>
-            <td><label class="form-check-label w-100" for="mcheck_${u.userCode}" style="cursor:pointer;">${u.name}</label></td>
+            <td>${u.name}</td>
             <td>${u.email || ''}</td>`;
+		tr.addEventListener('click', function(e) {
+			const checkbox = this.querySelector('.member-checkbox');
+			if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
+			checkbox.dispatchEvent(new Event('change'));
+		});
 		tbody.appendChild(tr);
 	});
+
+	renderMemberPaging(filteredMemberList.length);
 }
 
+function renderMemberPaging(total) {
+	const existing = document.getElementById('memberPaging');
+	if (existing) existing.remove();
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	if (totalPages <= 1) return;
+
+	const nav = document.createElement('nav');
+	nav.id = 'memberPaging';
+	nav.innerHTML = `
+        <ul class="pagination pagination-sm justify-content-center mt-2 mb-3">
+            <li class="page-item ${memberModalPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage - 1}">‹</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => `
+                <li class="page-item ${i === memberModalPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                </li>`).join('')}
+            <li class="page-item ${memberModalPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage + 1}">›</a>
+            </li>
+        </ul>`;
+
+	nav.querySelectorAll('.page-link').forEach(a => {
+		a.addEventListener('click', function(e) {
+			e.preventDefault();
+			const p = parseInt(this.dataset.page);
+			if (p >= 0 && p < totalPages) {
+				memberModalPage = p;
+				renderMemberModalPage();
+			}
+		});
+	});
+
+	document.querySelector('#memberSelectModal .card').after(nav);
+}
 function addSelectedMembers() {
 	const checked = document.querySelectorAll('.member-checkbox:checked');
-	if (!checked.length) { alert('추가할 구성원을 선택해주세요.'); return; }
+	if (!checked.length) { showToast('추가할 구성원을 선택해주세요.'); return; }
 
 	checked.forEach(cb => {
 		selectedMembers.push({ userCode: cb.value, userName: cb.dataset.userName, email: cb.dataset.userEmail });
 	});
 	updateMemberTable();
 	bootstrap.Modal.getInstance(document.getElementById('memberSelectModal')).hide();
-	alert(`${checked.length}명의 구성원이 추가되었습니다.`);
+	showToast(`${checked.length}명의 구성원이 추가되었습니다.`);
 }
 
 function updateMemberTable() {
@@ -96,11 +172,12 @@ function updateMemberTable() {
 	});
 }
 
-function removeMember(index) {
-	if (confirm('해당 구성원을 삭제하시겠습니까?')) {
-		selectedMembers.splice(index, 1);
-		updateMemberTable();
-	}
+async function removeMember(index) {
+	const isConfirmed = await showConfirm('해당 구성원을 삭제하시겠습니까?');
+	if (!isConfirmed) return;
+
+	selectedMembers.splice(index, 1);
+	updateMemberTable();
 }
 
 // ============================================
@@ -144,8 +221,8 @@ function renderProjectModalList(projects) {
 function addSelectedProjects() {
 	const checkedProjs = document.querySelectorAll('.project-checkbox:checked');
 	const checkedRole = document.querySelector('.proj-role-radio:checked');
-	if (!checkedProjs.length) { alert('추가할 프로젝트를 선택해주세요.'); return; }
-	if (!checkedRole) { alert('역할을 선택해주세요.'); return; }
+	if (!checkedProjs.length) { showToast('추가할 프로젝트를 선택해주세요.'); return; }
+	if (!checkedRole) { showToast('역할을 선택해주세요.'); return; }
 
 	const roles = window.serverData?.roles || [];
 	const roleObj = roles.find(r => String(r.roleCode) === checkedRole.value);
@@ -160,7 +237,7 @@ function addSelectedProjects() {
 	});
 	updateProjectTable();
 	bootstrap.Modal.getInstance(document.getElementById('projectSelectModal')).hide();
-	alert(`${checkedProjs.length}개의 프로젝트가 추가되었습니다.`);
+	showToast(`${checkedProjs.length}개의 프로젝트가 추가되었습니다.`);
 }
 
 function updateProjectTable() {
@@ -183,11 +260,13 @@ function updateProjectTable() {
 	});
 }
 
-function removeProject(index) {
-	if (confirm('해당 프로젝트를 삭제하시겠습니까?')) {
-		selectedProjects.splice(index, 1);
-		updateProjectTable();
-	}
+async function removeProject(index) {
+	const isConfirmed = await showConfirm('해당 프로젝트를 삭제하시겠습니까?');
+	if (!isConfirmed) return;
+
+	selectedProjects.splice(index, 1);
+	updateProjectTable();
+
 }
 
 function openEditModal(index) {
@@ -276,25 +355,29 @@ function showEditModal(roleOptions, onSave) {
 // ============================================
 // 폼 초기화 / 제출
 // ============================================
-function resetForm() {
-	if (confirm('입력한 내용을 모두 초기화하시겠습니까?')) {
-		document.querySelector('[name="grName"]').value = '';
-		document.getElementById('editor').value = '';
-		selectedMembers = [];
-		selectedProjects = [];
-		updateMemberTable();
-		updateProjectTable();
-	}
+async function resetForm() {
+	const isConfirmed = await showConfirm('입력한 내용을 모두 초기화하시겠습니까?');
+	if (!isConfirmed) return;
+
+	document.querySelector('[name="grName"]').value = '';
+	document.getElementById('editor').value = '';
+	selectedMembers = [];
+	selectedProjects = [];
+
+	updateMemberTable();
+	updateProjectTable();
+
+	showToast('초기화가 완료되었습니다.', 'info');
 }
 
 function handleFormSubmit() {
 	const grName = document.querySelector('[name="grName"]').value.trim();
-	if (!grName) { alert('그룹명을 입력해주세요.'); document.querySelector('[name="grName"]').focus(); return; }
-	if (grName.length < 2) { alert('그룹명은 2글자 이상이어야 합니다.'); return; }
-	if (grName.length > 50) { alert('그룹명은 50자를 초과할 수 없습니다.'); return; }
+	if (!grName) { showToast('그룹명을 입력해주세요.'); document.querySelector('[name="grName"]').focus(); return; }
+	if (grName.length < 2) { showToast('그룹명은 2글자 이상이어야 합니다.'); return; }
+	if (grName.length > 50) { showToast('그룹명은 50자를 초과할 수 없습니다.'); return; }
 
 	const description = document.getElementById('editor').value.trim();
-	if (description.length > 500) { alert('그룹 설명은 500자를 초과할 수 없습니다.'); return; }
+	if (description.length > 500) { showToast('그룹 설명은 500자를 초과할 수 없습니다.'); return; }
 
 	const formData = {
 		grName,
@@ -313,15 +396,15 @@ function handleFormSubmit() {
 	})
 		.then(res => {
 			if (res.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return null;
 			}
 			return res.json();
 		})
 		.then(data => {
-			if (!data) return;  
-			if (data.success) { alert(data.message); window.location.href = '/groupmgrs'; }
-			else { alert(data.message); }
+			if (!data) return;
+			if (data.success) { showToast(data.message); window.location.href = '/groupmgrs'; }
+			else { showToast(data.message); }
 		})
-		.catch(() => alert('그룹 등록 중 오류가 발생했습니다.'));
+		.catch(() => showToast('그룹 등록 중 오류가 발생했습니다.'));
 }

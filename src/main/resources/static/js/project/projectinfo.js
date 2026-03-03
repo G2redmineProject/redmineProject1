@@ -10,6 +10,13 @@ const users = window.serverData?.users || [];
 const roles = window.serverData?.roles || [];
 const groups = window.serverData?.groups || [];
 
+// 페이징 상태
+const PAGE_SIZE = 10;
+let memberModalPage = 0;
+let filteredMemberList = [];
+let groupModalPage = 0;
+let filteredGroupList = [];
+
 // 변경 추적
 const changes = {
 	members: [], // { action: "add|delete|keep", mappCode, userCode, roleCode }
@@ -55,7 +62,7 @@ function initializeCKEditor() {
 				const textOnly = data.replace(/<[^>]*>/g, '');
 
 				if (textOnly.length > 1000) {
-					alert('프로젝트 설명은 1000자를 초과할 수 없습니다.');
+					showToast('프로젝트 설명은 1000자를 초과할 수 없습니다.');
 					editorInstance.execute('undo');
 				}
 			});
@@ -91,7 +98,7 @@ function initializeEventListeners() {
 		saveBtn.addEventListener('click', handleFormSubmit);
 	}
 
-	const searchInput = document.getElementById('creatorModalSearch');
+	/*const searchInput = document.getElementById('creatorModalSearch');
 	if (searchInput) {
 		searchInput.addEventListener('input', handleModalSearch);
 	}
@@ -99,7 +106,7 @@ function initializeEventListeners() {
 	const searchInputGroup = document.getElementById('groupModalSearch');
 	if (searchInputGroup) {
 		searchInputGroup.addEventListener('input', handleModalSearchGroup);
-	}
+	}*/
 }
 
 // ============================================
@@ -252,29 +259,54 @@ function hideValidationMessage(input) {
 // 8. 구성원 추가 모달 열기
 // ============================================
 function openMemberModal() {
-	// 이미 추가된 사용자 제외 (삭제되지 않은 것만)
 	const existingUserCodes = changes.members
 		.filter(m => m.action !== "delete")
 		.map(m => m.userCode);
+	const availableUsers = users.filter(u => !existingUserCodes.includes(u.userCode));
 
-	const availableUsers = users.filter(user =>
-		!existingUserCodes.includes(user.userCode)
-	);
-
-	// 이미 추가된 그룹 제외 (삭제되지 않은 것만)
 	const existingGroupCodes = changes.groups
 		.filter(g => g.action !== "delete")
 		.map(g => g.grCode);
+	const availableGroups = groups.filter(g => !existingGroupCodes.includes(g.groupCode));
 
-	const availableGroups = groups.filter(group =>
-		!existingGroupCodes.includes(group.groupCode)
-	);
+	// 페이징 초기화
+	filteredMemberList = availableUsers;
+	memberModalPage = 0;
+	filteredGroupList = availableGroups;
+	groupModalPage = 0;
 
-	displayUserList(availableUsers, roles);
-	displayGroupList(availableGroups, roles);
-
-	// 추가 버튼 이벤트 설정
+	renderMemberModalPage();
+	renderGroupModalPage();
+	displayRoleList(roles);
 	setupAddMembersButton();
+
+	// 사용자 검색 재바인딩
+	const searchInput = document.getElementById('creatorModalSearch');
+	const newSearch = searchInput.cloneNode(true);
+	searchInput.parentNode.replaceChild(newSearch, searchInput);
+	newSearch.value = '';
+	newSearch.addEventListener('input', function() {
+		const kw = this.value.toLowerCase();
+		filteredMemberList = availableUsers.filter(u =>
+			u.name.toLowerCase().includes(kw) || (u.email || '').toLowerCase().includes(kw)
+		);
+		memberModalPage = 0;
+		renderMemberModalPage();
+	});
+
+	// 그룹 검색 재바인딩
+	const searchGroup = document.getElementById('groupModalSearch');
+	const newSearchGroup = searchGroup.cloneNode(true);
+	searchGroup.parentNode.replaceChild(newSearchGroup, searchGroup);
+	newSearchGroup.value = '';
+	newSearchGroup.addEventListener('input', function() {
+		const kw = this.value.toLowerCase();
+		filteredGroupList = availableGroups.filter(g =>
+			g.grName.toLowerCase().includes(kw)
+		);
+		groupModalPage = 0;
+		renderGroupModalPage();
+	});
 
 	const modal = new bootstrap.Modal(document.getElementById('creatorSelectModal'));
 	modal.show();
@@ -283,89 +315,137 @@ function openMemberModal() {
 // ============================================
 // 9. 모달에 사용자 목록 표시
 // ============================================
-function displayUserList(users, roles) {
-	const memberListContainer = document.getElementById('memberSelectList');
-	memberListContainer.innerHTML = '';
+function renderMemberModalPage() {
+	const tbody = document.getElementById('memberSelectList');
+	tbody.innerHTML = '';
 
-	if (users.length === 0) {
-		memberListContainer.innerHTML = `
-			<tr>
-				<td colspan="2" class="text-center text-muted py-3">
-					추가 가능한 구성원이 없습니다.
-				</td>
-			</tr>
-		`;
+	if (!filteredMemberList.length) {
+		tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">추가 가능한 구성원이 없습니다.</td></tr>`;
+		renderMemberPaging(0);
 		return;
 	}
 
-	users.forEach(user => {
+	const start = memberModalPage * PAGE_SIZE;
+	filteredMemberList.slice(start, start + PAGE_SIZE).forEach(user => {
 		const row = document.createElement('tr');
 		row.innerHTML = `
-			<td>
-				<div class="form-check">
-					<input class="form-check-input member-checkbox" type="checkbox" 
-						   value="${user.userCode}" 
-						   id="member${user.userCode}"
-						   data-user-name="${user.name}" 
-						   data-user-email="${user.email || ''}">
-				</div>
-			</td>
-			<td>
-				<label class="form-check-label w-100" for="member${user.userCode}" style="cursor: pointer;">
-					${user.name}${user.email ? ' (' + user.email + ')' : ''}
-				</label>
-			</td>
-		`;
-		memberListContainer.appendChild(row);
+            <td><div class="form-check">
+                <input class="form-check-input member-checkbox" type="checkbox"
+                       value="${user.userCode}" id="member${user.userCode}"
+                       data-user-name="${user.name}"
+                       data-user-email="${user.email || ''}">
+            </div></td>
+            <td><label class="form-check-label w-100" for="member${user.userCode}" style="cursor:pointer;">
+                ${user.name}${user.email ? ' (' + user.email + ')' : ''}
+            </label></td>`;
+		tbody.appendChild(row);
 	});
 
 	setupSelectAllMembers();
-	displayRoleList(roles);
+	renderMemberPaging(filteredMemberList.length);
+}
+
+function renderMemberPaging(total) {
+	const existing = document.getElementById('memberPaging');
+	if (existing) existing.remove();
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	if (totalPages <= 1) return;
+
+	const nav = document.createElement('nav');
+	nav.id = 'memberPaging';
+	nav.innerHTML = `
+        <ul class="pagination pagination-sm justify-content-center mt-2 mb-3">
+            <li class="page-item ${memberModalPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage - 1}">‹</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => `
+                <li class="page-item ${i === memberModalPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                </li>`).join('')}
+            <li class="page-item ${memberModalPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage + 1}">›</a>
+            </li>
+        </ul>`;
+	nav.querySelectorAll('.page-link').forEach(a => {
+		a.addEventListener('click', function(e) {
+			e.preventDefault();
+			const p = parseInt(this.dataset.page);
+			if (p >= 0 && p < totalPages) {
+				memberModalPage = p;
+				renderMemberModalPage();
+			}
+		});
+	});
+	document.getElementById('memberSelectList').closest('table').closest('.card').after(nav);
 }
 
 // ============================================
 // 10. 모달에 그룹 목록 표시
 // ============================================
-function displayGroupList(groups, roles) {
-	const groupListContainer = document.getElementById('groupSelectList');
+function renderGroupModalPage() {
+	const tbody = document.getElementById('groupSelectList');
+	if (!tbody) return;
+	tbody.innerHTML = '';
 
-	if (!groupListContainer) return;
-
-	groupListContainer.innerHTML = '';
-
-	if (!groups || groups.length === 0) {
-		groupListContainer.innerHTML = `
-            <tr>
-                <td colspan="2" class="text-center text-muted py-3">
-                    추가 가능한 그룹이 없습니다.
-                </td>
-            </tr>
-        `;
+	if (!filteredGroupList.length) {
+		tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">추가 가능한 그룹이 없습니다.</td></tr>`;
+		renderGroupPaging(0);
 		return;
 	}
 
-	groups.forEach(group => {
+	const start = groupModalPage * PAGE_SIZE;
+	filteredGroupList.slice(start, start + PAGE_SIZE).forEach(group => {
 		const row = document.createElement('tr');
 		row.innerHTML = `
-            <td>
-                <div class="form-check">
-                    <input class="form-check-input group-checkbox" type="checkbox" 
-                           value="${group.groupCode}" 
-                           id="group${group.groupCode}"
-                           data-group-name="${group.grName}">
-                </div>
-            </td>
-            <td>
-                <label class="form-check-label w-100" for="group${group.groupCode}" style="cursor: pointer;">
-                    ${group.grName}
-                </label>
-            </td>
-        `;
-		groupListContainer.appendChild(row);
+            <td><div class="form-check">
+                <input class="form-check-input group-checkbox" type="checkbox"
+                       value="${group.groupCode}" id="group${group.groupCode}"
+                       data-group-name="${group.grName}">
+            </div></td>
+            <td><label class="form-check-label w-100" for="group${group.groupCode}" style="cursor:pointer;">
+                ${group.grName}
+            </label></td>`;
+		tbody.appendChild(row);
 	});
 
 	setupSelectAllGroup();
-	displayRoleList(roles);
+	renderGroupPaging(filteredGroupList.length);
+}
+
+function renderGroupPaging(total) {
+	const existing = document.getElementById('groupPaging');
+	if (existing) existing.remove();
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	if (totalPages <= 1) return;
+
+	const nav = document.createElement('nav');
+	nav.id = 'groupPaging';
+	nav.innerHTML = `
+        <ul class="pagination pagination-sm justify-content-center mt-2 mb-3">
+            <li class="page-item ${groupModalPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${groupModalPage - 1}">‹</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => `
+                <li class="page-item ${i === groupModalPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                </li>`).join('')}
+            <li class="page-item ${groupModalPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${groupModalPage + 1}">›</a>
+            </li>
+        </ul>`;
+	nav.querySelectorAll('.page-link').forEach(a => {
+		a.addEventListener('click', function(e) {
+			e.preventDefault();
+			const p = parseInt(this.dataset.page);
+			if (p >= 0 && p < totalPages) {
+				groupModalPage = p;
+				renderGroupModalPage();
+			}
+		});
+	});
+	document.getElementById('groupSelectList').closest('table').closest('.card').after(nav);
 }
 
 // ============================================
@@ -482,12 +562,12 @@ function addSelectedMembers(roles) {
 	const checkedRoles = document.querySelectorAll('.role-checkbox:checked');
 
 	if (checkedMembers.length === 0) {
-		alert('추가할 구성원을 선택해주세요.');
+		showToast('추가할 구성원을 선택해주세요.');
 		return;
 	}
 
 	if (checkedRoles.length === 0) {
-		alert('최소 1개 이상의 역할을 선택해주세요.');
+		showToast('최소 1개 이상의 역할을 선택해주세요.');
 		return;
 	}
 
@@ -518,7 +598,7 @@ function addSelectedMembers(roles) {
 	const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
 	modal.hide();
 
-	alert(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
+	showToast(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
 }
 
 // ============================================
@@ -529,12 +609,12 @@ function addSelectedGroups(roles) {
 	const checkedRoles = document.querySelectorAll('.role-checkbox:checked');
 
 	if (checkedGroups.length === 0) {
-		alert('추가할 그룹을 선택해주세요.');
+		showToast('추가할 그룹을 선택해주세요.');
 		return;
 	}
 
 	if (checkedRoles.length === 0) {
-		alert('최소 1개 이상의 역할을 선택해주세요.');
+		showToast('최소 1개 이상의 역할을 선택해주세요.');
 		return;
 	}
 
@@ -563,7 +643,7 @@ function addSelectedGroups(roles) {
 	const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
 	modal.hide();
 
-	alert(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
+	showToast(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
 }
 
 // ============================================
@@ -764,13 +844,11 @@ function saveRoleChange(row, type, modal) {
 // ============================================
 // 22. 구성원 삭제
 // ============================================
-function removeMember(row, type) {
+async function removeMember(row, type) {
 	const link = row.querySelector('td:first-child a');
 	const name = link ? link.textContent.trim() : '';
-	if (!confirm(`${name}을(를) 삭제하시겠습니까?`)) {
-		return;
-	}
-
+	const isConfirmed = await showConfirm(`${name}을(를) 삭제하시겠습니까?`);
+	if (!isConfirmed) return;
 	if (type === "member") {
 		const mappCode = row.dataset.mappCode ? parseInt(row.dataset.mappCode) : null;
 		const userCode = parseInt(row.dataset.userCode);
@@ -817,31 +895,31 @@ function handleFormSubmit(event) {
 	const projectName = projectNameInput.value.trim();
 
 	if (projectName === '') {
-		alert('프로젝트명을 입력해주세요.');
+		showToast('프로젝트명을 입력해주세요.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (projectName.length < 5) {
-		alert('프로젝트명은 5글자 이상이어야 합니다.');
+		showToast('프로젝트명은 5글자 이상이어야 합니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (projectName.length > 50) {
-		alert('프로젝트명은 50자를 초과할 수 없습니다.');
+		showToast('프로젝트명은 50자를 초과할 수 없습니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (!/^[\w가-힣ㄱ-ㅎ\s]+$/.test(projectName)) {
-		alert('프로젝트명에는 특수문자를 사용할 수 없습니다.');
+		showToast('프로젝트명에는 특수문자를 사용할 수 없습니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (!editorInstance) {
-		alert('에디터가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+		showToast('에디터가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
 		return false;
 	}
 
@@ -849,12 +927,12 @@ function handleFormSubmit(event) {
 	const descriptionText = description.replace(/<[^>]*>/g, '').trim();
 
 	if (descriptionText.length === 0) {
-		alert('프로젝트 설명을 입력해주세요.');
+		showToast('프로젝트 설명을 입력해주세요.');
 		return false;
 	}
 
 	if (descriptionText.length > 1000) {
-		alert('프로젝트 설명은 1000자를 초과할 수 없습니다.');
+		showToast('프로젝트 설명은 1000자를 초과할 수 없습니다.');
 		return false;
 	}
 
@@ -886,12 +964,12 @@ function submitProject(formData) {
 			console.log('수정 권한 상태 : ' + response.status)
 			// 1. 상태 코드 체크
 			if (response.redirected && response.url.includes('/accessDenied')) {
-				alert('수정 권한이 없습니다.');
+				showToast('수정 권한이 없습니다.');
 				return null;
 			}
 
 			if (response.status === 401 || response.redirected) {
-				alert('로그인이 필요합니다.');
+				showToast('로그인이 필요합니다.');
 				window.location.href = '/login';
 				return null;
 			}
@@ -899,7 +977,7 @@ function submitProject(formData) {
 			// 2. Content-Type 체크
 			const contentType = response.headers.get("content-type");
 			if (!contentType || !contentType.includes("application/json")) {
-				alert('서버 오류가 발생했습니다.');
+				showToast('서버 오류가 발생했습니다.');
 				return null;
 			}
 
@@ -910,58 +988,22 @@ function submitProject(formData) {
 			if (!data) return; // null이면 종료
 
 			if (data.success) {
-				alert(data.message);
+				showToast(data.message);
 				//window.location.href = '/projectsmgr';
 			} else {
-				alert(data.message);
+				showToast(data.message);
 			}
 		})
 		.catch(error => {
 			console.error('프로젝트 수정 오류:', error);
-			alert('프로젝트 수정 중 오류가 발생했습니다.');
+			showToast('프로젝트 수정 중 오류가 발생했습니다.');
 		});
 }
 
-// ============================================
-// 25. 모달 검색 기능
-// ============================================
-function handleModalSearch(event) {
-	const searchTerm = event.target.value.toLowerCase();
-	const tableRows = document.querySelectorAll('#memberSelectList tr');
 
-	tableRows.forEach(row => {
-		const text = row.textContent.toLowerCase();
-		if (text.includes(searchTerm)) {
-			row.style.display = '';
-		} else {
-			row.style.display = 'none';
-		}
-	});
-
-	updateSelectAllState('selectAllMembers', '.member-checkbox');
-}
 
 // ============================================
-// 26. 모달 검색 기능 (그룹)
-// ============================================
-function handleModalSearchGroup(event) {
-	const searchTerm = event.target.value.toLowerCase();
-	const tableRows = document.querySelectorAll('#groupSelectList tr');
-
-	tableRows.forEach(row => {
-		const text = row.textContent.toLowerCase();
-		if (text.includes(searchTerm)) {
-			row.style.display = '';
-		} else {
-			row.style.display = 'none';
-		}
-	});
-
-	updateSelectAllState('selectAllgroup', '.group-checkbox');
-}
-
-// ============================================
-// 27. 전체 선택 상태 업데이트
+// 25. 전체 선택 상태 업데이트
 // ============================================
 function updateSelectAllState(checkboxId, itemSelector) {
 	const selectAllCheckbox = document.getElementById(checkboxId);
@@ -980,7 +1022,7 @@ function updateSelectAllState(checkboxId, itemSelector) {
 }
 
 // ============================================
-// 28. 탭 기능 (구성원/그룹)
+// 26. 탭 기능 (구성원/그룹)
 // ============================================
 function initializeTabNavigation() {
 	const tabLinks = document.querySelectorAll('.tabnav a');
@@ -1019,7 +1061,7 @@ function initializeTabNavigation() {
 }
 
 // ============================================
-// 29. 목록으로(돌아가기) 로직
+// 27. 목록으로(돌아가기) 로직
 // ============================================
 function handleBackNavigation(e) {
 	if (e) e.preventDefault();
@@ -1033,6 +1075,15 @@ function handleBackNavigation(e) {
 		return;
 	}
 
-	// 그 외에는 정상적으로 이전 페이지 이동
-	history.back();
+
+	// projects 관련 목록 페이지에서 온 경우 → 서버 요청으로 이동
+	if (ref.includes("/projectsmgr")) {
+		window.location.href = "/projectsmgr";
+	} else if (ref.includes("/projects")) {
+		window.location.href = "/projects";
+	} else {
+		// 그 외 다른 페이지(업무, 대시보드 등)에서 온 경우 → 그냥 뒤로가기
+		// 어차피 currentProject 세션이 필요없는 페이지이므로 무방
+		history.back();
+	}
 }

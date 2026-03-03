@@ -33,7 +33,7 @@ const sys = document.querySelector("#sysBtn").addEventListener('change', (event)
 		.then(response => {
 			console.log(response);
 			if (response.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return null;
 			}
 			return response.text();
@@ -52,9 +52,9 @@ const sys = document.querySelector("#sysBtn").addEventListener('change', (event)
 					//console.log("브라우저 세션 스토리지 갱신 완료:", storageUser.sysCk);
 				}
 
-				alert("권한이 변경되었습니다.");
+				showToast("권한이 변경되었습니다.");
 			} else {
-				alert("변경 실패");
+				showToast("변경 실패");
 				event.target.checked = !isChecked;
 			}
 		})
@@ -174,7 +174,7 @@ const sys = document.querySelector("#sysBtn").addEventListener('change', (event)
 })();
 
 document.addEventListener("DOMContentLoaded", function() {
-	// ✅ 서버 메시지 있으면 1초 후 자동 사라짐
+	// 서버 메시지 있으면 1초 후 자동 사라짐
 	const serverAlert = document.getElementById("myInfoServerAlert");
 	if (serverAlert) {
 		setTimeout(() => {
@@ -184,7 +184,7 @@ document.addEventListener("DOMContentLoaded", function() {
 		}, 1000);
 	}
 
-	// ✅ 돌아가기 버튼 (서버Alert가 없어도 항상 등록돼야 함)
+	// 돌아가기 버튼 (서버Alert가 없어도 항상 등록돼야 함)
 	const backBtn = document.getElementById("btnBackMyInfo");
 	if (!backBtn) return;
 

@@ -4,8 +4,8 @@
 	const tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
 		return new bootstrap.Tooltip(tooltipTriggerEl)
 	})
-	
-	
+
+
 	const $ = (sel) => document.querySelector(sel);
 	const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
@@ -74,7 +74,7 @@
 		});
 
 		if (!res.ok) {
-			alert("사용자 목록을 불러오지 못했습니다.");
+			showToast("사용자 목록을 불러오지 못했습니다.");
 			return false;
 		}
 
@@ -301,7 +301,8 @@
 
 		// 1. 삭제 버튼 클릭
 		if (btn.classList.contains("btn-danger")) {
-			if (!confirm(`"${projectName}" 프로젝트를 삭제하시겠습니까?`)) return;
+			const isConfirmed = await showConfirm(`"${projectName}" 프로젝트를 삭제하시겠습니까?`);
+			if (!isConfirmed) return;
 
 			try {
 				const response = await fetch(`/api/projects/${projectCode}/delete`, {
@@ -318,23 +319,23 @@
 				const result = await response.json();
 
 				if (result.success) {
-					alert(result.message);
+					showToast(result.message);
 					row.dataset.filtered = "1";
 					row.style.display = "none";
 					renderPage();
 				} else {
-					alert(result.message);
+					showToast(result.message);
 				}
 			} catch (error) {
 				console.error('삭제 오류:', error);
-				alert('삭제 처리 중 오류가 발생했습니다.');
+				showToast('삭제 처리 중 오류가 발생했습니다.');
 			}
 		}
 
 		// 2. 종료 버튼 클릭
 		if (btn.classList.contains("btn-success")) {
-			if (!confirm(`"${projectName}" 프로젝트를 종료 처리하시겠습니까?`)) return;
-
+			const isConfirmed = await showConfirm(`"${projectName}" 프로젝트를 종료 처리하시겠습니까?`);
+			if (!isConfirmed) return;
 			try {
 				const response = await fetch(`/api/projects/${projectCode}/modify`, {
 					method: 'POST',
@@ -350,16 +351,16 @@
 				const result = await response.json();
 
 				if (result.success) {
-					alert(result.message);
+					showToast(result.message);
 					const statusCell = row.querySelectorAll("td")[6];
 					if (statusCell) statusCell.textContent = "종료";
 					updateRowStyle(row);
 				} else {
-					alert(result.message);
+					showToast(result.message);
 				}
 			} catch (error) {
 				console.error('종료 오류:', error);
-				alert('종료 처리 중 오류가 발생했습니다.');
+				showToast('종료 처리 중 오류가 발생했습니다.');
 			}
 		}
 	});

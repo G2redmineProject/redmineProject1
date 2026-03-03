@@ -12,7 +12,6 @@ import com.yedam.app.groupmgr.service.GroupMgrVO;
 import com.yedam.app.groupmgr.service.GroupProjectVO;
 import com.yedam.app.groupmgr.service.GroupService;
 
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -143,7 +142,9 @@ public class GroupMgrServiceImpl implements GroupService {
 
 	// 그룹 삭제 (소프트 삭제)
 	@Override
+	@Transactional
 	public int deleteGroup(Integer groupCode) {
-		return groupMapper.softDeleteGroup(groupCode);
+		groupMapper.softDeleteGroup(groupCode); // gr_pro_role 처리 (0이어도 무관)
+		return groupMapper.softDeleteGroupMaster(groupCode); // GROUP 테이블 기준으로 성공 판단
 	}
 }

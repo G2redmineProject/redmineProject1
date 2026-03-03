@@ -88,8 +88,10 @@ function renderPagination(total) {
 	ul.appendChild(mkLi('다음', currentPage + 1, currentPage === totalPages));
 }
 
-function deleteGroup(groupCode) {
-	if (!confirm('해당 그룹을 삭제하시겠습니까?')) return;
+async function deleteGroup(groupCode) {
+	const isConfirmed = await showConfirm('해당 그룹을 삭제하시겠습니까?');
+	if (!isConfirmed) return;
+
 
 	fetch(`/api/groupmgr/${groupCode}/delete`, {
 		method: 'POST',
@@ -100,15 +102,15 @@ function deleteGroup(groupCode) {
 	})
 		.then(res => {
 			if (res.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return null;
 			}
 			return res.json();
 		})
 		.then(data => {
-			if (!data) return;  
-			if (data.success) { alert(data.message); window.location.reload(); }
-			else { alert(data.message); }
+			if (!data) return;
+			if (data.success) { showToast(data.message); window.location.reload(); }
+			else { showToast(data.message); }
 		})
-		.catch(() => alert('삭제 처리 중 오류가 발생했습니다.'));
+		.catch(() => showToast('삭제 처리 중 오류가 발생했습니다.'));
 }

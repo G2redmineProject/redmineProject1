@@ -48,19 +48,10 @@
 					</div>
 				</div>
 
-				<div
-					class="col-12 col-md-4 d-flex justify-content-end align-items-end"
-					style="height: 100%;">
-					<button type="button" class="btn btn-success" id="registerRoleBtn">
-						<i class="fas fa-save me-1"></i> 권한 등록
-					</button>
 
-				</div>
 
 			</div>
-			<form id="issueDeleteForm" th:action="@{/issueDelete}" method="post"
-				style="display: none;"></form>
-			<div class="card mb-4">
+			<div class="card mb-4 issue-list-card">
 
 				<div
 					class="card-header d-flex align-items-center justify-content-between">
@@ -112,11 +103,20 @@
 				</div>
 
 			</div>
+		</div>
 
+		<div class="col-12  d-flex justify-content-between align-items-end"
+			style="height: 100%;">
 			<button type="button" th:onclick="|location.href='@{/auth}'|"
 				class="btn btn-secondary">
 				<i class="fas fa-arrow-left me-1"></i>돌아가기
 			</button>
-			<script th:src="@{/js/auth/authadd.js}"></script>
+			<button type="button" class="btn btn-success" id="registerRoleBtn">
+				<i class="fas fa-save me-1"></i> 권한 등록
+			</button>
+
+		</div>
+		<script th:src="@{/js/common/toast.js}"></script>
+		<script th:src="@{/js/auth/authadd.js}"></script>
 </body>
 </html>

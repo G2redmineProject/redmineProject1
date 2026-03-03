@@ -88,6 +88,7 @@
 		    gr_name,
 		    description
 		FROM "GROUP"
+		WHERE gr_name NOT LIKE '%-delete' 
 	</select>
 	
 	<!-- 프로젝트 진척도 -->
@@ -183,45 +184,49 @@
 	<!-- 사용자 권한 조회 -->
 	<select id="selectUserProjectAuth" resultType="UserProjectAuthVO">
 	    SELECT 
-		    user_code,
-		    name,
-		    MAX(admin) AS admin,
-		    #{category} AS category,
-		    MAX(rd_rol) AS rd_rol,
-		    MAX(wr_rol) AS wr_rol,
-		    MAX(mo_rol) AS mo_rol,
-		    MAX(del_rol) AS del_rol
-		FROM (
-		    -- 1. 사용자에게 직접 부여된 개별 권한
-		    SELECT 
-		        u.user_code,
-		        u.name,
-		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
-		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
-		    FROM users u
-		    LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
-		    LEFT JOIN role r ON pru.role_code = r.role_code
-		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
-		        AND ra.category = #{category}
-		    WHERE u.user_code = #{userCode}
-		
-		    UNION
-		
-		    -- 2. 그룹을 통해 부여된 권한
-		    SELECT 
-		        u.user_code,
-		        u.name,
-		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
-		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
-		    FROM users u
-		    JOIN group_member gm ON u.user_code = gm.user_code
-		    JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
-		    JOIN role r ON gpr.role_code = r.role_code
-		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
-		        AND ra.category = #{category}
-		    WHERE u.user_code = #{userCode}
-		) combined_auth
-		GROUP BY user_code, name
+	        user_code, name,
+	        MAX(admin) AS admin,
+	        #{category} AS category,
+	        MAX(rd_rol) AS rd_rol,
+	        MAX(wr_rol) AS wr_rol,
+	        MAX(mo_rol) AS mo_rol,
+	        MAX(del_rol) AS del_rol
+	    FROM (
+	        -- 1. 사용자에게 직접 부여된 개별 권한
+	        SELECT 
+	            u.user_code, u.name,
+	            CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+	            ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+	        FROM users u
+	        LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
+	        LEFT JOIN projects p ON pru.project_code = p.project_code  -- 추가
+	        LEFT JOIN role r ON pru.role_code = r.role_code
+	        LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+	            AND ra.category = #{category}
+	        WHERE u.user_code = #{userCode}
+	          AND (p.status NOT IN ('OD2', 'OD3') OR p.status IS NULL)  -- 추가
+	
+	        UNION
+	
+	        -- 2. 그룹을 통해 부여된 권한
+	        SELECT 
+	            u.user_code, u.name,
+	            CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+	            ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol
+	        FROM users u
+	        JOIN group_member gm ON u.user_code = gm.user_code
+	        JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
+	        JOIN projects p ON gpr.project_code = p.project_code  -- 추가
+	        JOIN "GROUP" g ON gm.gr_code = g.group_code            -- 추가
+	        JOIN role r ON gpr.role_code = r.role_code
+	        LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+	            AND ra.category = #{category}
+	        WHERE u.user_code = #{userCode}
+	          AND gpr.project_code > 0                   -- 추가
+	          AND g.gr_name NOT LIKE '%-delete'           -- 추가
+	          AND p.status NOT IN ('OD2', 'OD3')          -- 추가
+	    ) combined_auth
+	    GROUP BY user_code, name
 	</select>
 
     <!-- 프로젝트 상태 변경 -->
@@ -235,51 +240,51 @@
     <!-- 유저 권한 조회 -->
     <select id="selectUserProjectAuthAll" resultType="UserProjectAuthVO">
 	    SELECT 
-		    user_code,
-		    name,
-		    project_code,
-		    category,  -- 카테고리별로 그룹화
-		    MAX(admin) AS admin,
-		    MAX(rd_rol) AS rd_rol,
-		    MAX(wr_rol) AS wr_rol,
-		    MAX(mo_rol) AS mo_rol,
-		    MAX(del_rol) AS del_rol
-		FROM (
-		    -- 1. 사용자 개별 권한 (카테고리 포함)
-		    SELECT 
-		        u.user_code,
-		        u.name,
-		        ra.category,
-		        pru.project_code,
-		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
-		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol,ra.ra_code
-		    FROM users u
-		    LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
-		    LEFT JOIN role r ON pru.role_code = r.role_code
-		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
-		    WHERE u.user_code =  #{userCode} AND ra.category IS NOT NULL
-		
-		    UNION ALL
-		
-		    -- 2. 그룹 소속 권한 (카테고리 포함)
-		    SELECT 
-		        u.user_code,
-		        u.name,
-		        ra.category,
-		        gpr.project_code,
-		        CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
-		        ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol,ra.ra_code
-		    FROM users u
-		    JOIN group_member gm ON u.user_code = gm.user_code
-		    JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
-		    JOIN role r ON gpr.role_code = r.role_code
-		    LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
-		    WHERE u.user_code = #{userCode} AND ra.category IS NOT NULL
-		) combined_auth
-		WHERE project_code > 0
-		GROUP BY user_code, name, project_code, category
-		ORDER BY max(ra_code) ASC 
-    </select>
+	        user_code, name, project_code, category,
+	        MAX(admin) AS admin,
+	        MAX(rd_rol) AS rd_rol,
+	        MAX(wr_rol) AS wr_rol,
+	        MAX(mo_rol) AS mo_rol,
+	        MAX(del_rol) AS del_rol
+	    FROM (
+	        -- 1. 사용자 개별 권한 (카테고리 포함)
+	        SELECT 
+	            u.user_code, u.name, ra.category, pru.project_code,
+	            CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+	            ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol, ra.ra_code
+	        FROM users u
+	        LEFT JOIN project_role_user pru ON u.user_code = pru.user_code
+	        LEFT JOIN projects p ON pru.project_code = p.project_code  -- 추가
+	        LEFT JOIN role r ON pru.role_code = r.role_code
+	        LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+	        WHERE u.user_code = #{userCode} 
+	          AND ra.category IS NOT NULL
+	          AND p.status NOT IN ('OD2', 'OD3')  
+	
+	        UNION ALL
+	
+	        -- 2. 그룹 소속 권한 (카테고리 포함)
+	        SELECT 
+	            u.user_code, u.name, ra.category, gpr.project_code,
+	            CASE WHEN r.admin_ck = 'Y' THEN 1 ELSE 0 END AS admin,
+	            ra.rd_rol, ra.wr_rol, ra.mo_rol, ra.del_rol, ra.ra_code
+	        FROM users u
+	        JOIN group_member gm ON u.user_code = gm.user_code
+	        JOIN gr_pro_role gpr ON gm.gr_code = gpr.gr_code
+	        JOIN projects p ON gpr.project_code = p.project_code  
+	        JOIN "GROUP" g ON gm.gr_code = g.group_code          
+	        JOIN role r ON gpr.role_code = r.role_code
+	        LEFT JOIN role_authority ra ON r.role_code = ra.role_code 
+	        WHERE u.user_code = #{userCode} 
+	          AND ra.category IS NOT NULL
+	          AND gpr.project_code > 0
+	          AND g.gr_name NOT LIKE '%-delete'  
+	          AND p.status NOT IN ('OD2', 'OD3')  
+	    ) combined_auth
+	    WHERE project_code > 0
+	    GROUP BY user_code, name, project_code, category
+	    ORDER BY max(ra_code) ASC 
+	</select>
     
     
     

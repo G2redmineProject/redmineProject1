@@ -9,6 +9,12 @@ let editorInstance;
 let selectedUsers = [];
 let selectedGroups = [];
 
+// 페이징 상태
+const PAGE_SIZE = 10;
+let memberModalPage = 0;
+let filteredMemberList = [];
+let groupModalPage = 0;
+let filteredGroupList = [];
 // ============================================
 // 1. 페이지 로드 시 초기화
 // ============================================
@@ -47,7 +53,7 @@ function initializeCKEditor() {
 				const textOnly = data.replace(/<[^>]*>/g, '');
 
 				if (textOnly.length > 1000) {
-					alert('프로젝트 설명은 1000자를 초과할 수 없습니다.');
+					showToast('프로젝트 설명은 1000자를 초과할 수 없습니다.');
 					editorInstance.execute('undo');
 				}
 			});
@@ -86,7 +92,7 @@ function initializeEventListeners() {
 		submitBtn.addEventListener('click', handleFormSubmit);
 	}
 
-	const searchInput = document.getElementById('creatorModalSearch');
+	/*const searchInput = document.getElementById('creatorModalSearch');
 	if (searchInput) {
 		searchInput.addEventListener('input', handleModalSearch);
 	}
@@ -94,7 +100,7 @@ function initializeEventListeners() {
 	const searchInputGroup = document.getElementById('groupModalSearch');
 	if (searchInputGroup) {
 		searchInputGroup.addEventListener('input', handleModalSearchGroup);
-	}
+	}*/
 }
 
 // ============================================
@@ -153,33 +159,54 @@ function openMemberModal() {
 	const users = window.serverData?.users || [];
 	const roles = window.serverData?.roles || [];
 	const groups = window.serverData?.groups || [];
-
 	const currentUserName = document.getElementById('filterWriter').value;
 
-	// 이미 추가된 사용자 제외 (userCode 비교 수정)
-	const availableUsers = users.filter(user => {
-		// 현재 로그인한 사용자 제외
-		if (user.name === currentUserName) {
-			return false;
-		}
-		// 이미 추가된 사용자 제외 (String 비교로 수정)
-		return !selectedUsers.some(selected =>
-			String(selected.userCode) === String(user.userCode)
-		);
-	});
-
-	// 이미 추가된 그룹 제외 (groupCode 비교 수정)
+	const availableUsers = users.filter(user =>
+		user.name !== currentUserName &&
+		!selectedUsers.some(s => String(s.userCode) === String(user.userCode))
+	);
 	const availableGroups = groups.filter(group =>
-		!selectedGroups.some(selected =>
-			String(selected.groupCode) === String(group.groupCode)
-		)
+		!selectedGroups.some(s => String(s.groupCode) === String(group.groupCode))
 	);
 
-	displayUserList(availableUsers, roles);
-	displayGroupList(availableGroups, roles);
+	// 페이징 초기화
+	filteredMemberList = availableUsers;
+	memberModalPage = 0;
+	filteredGroupList = availableGroups;
+	groupModalPage = 0;
 
-	// 추가 버튼 이벤트 설정 (한 번만 호출)
+	renderMemberModalPage();
+	renderGroupModalPage();
+	displayRoleList(roles);
 	setupAddMembersButton();
+
+	// 사용자 검색 재바인딩
+	const searchInput = document.getElementById('creatorModalSearch');
+	const newSearch = searchInput.cloneNode(true);
+	searchInput.parentNode.replaceChild(newSearch, searchInput);
+	newSearch.value = '';
+	newSearch.addEventListener('input', function() {
+		const kw = this.value.toLowerCase();
+		filteredMemberList = availableUsers.filter(u =>
+			u.name.toLowerCase().includes(kw) || (u.email || '').toLowerCase().includes(kw)
+		);
+		memberModalPage = 0;
+		renderMemberModalPage();
+	});
+
+	// 그룹 검색 재바인딩
+	const searchGroup = document.getElementById('groupModalSearch');
+	const newSearchGroup = searchGroup.cloneNode(true);
+	searchGroup.parentNode.replaceChild(newSearchGroup, searchGroup);
+	newSearchGroup.value = '';
+	newSearchGroup.addEventListener('input', function() {
+		const kw = this.value.toLowerCase();
+		filteredGroupList = availableGroups.filter(g =>
+			g.grName.toLowerCase().includes(kw)
+		);
+		groupModalPage = 0;
+		renderGroupModalPage();
+	});
 
 	const modal = new bootstrap.Modal(document.getElementById('creatorSelectModal'));
 	modal.show();
@@ -187,94 +214,138 @@ function openMemberModal() {
 // ============================================
 // 7. 모달에 사용자 목록 표시
 // ============================================
-function displayUserList(users, roles) {
-	const memberListContainer = document.getElementById('memberSelectList');
-	memberListContainer.innerHTML = '';
+function renderMemberModalPage() {
+	const tbody = document.getElementById('memberSelectList');
+	tbody.innerHTML = '';
 
-	if (users.length === 0) {
-		memberListContainer.innerHTML = `
-			<tr>
-				<td colspan="2" class="text-center text-muted py-3">
-					추가 가능한 구성원이 없습니다.
-				</td>
-			</tr>
-		`;
+	if (!filteredMemberList.length) {
+		tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">추가 가능한 구성원이 없습니다.</td></tr>`;
+		renderMemberPaging(0);
 		return;
 	}
 
-	users.forEach(user => {
+	const start = memberModalPage * PAGE_SIZE;
+	filteredMemberList.slice(start, start + PAGE_SIZE).forEach(user => {
 		const row = document.createElement('tr');
 		row.innerHTML = `
-			<td>
-				<div class="form-check">
-					<input class="form-check-input member-checkbox" type="checkbox" 
-						   value="${user.userCode}" 
-						   id="member${user.userCode}"
-						   data-user-name="${user.name}" 
-						   data-user-email="${user.email || ''}">
-				</div>
-			</td>
-			<td>
-				<label class="form-check-label w-100" for="member${user.userCode}" style="cursor: pointer;">
-					${user.name}${user.email ? ' (' + user.email + ')' : ''}
-				</label>
-			</td>
-		`;
-		memberListContainer.appendChild(row);
+            <td><div class="form-check">
+                <input class="form-check-input member-checkbox" type="checkbox"
+                       value="${user.userCode}" id="member${user.userCode}"
+                       data-user-name="${user.name}"
+                       data-user-email="${user.email || ''}">
+            </div></td>
+            <td><label class="form-check-label w-100" for="member${user.userCode}" style="cursor:pointer;">
+                ${user.name}${user.email ? ' (' + user.email + ')' : ''}
+            </label></td>`;
+		tbody.appendChild(row);
 	});
 
 	setupSelectAllMembers();
-	displayRoleList(roles);
-	// 역할 목록과 추가 버튼은 displayGroupList에서도 호출되므로 여기서는 제거
-	// setupAddMembersButton은 탭 전환 시마다 재설정됩니다
+	renderMemberPaging(filteredMemberList.length);
+}
+
+function renderMemberPaging(total) {
+	const existing = document.getElementById('memberPaging');
+	if (existing) existing.remove();
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	if (totalPages <= 1) return;
+
+	const nav = document.createElement('nav');
+	nav.id = 'memberPaging';
+	nav.innerHTML = `
+        <ul class="pagination pagination-sm justify-content-center mt-2 mb-3">
+            <li class="page-item ${memberModalPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage - 1}">‹</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => `
+                <li class="page-item ${i === memberModalPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                </li>`).join('')}
+            <li class="page-item ${memberModalPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${memberModalPage + 1}">›</a>
+            </li>
+        </ul>`;
+	nav.querySelectorAll('.page-link').forEach(a => {
+		a.addEventListener('click', function(e) {
+			e.preventDefault();
+			const p = parseInt(this.dataset.page);
+			if (p >= 0 && p < totalPages) {
+				memberModalPage = p;
+				renderMemberModalPage();
+			}
+		});
+	});
+	document.getElementById('memberSelectList').closest('table').closest('.card').after(nav);
 }
 
 // ============================================
 // 7-2. 모달에 그룹 목록 표시
 // ============================================
-function displayGroupList(groups, roles) {
-	const groupListContainer = document.getElementById('groupSelectList');
+function renderGroupModalPage() {
+	const tbody = document.getElementById('groupSelectList');
+	if (!tbody) return;
+	tbody.innerHTML = '';
 
-	if (!groupListContainer) return;
-
-	groupListContainer.innerHTML = '';
-
-	if (!groups || groups.length === 0) {
-		groupListContainer.innerHTML = `
-            <tr>
-                <td colspan="2" class="text-center text-muted py-3">
-                    추가 가능한 그룹이 없습니다.
-                </td>
-            </tr>
-        `;
+	if (!filteredGroupList.length) {
+		tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted py-3">추가 가능한 그룹이 없습니다.</td></tr>`;
+		renderGroupPaging(0);
 		return;
 	}
 
-	groups.forEach(group => {
+	const start = groupModalPage * PAGE_SIZE;
+	filteredGroupList.slice(start, start + PAGE_SIZE).forEach(group => {
 		const row = document.createElement('tr');
 		row.innerHTML = `
-            <td>
-                <div class="form-check">
-                    <input class="form-check-input group-checkbox" type="checkbox" 
-                           value="${group.groupCode}" 
-                           id="group${group.groupCode}"
-                           data-group-name="${group.grName}">
-                </div>
-            </td>
-            <td>
-                <label class="form-check-label w-100" for="group${group.groupCode}" style="cursor: pointer;">
-                    ${group.grName}
-                </label>
-            </td>
-        `;
-		groupListContainer.appendChild(row);
+            <td><div class="form-check">
+                <input class="form-check-input group-checkbox" type="checkbox"
+                       value="${group.groupCode}" id="group${group.groupCode}"
+                       data-group-name="${group.grName}">
+            </div></td>
+            <td><label class="form-check-label w-100" for="group${group.groupCode}" style="cursor:pointer;">
+                ${group.grName}
+            </label></td>`;
+		tbody.appendChild(row);
 	});
 
 	setupSelectAllGroup();
-	displayRoleList(roles);
-	// 역할 목록과 추가 버튼은 displayUserList에서도 호출되므로 중복 방지
+	renderGroupPaging(filteredGroupList.length);
 }
 
+function renderGroupPaging(total) {
+	const existing = document.getElementById('groupPaging');
+	if (existing) existing.remove();
+
+	const totalPages = Math.ceil(total / PAGE_SIZE);
+	if (totalPages <= 1) return;
+
+	const nav = document.createElement('nav');
+	nav.id = 'groupPaging';
+	nav.innerHTML = `
+        <ul class="pagination pagination-sm justify-content-center mt-2 mb-3">
+            <li class="page-item ${groupModalPage === 0 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${groupModalPage - 1}">‹</a>
+            </li>
+            ${Array.from({ length: totalPages }, (_, i) => `
+                <li class="page-item ${i === groupModalPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i + 1}</a>
+                </li>`).join('')}
+            <li class="page-item ${groupModalPage === totalPages - 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${groupModalPage + 1}">›</a>
+            </li>
+        </ul>`;
+	nav.querySelectorAll('.page-link').forEach(a => {
+		a.addEventListener('click', function(e) {
+			e.preventDefault();
+			const p = parseInt(this.dataset.page);
+			if (p >= 0 && p < totalPages) {
+				groupModalPage = p;
+				renderGroupModalPage();
+			}
+		});
+	});
+	document.getElementById('groupSelectList').closest('table').closest('.card').after(nav);
+}
 // ============================================
 // 7-1. 전체 선택 기능 (구성원)
 // ============================================
@@ -379,12 +450,12 @@ function addSelectedMembers(roles) {
 	const checkedRoles = document.querySelectorAll('.role-checkbox:checked');
 
 	if (checkedMembers.length === 0) {
-		alert('추가할 구성원을 선택해주세요.');
+		showToast('추가할 구성원을 선택해주세요.');
 		return;
 	}
 
 	if (checkedRoles.length === 0) {
-		alert('최소 1개 이상의 역할을 선택해주세요.');
+		showToast('최소 1개 이상의 역할을 선택해주세요.');
 		return;
 	}
 
@@ -417,7 +488,7 @@ function addSelectedMembers(roles) {
 		const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
 		modal.hide();
 
-		alert(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
+		showToast(`${checkedMembers.length}명의 구성원이 추가되었습니다.`);
 	}
 }
 
@@ -429,12 +500,12 @@ function addSelectedGroups(roles) {
 	const checkedRoles = document.querySelectorAll('.role-checkbox:checked');
 
 	if (checkedGroups.length === 0) {
-		alert('추가할 그룹을 선택해주세요.');
+		showToast('추가할 그룹을 선택해주세요.');
 		return;
 	}
 
 	if (checkedRoles.length === 0) {
-		alert('최소 1개 이상의 역할을 선택해주세요.');
+		showToast('최소 1개 이상의 역할을 선택해주세요.');
 		return;
 	}
 
@@ -466,7 +537,7 @@ function addSelectedGroups(roles) {
 		const modal = bootstrap.Modal.getInstance(document.getElementById('creatorSelectModal'));
 		modal.hide();
 
-		alert(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
+		showToast(`${checkedGroups.length}개의 그룹이 추가되었습니다.`);
 	}
 }
 
@@ -616,42 +687,53 @@ function saveRoleChange(index, type) {
 // ============================================
 // 12. 구성원 삭제
 // ============================================
-function removeMember(index, type) {
-	if (confirm(`해당 ${type === 'group' ? '그룹을' : '구성원을'} 삭제하시겠습니까?`)) {
-		// 타입에 따라 다른 배열에서 삭제
-		if (type === 'group') {
-			selectedGroups.splice(index, 1);
-		} else {
-			selectedUsers.splice(index, 1);
-		}
-		updateMemberTable();
+async function removeMember(index, type) {
+	const isConfirmed = await showConfirm(
+		`해당 ${type === 'group' ? '그룹을' : '구성원을'} 삭제하시겠습니까?`
+	);
+
+	if (!isConfirmed) return;
+
+	// 타입에 따라 다른 배열에서 삭제
+	if (type === 'group') {
+		selectedGroups.splice(index, 1);
+	} else {
+		selectedUsers.splice(index, 1);
 	}
+
+	updateMemberTable();
+	showToast('삭제가 완료되었습니다.', 'success');
 }
 
 // ============================================
 // 13. 폼 초기화
 // ============================================
-function resetForm() {
-	if (confirm('입력한 내용을 모두 초기화하시겠습니까?')) {
-		document.querySelector('[name="projectName"]').value = '';
+async function resetForm() {
+	const isConfirmed = await showConfirm('입력한 내용을 모두 초기화하시겠습니까?');
+	if (!isConfirmed) return;
 
-		if (editorInstance) {
-			editorInstance.setData('');
-		}
+	document.querySelector('[name="projectName"]').value = '';
 
-		selectedUsers = [];
-		selectedGroups = [];
-		updateMemberTable();
-
-		document.getElementById('inlineRadio1').checked = true;
-
-		document.querySelectorAll('.is-invalid').forEach(el => {
-			el.classList.remove('is-invalid');
-		});
-		document.querySelectorAll('.invalid-feedback').forEach(el => {
-			el.remove();
-		});
+	if (editorInstance) {
+		editorInstance.setData('');
 	}
+
+	selectedUsers = [];
+	selectedGroups = [];
+	updateMemberTable();
+
+	document.getElementById('inlineRadio1').checked = true;
+
+	document.querySelectorAll('.is-invalid').forEach(el => {
+		el.classList.remove('is-invalid');
+	});
+
+	document.querySelectorAll('.invalid-feedback').forEach(el => {
+		el.remove();
+	});
+
+	showToast('초기화가 완료되었습니다.', 'info');
+
 }
 
 // ============================================
@@ -664,31 +746,31 @@ function handleFormSubmit(event) {
 	const projectName = projectNameInput.value.trim();
 	const userCode = document.querySelector('[name="userCode"]').value;
 	if (projectName === '') {
-		alert('프로젝트명을 입력해주세요.');
+		showToast('프로젝트명을 입력해주세요.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (projectName.length < 5) {
-		alert('프로젝트명은 5글자 이상이어야 합니다.');
+		showToast('프로젝트명은 5글자 이상이어야 합니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (projectName.length > 50) {
-		alert('프로젝트명은 50자를 초과할 수 없습니다.');
+		showToast('프로젝트명은 50자를 초과할 수 없습니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (!/^[\w가-힣ㄱ-ㅎ]+$/.test(projectName)) {
-		alert('프로젝트명에는 특수문자와 공백을 사용할 수 없습니다.');
+		showToast('프로젝트명에는 특수문자와 공백을 사용할 수 없습니다.');
 		projectNameInput.focus();
 		return false;
 	}
 
 	if (!editorInstance) {
-		alert('에디터가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
+		showToast('에디터가 초기화되지 않았습니다. 페이지를 새로고침해주세요.');
 		return false;
 	}
 
@@ -696,18 +778,18 @@ function handleFormSubmit(event) {
 	const descriptionText = description.replace(/<[^>]*>/g, '').trim();
 
 	if (descriptionText.length === 0) {
-		alert('프로젝트 설명을 입력해주세요.');
+		showToast('프로젝트 설명을 입력해주세요.');
 		return false;
 	}
 
 	if (descriptionText.length > 1000) {
-		alert('프로젝트 설명은 1000자를 초과할 수 없습니다.');
+		showToast('프로젝트 설명은 1000자를 초과할 수 없습니다.');
 		return false;
 	}
 
 
 	if (selectedUsers.length === 0 && selectedGroups.length === 0) {
-		alert('최소 1명 이상의 구성원 또는 1개 이상의 그룹을 추가해주세요.');
+		showToast('최소 1명 이상의 구성원 또는 1개 이상의 그룹을 추가해주세요.');
 		return false;
 	}
 
@@ -766,78 +848,21 @@ function submitProject(formData) {
 		.then(response => response.json())
 		.then(data => {
 			if (data.success) {
-				alert(data.message);
+				showToast(data.message);
 				window.location.href = '/projectsmgr';
 			} else {
-				alert(data.message);
+				showToast(data.message);
 			}
 		})
 		.catch(error => {
 			console.error('프로젝트 등록 오류:', error);
-			alert('프로젝트 등록 중 오류가 발생했습니다.');
+			showToast('프로젝트 등록 중 오류가 발생했습니다.');
 		});
 }
 
-// ============================================
-// 16. 모달 검색 기능
-// ============================================
-function handleModalSearch(event) {
-	const searchTerm = event.target.value.toLowerCase();
-	const tableRows = document.querySelectorAll('#memberSelectList tr');
-
-	tableRows.forEach(row => {
-		const text = row.textContent.toLowerCase();
-		if (text.includes(searchTerm)) {
-			row.style.display = '';
-		} else {
-			row.style.display = 'none';
-		}
-	});
-
-	const selectAllCheckbox = document.getElementById('selectAllMembers');
-	const visibleCheckboxes = Array.from(document.querySelectorAll('.member-checkbox'))
-		.filter(cb => cb.closest('tr').style.display !== 'none');
-
-	if (visibleCheckboxes.length > 0) {
-		const allChecked = visibleCheckboxes.every(cb => cb.checked);
-		const someChecked = visibleCheckboxes.some(cb => cb.checked);
-
-		selectAllCheckbox.checked = allChecked;
-		selectAllCheckbox.indeterminate = someChecked && !allChecked;
-	}
-}
 
 // ============================================
-// 16-2. 모달 검색 기능 (그룹)
-// ============================================
-function handleModalSearchGroup(event) {
-	const searchTerm = event.target.value.toLowerCase();
-	const tableRows = document.querySelectorAll('#groupSelectList tr');
-
-	tableRows.forEach(row => {
-		const text = row.textContent.toLowerCase();
-		if (text.includes(searchTerm)) {
-			row.style.display = '';
-		} else {
-			row.style.display = 'none';
-		}
-	});
-
-	const selectAllCheckbox = document.getElementById('selectAllgroup');
-	const visibleCheckboxes = Array.from(document.querySelectorAll('.group-checkbox'))
-		.filter(cb => cb.closest('tr').style.display !== 'none');
-
-	if (visibleCheckboxes.length > 0) {
-		const allChecked = visibleCheckboxes.every(cb => cb.checked);
-		const someChecked = visibleCheckboxes.some(cb => cb.checked);
-
-		selectAllCheckbox.checked = allChecked;
-		selectAllCheckbox.indeterminate = someChecked && !allChecked;
-	}
-}
-
-// ============================================
-// 17. 탭 기능 (구성원/그룹)
+// 16. 탭 기능 (구성원/그룹)
 // ============================================
 function initializeTabNavigation() {
 	const tabLinks = document.querySelectorAll('.tabnav a');

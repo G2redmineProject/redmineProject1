@@ -55,7 +55,7 @@ table {
 				<div class="col-4 col-md-2">
 					<label class="form-label">관리자</label> <input type="checkbox"
 						id="sysBtn" th:checked="${user.sysCk == 'Y'}"
-						th:data-sysck="${user.sysCk}" th:data-usercode="${user.userCode}"  />
+						th:data-sysck="${user.sysCk}" th:data-usercode="${user.userCode}" />
 				</div>
 				<div class="col-12 col-md-4">
 					<label class="form-label">직책</label> <input type="text"
@@ -130,7 +130,7 @@ table {
 
 									<tr th:each="p : ${myProjects}">
 										<td class="td-left"><a
-											th:href="@{/project/overview/{projectCode}(projectCode=${p.projectCode})}"
+											th:href="@{/project/{projectCode}(projectCode=${p.projectCode})}"
 											th:text="${p.projectName}" class="project-link">프로젝트명</a></td>
 										<td><span class="badge rounded-pill myinfo-status-badge"
 											th:classappend="${p.status == 'OD3' ? ' text-bg-secondary' : ' text-bg-primary'}"
@@ -194,7 +194,8 @@ table {
 
 	</div>
 	<th:block layout:fragment="pageScript">
-		<script th:inline="javascript"  th:src="@{/js/usermgr/userinfo.js}"></script>
+		<script th:src="@{/js/common/toast.js}"></script>
+		<script th:inline="javascript" th:src="@{/js/usermgr/userinfo.js}"></script>
 	</th:block>
 </body>
 </html>

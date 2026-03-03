@@ -147,7 +147,7 @@ function registerRole() {
 	})
 		.then(response => {
 			if (response.status === 403) {
-				alert('권한이 없습니다.');
+				showToast('권한이 없습니다.');
 				return null;
 			}
 			return response.json();
@@ -155,15 +155,15 @@ function registerRole() {
 		.then(data => {
 			if (!data) return;
 			if (data.success) {
-				alert(data.message);
+				showToast(data.message);
 				window.location.href = '/auth'; // 역할 목록 페이지로 이동
 			} else {
-				alert(data.message);
+				showToast(data.message);
 			}
 		})
 		.catch(error => {
 			console.error('Error:', error);
-			alert('역할 등록 중 오류가 발생했습니다.');
+			showToast('역할 등록 중 오류가 발생했습니다.');
 		});
 }
 
