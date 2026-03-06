@@ -385,7 +385,7 @@ window.docsReload = async (filters = {}) => {
 		const res = await fetch(`/api/docs/list?${params}`, { headers: { Accept: "application/json" } });
 		if (!res.ok) return;
 		const data = await res.json();
-		
+
 		const tbody = document.getElementById("docsTableBody");
 		tbody.innerHTML = "";
 

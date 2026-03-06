@@ -38,15 +38,16 @@ public class OverviewController {
 
 	@GetMapping("/project/overview/{projectCode}/notices")
 	@ResponseBody
-	public PageInfo<MyNoticeDTO> getNoticeList(@PathVariable Integer projectCode, 
-			                                HttpSession session,
-			                                @RequestParam(defaultValue = "1", required = false) Integer pageNum) {
+	public PageInfo<MyNoticeDTO> getNoticeList(
+					@PathVariable Integer projectCode, 
+			    HttpSession session,
+			    @RequestParam(defaultValue = "1", required = false) Integer pageNum) { // 요청 페이지 번호
+		
 		// 로그인 사용자 정보
 		UserVO user = (UserVO) session.getAttribute("user");
-		
 		Integer userCode = user.getUserCode();
 
-		// 내가 참여한 프로젝트별 공지 목록
+		// 페이징 처리된 공지 목록 조회
 		PageInfo<MyNoticeDTO> noticeList = overviewService.getRecentNotices(userCode, projectCode, pageNum);
 		
 		return noticeList;

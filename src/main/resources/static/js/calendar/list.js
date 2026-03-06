@@ -76,7 +76,7 @@
 			headerToolbar: {
 				left: 'prevYear,prev,next,nextYear today',
 				center: 'title',
-				right: 'dayGridMonth,dayGridWeek,timeGridDay'
+				right: 'dayGridMonth,dayGridWeek' //,timeGridDay(시간 추가 시 넣기)
 			},
 
 			// 오늘 강조
