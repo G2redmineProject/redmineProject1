@@ -34,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function loadNotices(pageNum) {
+
+	// 페이지 번호를 서버로 전달하여 공지 목록 조회
 	fetch(`/project/overview/${projectCode}/notices?pageNum=${pageNum}`)
 		.then(res => res.json())
 		.then(data => {

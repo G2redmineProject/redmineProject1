@@ -27,7 +27,10 @@ public class OverviewServiceImpl implements OverviewService {
 
 	@Override
 	public PageInfo<MyNoticeDTO> getRecentNotices(int userCode, int projectCode, int pageNum) {
-		int perPage = 10;
+
+		int perPage = 5; // 페이지당 공지 개수
+
+		// PageHelper 기반 공지사항 서버 페이징 처리
 		PageInfo<MyNoticeDTO> page = PageHelper.startPage(pageNum, perPage)
                 .doSelectPageInfo(() -> overviewMapper.selectRecentNotices(userCode, projectCode));
 		return page;

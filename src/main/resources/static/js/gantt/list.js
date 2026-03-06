@@ -13,11 +13,16 @@
 		locale: "kr"
 	};
 
+	// 상태별 색상 설정
 	const STATUS_COLORS = {
-		'신규': '#90b8ff', '진행': '#ffe27a', '해결': '#a78bfa',
-		'반려': '#f8a1d1', '완료': '#8fe6a2'
+		'신규': '#90b8ff', 
+		'진행': '#ffe27a', 
+		'해결': '#a78bfa',
+		'반려': '#f8a1d1', 
+		'완료': '#8fe6a2'
 	};
 
+	// 우선순위별 색상 설정
 	const PRIORITY_COLORS = {
 		'긴급': '#D97B7B',
 		'높음': '#FFB266',
@@ -47,9 +52,12 @@
 		"낮음": "#69B87C"
 	};
 
+	// 마감 기한 경과 여부를 판별하는 함수
 	const isOverdueTask = (task) => {
 		const todayMidnight = new Date();
-		todayMidnight.setHours(0, 0, 0, 0);
+		todayMidnight.setHours(0, 0, 0, 0); // 비교를 위해 시간 정보 초기화
+
+		// 마감기한이 지났고, 상태가 '완료' 또는 '해결'이 아닌 경우만 true 반환
 		return task.originalEnd && task.originalEnd < todayMidnight
 			&& task.status !== '완료' && task.status !== '해결';
 	};
@@ -79,7 +87,7 @@
 				template: function(task) {
 					let cls = "";
 					if (task.rowType === "PROJECT") cls = "gantt_project issue-clickable";
-					if (task.rowType === "TYPE") cls = "type-node";
+					if (task.rowType === "TYPE") cls = "type-node issue-clickable";
 					if (task.rowType === "ISSUE") cls = "issue-clickable";
 
 					return `<span class="${cls}">${task.text}</span>`;
@@ -119,8 +127,6 @@
 				template: (t) => {
 					if (!t.status) return '';
 
-					const isOverdue = isOverdueTask(t);
-
 					const map = {
 						'신규': 'primary',
 						'진행': 'warning',
@@ -128,7 +134,9 @@
 						'반려': 'secondary',
 						'완료': 'success'
 					};
-
+					
+					// 배지(Badge) 제어: 지연 여부에 따라 우선순위/상태 배지 색상을 'danger(빨강)'로 변경
+					const isOverdue = isOverdueTask(t);
 					const color = isOverdue ? 'danger' : (map[t.status] || 'secondary');
 
 					return `
@@ -235,6 +243,7 @@
 	gantt.config.details_on_dblclick = false;
 	gantt.config.details_on_create = false;
 
+	// 그리드(표) 제어: 지연 업무일 경우 행 전체에 'row-overdue' 클래스 추가 (배경색 변경)
 	gantt.templates.grid_row_class = function(start, end, task) {
 		if (task.rowType !== 'ISSUE') return '';
 		const isOverdue = isOverdueTask(task);
@@ -471,7 +480,7 @@
 
 		} else {
 			data.filter(d => d.rowType === "TYPE").forEach(type => {
-				validTypes.add(type.typeCode);
+				validType.add(type.typeCode);
 			});
 		}
 
@@ -628,9 +637,11 @@
 				}
 
 				const typeInfo = typeMap[String(item.typeCode)] || { typeName: '-', parTypeName: null };
+
+				// 간트차트(막대) 제어: 지연 업무는 차트 막대 색상을 강제로 빨간색(#dc2626) 렌더링
 				const taskColor = isOverdue
-					? "#dc2626"
-					: (ISSUE_PRIORITY_COLORS[item.priority] || "#5AB2FF");
+					? "#dc2626" // 지연 업무: 빨간색 강조
+					: (ISSUE_PRIORITY_COLORS[item.priority] || "#5AB2FF"); // 정상: 우선순위별 색상
 
 				tasks.push({
 					id: id,
@@ -674,22 +685,27 @@
 		return { data: tasks, links };
 	};
 
-	// 엑셀 - 계층구조 포함
+	// 엑셀(Excel) 다운로드: 차트의 계층 구조를 유지한 채 데이터 추출
 	window.exportExcel = function() {
+		// 엑셀 시트의 헤더(Header) 구성
 		const rows = [["작업명", "우선순위", "상태", "진척도", "시작일", "종료일", "담당자"]];
 
+		// 차트에 로드된 모든 작업을 순회하며 데이터 수집
 		gantt.eachTask(function(task) {
+			// 트리 레벨을 계산하여 작업명 앞에 공백(Indent) 추가
 			const level = gantt.calculateTaskLevel(task);
 			const indent = "  ".repeat(level);
 
+			// '신규' 상태인 일감은 시작일을 표시하지 않음 (예외 처리)
 			let start = "";
 			if (!(task.rowType === "ISSUE" && task.status === "신규")) {
 				start = task.start_date ? DateUtils.getYYYYMMDD(task.start_date) : "";
 			}
 			const end = task.end_date ? DateUtils.getYYYYMMDD(task.end_date) : "";
 
+			// 엑셀 행(Row) 데이터 구성
 			rows.push([
-				indent + task.text,
+				indent + task.text, // 계층 구조가 반영된 작업명
 				task.priority || "",
 				task.status || "",
 				task.textProgress || "",
@@ -699,22 +715,24 @@
 			]);
 		});
 
+		// XLSX 라이브러리를 활용한 파일 생성 및 컬럼 너비(wch) 최적화
 		const ws = XLSX.utils.aoa_to_sheet(rows);
 		ws['!cols'] = [
-			{ wch: 40 }, { wch: 10 }, { wch: 10 },
+			{ wch: 40 }, { wch: 10 }, { wch: 10 }, // 작업명 컬럼을 넓게 설정
 			{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 12 }
 		];
 
 		const wb = XLSX.utils.book_new();
 		XLSX.utils.book_append_sheet(wb, ws, "간트차트");
-		XLSX.writeFile(wb, "gantt.xlsx");
+		XLSX.writeFile(wb, "gantt.xlsx"); // 파일 내보내기 실행
 	};
 
 	// PDF 다운로드
 	window.exportPDF = function() {
+		// dhtmlxGantt 내장 export 서버를 호출하여 타임라인 뷰 그대로 출력
 		gantt.exportToPDF({
 			name: "gantt.pdf",
-			locale: "kr",
+			locale: "kr", // 한국어 로케일 적용 (날짜 및 텍스트 깨짐 방지)
 		});
 	};
 
