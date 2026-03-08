@@ -140,9 +140,11 @@ public class DocsController {
 
 	// ===== 파일 업로드 =====
 	@PostMapping("/docsUpload")
-	public String uploadFiles(@RequestParam("projectCode") Integer projectCode,
-			@RequestParam("folderCode") Integer folderCode, @RequestParam("files") List<MultipartFile> files,
-			HttpSession session, Model model) {
+	public String uploadFiles(
+			@RequestParam("projectCode") Integer projectCode, // 프로젝트 코드
+			@RequestParam("folderCode") Integer folderCode,   // 업로드할 폴더 코드
+			@RequestParam("files") List<MultipartFile> files, // 업로드된 파일 목록 (여러개)
+			HttpSession session) {
 		try {
 			UserVO user = (UserVO) session.getAttribute("user");
 			if (user == null)
@@ -152,14 +154,17 @@ public class DocsController {
 			if (!uploadDirFile.exists())
 				uploadDirFile.mkdirs();
 
+			// 업로드된 파일들을 하나씩 처리
 			for (MultipartFile file : files) {
 				if (file.isEmpty())
 					continue;
 
+				// 사용자가 업로드한 원본 파일 이름
 				String originalName = file.getOriginalFilename();
 				if (originalName == null || !originalName.contains("."))
 					continue;
 
+				// 파일 확장자 추출 (.png .pdf 등)
 				String ext = originalName.substring(originalName.lastIndexOf("."));
 				String extLower = ext.replace(".", "").toLowerCase();
 
@@ -167,24 +172,33 @@ public class DocsController {
 					throw new IllegalArgumentException("허용되지 않은 파일 형식입니다.");
 				}
 
+				// 서버에 저장할 파일 이름 생성 (UUID 사용 → 파일명 중복 방지)
 				String storedName = UUID.randomUUID().toString() + ext;
+
+				// 실제 서버 저장 경로 생성
 				String filePath = uploadDirFile.getAbsolutePath() + File.separator + storedName;
+				
+				// 파일을 서버 디스크에 저장
 				file.transferTo(new File(filePath).getAbsoluteFile());
 
+				// DB에 저장할 파일 정보 객체 생성
 				DocsVO docsVO = new DocsVO();
-				docsVO.setProjectCode(projectCode);
-				docsVO.setFolderCode(folderCode);
-				docsVO.setOriginalName(originalName);
-				docsVO.setStoredName(storedName);
-				docsVO.setPath(filePath);
-				docsVO.setMimeType(file.getContentType());
-				docsVO.setSizeBytes((int) file.getSize());
-				docsVO.setUploadedAt(new java.util.Date());
+				docsVO.setProjectCode(projectCode); // 프로젝트 코드
+				docsVO.setFolderCode(folderCode); // 폴더 코드
+				docsVO.setOriginalName(originalName); // 원본 파일명
+				docsVO.setStoredName(storedName); // 서버 저장 파일명
+				docsVO.setPath(filePath); // 파일 저장 경로
+				docsVO.setMimeType(file.getContentType()); // MIME 타입
+				docsVO.setSizeBytes((int) file.getSize()); // 파일 크기
+				docsVO.setUploadedAt(new java.util.Date()); // 파일 등록일
 				setAuthFromSession(docsVO, session);
 				setUserInfo(docsVO, user);
 
+				// DB에 파일 정보 저장
 				docsService.addFiles(docsVO);
 			}
+
+			// 업로드 완료 후 문서 페이지로 이동
 			return "redirect:/docs";
 		} catch (Exception e) {
 			e.printStackTrace();
