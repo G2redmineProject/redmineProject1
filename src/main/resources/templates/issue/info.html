@@ -27,7 +27,7 @@
           type="button"
           class="btn btn-dark"
           id="btnWorklog"
-          th:if="${issue.projectStatus != 'OD3' and (isAdmin or (issue.assigneeCode != null and issue.assigneeCode == session.user.userCode))}"
+          th:if="${issue.projectStatus != 'OD3' and issue.statusId != 'OB5' and (isAdmin or (issue.assigneeCode != null and issue.assigneeCode == session.user.userCode))}"
           th:attr="
     data-can-worklog=${isAdmin or (issue.assigneeCode != null and issue.assigneeCode == loginUserCode)},
     data-admin-ck=${isAdmin ? 'Y' : 'N'},
@@ -46,7 +46,7 @@
           type="button"
           class="btn btn-success"
           id="btnEdit"
-          th:if="${issue.projectStatus != 'OD3'}"
+          th:if="${issue.projectStatus != 'OD3' and issue.statusId != 'OB5'}"
           th:attr="data-can-modify=${canModify}"
         >
           <i class="fas fa-edit me-1"></i>일감 수정
@@ -55,7 +55,7 @@
           type="button"
           class="btn btn-danger"
           id="btnDelete"
-          th:if="${issue.projectStatus != 'OD3'}"
+          th:if="${issue.projectStatus != 'OD3' and issue.statusId != 'OB5'}"
           th:attr="data-can-delete=${canDelete}"
         >
           <i class="fa-solid fa-minus me-1"></i>삭제
