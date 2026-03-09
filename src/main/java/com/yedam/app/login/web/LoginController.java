@@ -49,7 +49,7 @@ public class LoginController {
 	        return "redirect:/G2main";
 	    }
 	    
-	    // 자동로그인 쿠키가 있으면 세션 복구 시도 → 성공하면 메인으로
+	    // 브라우저 쿠키에서 자동로그인 토큰 조회
 	    String rawToken = null;
 	    if (request.getCookies() != null) {
 	        for (Cookie c : request.getCookies()) {
@@ -59,27 +59,33 @@ public class LoginController {
 	            }
 	        }
 	    }
-
+	    // 쿠키에 토큰이 존재하면 DB에 저장된 토큰과 비교하여 검증
 	    if (rawToken != null && !rawToken.isBlank()) {
+	    	
+	    	// 보안을 위해 원본 토큰을 SHA-256으로 해시하여 비교
 	        String tokenHash = sha256Hex(rawToken);
+	        // DB에서 유효한 자동로그인 토큰 조회
 	        UserVO user = loginService.findUserByValidAutoLoginToken(tokenHash);
 
 	        if (user != null) {
-	            // 세션 복구
+	            // 자동로그인 성공 → 세션 복구
 	            session.setAttribute("user", user);
 
-	            List<UserProjectAuthVO> auths = projectService.getUserProjectAuthAll(user.getUserCode());
+	            // 사용자 정보를 세션에 저장
+	            List<UserProjectAuthVO> auths = 
+	            		projectService.getUserProjectAuthAll(user.getUserCode());
 	            session.setAttribute("userAuth", auths);
 	            
 	            // 자동로그인 성공하면 마지막 로그인 갱신
 	            loginService.modifyLastLoginAt(user.getUserCode());
 
-	            // last_used 갱신(추천)
+	            // 토큰 마지막 사용 시간 갱신
 	            loginService.touchAutoLoginToken(tokenHash);
 
+	            // 메인 페이지로 이동
 	            return "redirect:/G2main";
 	        }
-	        // 토큰 무효면 쿠키 제거
+	        // 토큰 무효면 쿠키 삭제하여 자동로그인 재시도 방지
 	        Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, "");
 	        auto.setPath("/");
 	        auto.setMaxAge(0);
@@ -169,10 +175,17 @@ public class LoginController {
 	        response.addCookie(c);
 		}
 		
-		// 자동로그인 체크하면 토큰 발급
+		// =========================================================
+		// 자동 로그인 토큰 발급 (POST /login)
+		// - 쿠키에는 "원본 토큰" 저장
+		// - DB에는 "해시(SHA-256)" 저장 (원본 유출 방지)
+		// - TTL(30일), User-Agent/IP 저장으로 추적/보안 강화
+		// =========================================================
 		if("on".equals(userVO.getAutoLogin())) {
-			String rawToken = generateToken(); 		// 쿠키에 넣을 원본
-			String tokenHash = sha256Hex(rawToken); // DB 저장용 해시
+			// 쿠키에 넣을 원본 토큰 생성
+			String rawToken = generateToken(); 		
+			// DB 저장용 해시 (원본 토큰은 DB에 저장하지 않음)
+			String tokenHash = sha256Hex(rawToken); 
 			
 			AutoLoginTokenVO tokenVO = new AutoLoginTokenVO();
 			tokenVO.setTokenHash(tokenHash);
@@ -181,19 +194,17 @@ public class LoginController {
 			tokenVO.setUserAgent(request.getHeader("User-Agent"));
 			tokenVO.setIpAddr(request.getRemoteAddr());
 			
-			// DB 저장
+			// 토큰 저장 (유효기간/환경정보 포함)
 			loginService.saveAutoLoginToken(tokenVO);
 			
-			// 쿠키 저장(원본 토큰)
+			// 쿠키에 원본 토큰 저장 (서버에서는 해시로만 검증)
 			Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, rawToken);
 			auto.setPath("/");
 		    auto.setMaxAge((int) AUTO_LOGIN_TTL.getSeconds());
 		    auto.setHttpOnly(true);
-		    // HTTPS 쓰면 true 권장
-		    // auto.setSecure(true);
 		    response.addCookie(auto);
 		} else {
-			// 자동로그인 체크 안 하면 혹시 남아있을 수 있는 쿠키 제거(선택)
+			// 자동로그인 미사용 시 남아있을 수 있는 쿠키 제거
 		    Cookie auto = new Cookie(AUTO_LOGIN_COOKIE, "");
 		    auto.setPath("/");
 		    auto.setMaxAge(0);
@@ -316,16 +327,19 @@ public class LoginController {
 	
 	// 원본 토큰 만들기
 	private String generateToken() {
-	    byte[] b = new byte[32];
-	    new SecureRandom().nextBytes(b);
-	    return HexFormat.of().formatHex(b);
+	    byte[] b = new byte[32];			// 256bit 랜덤 토큰
+	    new SecureRandom().nextBytes(b);	// 보안용 난수 생성
+	    return HexFormat.of().formatHex(b);	// Hex 문자열로 변환
 	}
 	
 	// DB 저장용 해시 만들기
 	private String sha256Hex(String s) {
 	    try {
+	    	// SHA-256 해시 알고리즘
 	        MessageDigest md = MessageDigest.getInstance("SHA-256");
+	        // 문자열 해싱
 	        byte[] hash = md.digest(s.getBytes(StandardCharsets.UTF_8));
+	        // 해시값을 Hex 문자열로 변환
 	        return HexFormat.of().formatHex(hash);
 	    } catch (Exception e) {
 	        throw new RuntimeException(e);

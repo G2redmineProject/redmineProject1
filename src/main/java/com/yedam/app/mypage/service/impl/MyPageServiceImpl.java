@@ -128,7 +128,9 @@ public class MyPageServiceImpl implements MyPageService {
 	public Map<String, Object> buildMyPage(HttpSession session, Integer userCode, String userName, int days,
 			String mode, Integer projectCode) {
 
-		// ✅ 고정 프로젝트(currentProject) 컨텍스트 읽기
+		// =========================================================
+		// 고정 프로젝트(currentProject) 컨텍스트 확인
+		// =========================================================
 		Integer fixedProjectCode = null;
 		String fixedProjectName = null;
 
@@ -137,51 +139,60 @@ public class MyPageServiceImpl implements MyPageService {
 			if (cp instanceof Map<?, ?> m) {
 				Object pc = m.get("projectCode");
 				Object pn = m.get("projectName");
+				
+				// 세션에 저장된 프로젝트 코드 / 이름 추출
 				if (pc != null)
 					fixedProjectCode = Integer.valueOf(String.valueOf(pc));
 				if (pn != null)
 					fixedProjectName = String.valueOf(pn);
 			}
-			// ✅ VO 타입이면 여기로 교체 추천
-			// else if (cp instanceof CurrentProjectVO vo) {
-			// fixedProjectCode = vo.getProjectCode();
-			// fixedProjectName = vo.getProjectName();
-			// }
 		}
 
-		// 1) 블록 목록
+		// 블록 목록
 		List<BlockVO> blocks = getBlocksEnsured(userCode);
 		int limit = 8;
 
-		// 2) 권한 기반 프로젝트 필터 준비
+		// =========================================================
+		// 권한 기반 프로젝트 필터 준비
+		// =========================================================
 		boolean isSys = Authz.isSys(session);
 
-		List<Integer> issueReadable = null; // CAT_PROJECT gate + CAT_ISSUE rdRol 결과
-		List<Integer> noticeReadable = null; // CAT_PROJECT gate + CAT_NOTICE rdRol 결과
-		List<Integer> issueEditable = null;
+		List<Integer> issueReadable = null; 	// 일감 조회 가능 프로젝트
+		List<Integer> noticeReadable = null; 	// 공지 조회 가능 프로젝트
+		List<Integer> issueEditable = null;		// 일감 수정 가능 프로젝트
 
 		if (!isSys) {
-			issueReadable = new ArrayList<>(Authz.readableProjectsByCategory(session, Authz.CAT_ISSUE));
-			noticeReadable = new ArrayList<>(Authz.readableProjectsByCategory(session, Authz.CAT_NOTICE));
-			issueEditable = new ArrayList<>(Authz.editableProjectsByCategory(session, Authz.CAT_ISSUE));
+			issueReadable = new ArrayList<>(Authz.readableProjectsByCategory(
+					session, 
+					Authz.CAT_ISSUE));
+			noticeReadable = new ArrayList<>(Authz.readableProjectsByCategory(
+					session, 
+					Authz.CAT_NOTICE));
+			issueEditable = new ArrayList<>(Authz.editableProjectsByCategory(
+					session, 
+					Authz.CAT_ISSUE));
 		}
 
-		// 3) ADMIN 모드 판정
-		boolean requestedAdmin = "ADMIN".equalsIgnoreCase(mode) && projectCode != null;
+		// =========================================================
+		// (관리자 / 내) 모드 판정
+		// =========================================================
+		boolean requestedAdmin = 
+				"ADMIN".equalsIgnoreCase(mode) && projectCode != null;
 
-		// ✅ 고정 프로젝트가 있으면: ADMIN은 고정 프로젝트로만 허용
+		// 고정 프로젝트가 존재하면 관리자 모드는 해당 프로젝트에서만 허용
 		if (fixedProjectCode != null) {
 			if (!fixedProjectCode.equals(projectCode)) {
 				requestedAdmin = false;
 			}
 		}
 
+		// 최종 관리자 모드 여부
 		boolean isAdminMode = requestedAdmin && Authz.isAdmin(session, projectCode);
 
 		List<AdminProjectOptionDTO> adminProjectOptions;
 
 		if (fixedProjectCode != null) {
-			// ✅ 고정 프로젝트가 있을 때: 고정 프로젝트의 관리자(sys 포함)만 모드 선택 노출
+			// 고정 프로젝트가 있을 때: 고정 프로젝트의 관리자(sys 포함)만 모드 선택 노출
 			boolean canPickMode = isSys || Authz.isAdmin(session, fixedProjectCode);
 
 			if (canPickMode) {
@@ -197,12 +208,12 @@ public class MyPageServiceImpl implements MyPageService {
 				adminProjectOptions = List.of(one);
 			} else {
 				adminProjectOptions = List.of();
-				// ✅ 고정 프로젝트 관리자가 아니면 ADMIN 모드 자체를 무효화
+				// 고정 프로젝트 관리자가 아니면 ADMIN 모드 자체를 무효화
 				isAdminMode = false;
 			}
 
 		} else {
-			// ✅ 고정 프로젝트가 없으면: 기존 동작 그대로
+			// 고정 프로젝트가 없으면: 기존 동작 그대로
 			if (isSys) {
 				adminProjectOptions = myPageMapper.selectAllProjectOptions(); // OD1
 			} else {
@@ -215,19 +226,33 @@ public class MyPageServiceImpl implements MyPageService {
 			}
 		}
 		
-		// 5) 블록별 데이터
+		// 블록별 데이터
 		Map<String, Object> blockData = new HashMap<>();
 
 		for (BlockVO b : blocks) {
 			String t = (b.getBlockType() == null) ? "" : b.getBlockType().toUpperCase();
 
+			// =========================================================
+			// 블록 타입별 데이터 조회
+			// =========================================================
 			switch (t) {
 			case BT_ASSIGNED -> {
+				// 관리자 모드: 프로젝트 전체 담당 일감 현황 조회
 				if (isAdminMode) {
-					blockData.put(BT_ASSIGNED, myPageMapper.selectAdminAssigneeIssSta(projectCode));
+					blockData.put(
+							BT_ASSIGNED, 
+							myPageMapper.selectAdminAssigneeIssSta(projectCode));
+				// 일반 사용자 모드: 사용자 담당 일감 조회 (권한 필터 적용)
 				} else {
-					blockData.put(BT_ASSIGNED, myPageMapper.selectAssignedIssues(userCode, limit, isSys, issueReadable,
-							issueEditable, fixedProjectCode));
+					blockData.put(
+							BT_ASSIGNED, 
+							myPageMapper.selectAssignedIssues(
+									userCode, 
+									limit, 
+									isSys, 
+									issueReadable,
+									issueEditable, 
+									fixedProjectCode));
 				}
 			}
 			case BT_REGISTERED -> {

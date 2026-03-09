@@ -67,19 +67,24 @@ public class Authz {
 						&& a.getAdmin() != null && a.getAdmin() == 1);
 	}
 
-	/**
-	 * 같은 프로젝트 + 같은 카테고리 권한을 병합
-	 * (그룹/직접권한 등 여러 행을 OR 방식으로 합침)
+	/**같은 프로젝트 + 같은 카테고리 권한을 병합
+	 * 사용자에게는 직접 부여된 권한과 그룹을 통해 부여된 권한이
+	 * 동시에 존재할 수 있기 때문에, 여러 권한 행을 하나의 권한으로
+	 * OR 방식으로 병합하여 최종 권한을 계산한다.
 	 */
 	private static UserProjectAuthVO mergeAuth(HttpSession session, Integer projectCode, String category) {
+		// 프로젝트나 카테고리가 없으면 권한 계산 불가
 		if (projectCode == null || category == null) return null;
-
 		UserProjectAuthVO merged = null;
 
+		// 세션에 저장된 사용자 권한 목록 순회
 		for (var a : authList(session)) {
+			// 다른 프로젝트 권한이면 제외
 			if (!projectCode.equals(a.getProjectCode())) continue;
+			// 다른 카테고리 권한이면 제외
 			if (!category.equals(a.getCategory())) continue;
 
+			// 최초 발견 시 기본 권한 객체 생성 (기본값: 모든 권한 N)
 			if (merged == null) {
 				merged = new UserProjectAuthVO();
 				merged.setProjectCode(projectCode);
@@ -91,7 +96,7 @@ public class Authz {
 				merged.setDelRol("N");
 			}
 
-			// 하나라도 Y면 Y
+			// 여러 권한 행 중 하나라도 Y이면 최종 권한을 Y로 병합
 			if (a.getAdmin() != null && a.getAdmin() == 1) merged.setAdmin(1);
 			if ("Y".equalsIgnoreCase(a.getRdRol())) merged.setRdRol("Y");
 			if ("Y".equalsIgnoreCase(a.getWrRol())) merged.setWrRol("Y");
@@ -99,25 +104,43 @@ public class Authz {
 			if ("Y".equalsIgnoreCase(a.getDelRol())) merged.setDelRol("Y");
 		}
 
+		// 병합된 최종 권한 반환
 		return merged;
 	}
 
-	/** 읽기 권한 체크 (프로젝트 rdRol 게이트 적용) */
-	public static boolean canRead(HttpSession session, Integer projectCode, String category) {
+	
+	/**읽기 권한 검사
+	 * 접근 제어 정책
+	 * 1. 시스템 관리자(sys)는 모든 프로젝트 접근 가능
+	 * 2. 프로젝트 관리자(admin)는 해당 프로젝트 전체 접근 가능
+	 * 3. 일반 사용자는 먼저 프로젝트 읽기 권한을 만족해야 함
+	 * 4. 이후 카테고리별 읽기 권한을 추가로 검사
+	 */
+	public static boolean canRead(HttpSession session, 
+								  Integer projectCode, 
+								  String category) {
+		
+		// 시스템 관리자면 모든 접근 허용
 		if (isSys(session)) return true;
+		
+		// 프로젝트 관리자면 해당 프로젝트 전체 허용
 		if (isAdmin(session, projectCode)) return true;
 
 		// 프로젝트 읽기 권한이 전제조건
 		var proj = mergeAuth(session, projectCode, CAT_PROJECT);
+		
+		// 프로젝트 읽기 권한이 없으면 접근 차단
 		if (proj == null || !"Y".equalsIgnoreCase(proj.getRdRol())) {
 			return false;
 		}
 
-		// 프로젝트 자체 읽기
+		// 프로젝트 자체 조회는 프로젝트 읽기 권한만 있으면 허용
 		if (CAT_PROJECT.equals(category)) return true;
 
-		// 각 카테고리 rdRol 체크
+		// 카테고리별 읽기 권한 확인
 		var a = mergeAuth(session, projectCode, category);
+		
+		// 카테고리 읽기 권한이 있을 때만 접근 허용
 		return a != null && "Y".equalsIgnoreCase(a.getRdRol());
 	}
 
