@@ -598,40 +598,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 	// 업로드 모달 닫힐 때 파일 목록 초기화
 	const uploadModalEl = document.getElementById("docUploadModal");
-	uploadModalEl?.addEventListener("hide.bs.modal", () => {
-		const folderModalIsOpen = document.getElementById("folderSelectModal")
-			?.classList.contains("show");
-
-		if (!folderModalIsOpen && window.docsReload) {
-			const filters = {
-				projectCode: document.getElementById("filterProjectValue")?.value || "",
-				projectStatusName: document.getElementById("filterProjectStatus")?.value || "",
-				folderCode: document.getElementById("filterFolderValue")?.value || "",
-				fileName: document.getElementById("filterFile")?.value || "",
-				createdCode: document.getElementById("filterCreatorValue")?.value || "",
-				fileType: document.getElementById("filterFileType")?.value || "",
-				createdFrom: document.getElementById("filterCreatedFrom")?.value || "",
-				createdTo: document.getElementById("filterCreatedTo")?.value || "",
-			};
-			window.docsReload(filters);
-		}
-
-		// 초기화는 hidden에서
-	});
-
 	uploadModalEl?.addEventListener("hidden.bs.modal", () => {
 		managedFiles = new DataTransfer();
 		if (ui.uploadFiles) {
 			ui.uploadFiles.value = "";
-			ui.uploadFiles.style.opacity = "0.6";
+			ui.uploadFiles.style.opacity = "0.6"; // 다시 흐리게
 			ui.uploadFiles.style.cursor = "not-allowed";
 		}
 		if (ui.filePreviewList) ui.filePreviewList.innerHTML = "";
+		if (ui.uploadProjectText) ui.uploadProjectText.value = "";
+		if (ui.uploadProjectValue) ui.uploadProjectValue.value = "";
 		if (ui.uploadFolderText) ui.uploadFolderText.value = "";
 		if (ui.uploadFolderValue) ui.uploadFolderValue.value = "";
-		if (ui.uploadProjectValue) ui.uploadProjectValue.value = "";
-		const hint = document.getElementById("uploadProjectHint");
-		if (hint) hint.style.display = "none";
 	});
 
 	ui.uploadFiles?.addEventListener("click", (e) => {
@@ -643,27 +621,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 		// 폴더가 있으면 아무것도 막지 않으므로 파일 창이 정상적으로 뜹니다.
 	});
-
-	// 업로드 모달의 닫기 버튼들에 직접 바인딩
-	document.getElementById("docUploadModal")
-		?.querySelectorAll('[data-bs-dismiss="modal"], .btn-close')
-		.forEach(btn => {
-			btn.addEventListener("click", () => {
-				if (window.docsReload) {
-					const filters = {
-						projectCode: document.getElementById("filterProjectValue")?.value || "",
-						projectStatusName: document.getElementById("filterProjectStatus")?.value || "",
-						folderCode: document.getElementById("filterFolderValue")?.value || "",
-						fileName: document.getElementById("filterFile")?.value || "",
-						createdCode: document.getElementById("filterCreatorValue")?.value || "",
-						fileType: document.getElementById("filterFileType")?.value || "",
-						createdFrom: document.getElementById("filterCreatedFrom")?.value || "",
-						createdTo: document.getElementById("filterCreatedTo")?.value || "",
-					};
-					window.docsReload(filters);
-				}
-			});
-		});
 
 	// ================= Modal 인스턴스 =================
 	const projectModal = ui.projectModalEl ? new bootstrap.Modal(ui.projectModalEl) : null;
@@ -951,7 +908,7 @@ document.addEventListener("DOMContentLoaded", () => {
 					await ensureFolderCache();
 					const treeData = buildFolderTreeForJS(folderCache);
 					const selectedProjectCode = currentFolderContext === "upload"
-						? (ui.uploadProjectValue?.value || ui.filterProjectValue?.value)
+						? ui.uploadProjectValue?.value
 						: ui.filterProjectValue?.value;
 					const filtered = selectedProjectCode
 						? treeData.filter(p => String(p.code) === String(selectedProjectCode))
@@ -1125,6 +1082,19 @@ document.addEventListener("DOMContentLoaded", () => {
 		newFolderProjectCode.value = "";
 	});
 
+	uploadModalEl?.addEventListener("hidden.bs.modal", () => {
+		managedFiles = new DataTransfer();
+		if (ui.uploadFiles) ui.uploadFiles.value = "";
+		if (ui.filePreviewList) ui.filePreviewList.innerHTML = "";
+		if (ui.uploadFolderText) ui.uploadFolderText.value = "";
+		if (ui.uploadFolderValue) ui.uploadFolderValue.value = "";
+		if (ui.uploadProjectValue) ui.uploadProjectValue.value = "";
+
+		// 힌트 초기화
+		const hint = document.getElementById("uploadProjectHint");
+		if (hint) hint.style.display = "none";
+	});
+
 	// 폴더 생성 확인
 	btnConfirmFolderCreate?.addEventListener("click", async () => {
 		const name = newFolderName.value.trim();
@@ -1171,7 +1141,7 @@ document.addEventListener("DOMContentLoaded", () => {
 			const treeData = buildFolderTreeForJS(folderCache);
 			const selectedProjectCode = currentFolderContext === "filter"
 				? ui.filterProjectValue?.value
-				: (ui.uploadProjectValue?.value || ui.filterProjectValue?.value);
+				: ui.uploadProjectValue?.value;
 			const filtered = selectedProjectCode
 				? treeData.filter(p => String(p.code) === String(selectedProjectCode))
 				: treeData;
@@ -1228,6 +1198,8 @@ document.addEventListener("DOMContentLoaded", () => {
 			// 성공
 			bootstrap.Modal.getInstance(document.getElementById("docUploadModal"))?.hide();
 			showToast("업로드가 완료되었습니다.");
+			if (window.docsReload) window.docsReload({});
+
 		} catch (e) {
 			showToast("서버 오류가 발생했습니다.");
 		}
