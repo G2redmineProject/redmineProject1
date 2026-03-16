@@ -170,6 +170,7 @@
 
 # 시스템관리 파트
 관리자 권한 기반으로 프로젝트 및 시스템 설정을 관리하는 기능을 제공합니다.
+<br>
 🔗 [GitHub 개인 Repository 바로가기](https://github.com/Peinoi/redmineProject1)
 ---
 
