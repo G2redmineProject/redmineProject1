@@ -169,9 +169,82 @@
 ---
 
 # 시스템관리 파트
-
 관리자 권한 기반으로 프로젝트 및 시스템 설정을 관리하는 기능을 제공합니다.
+🔗 [GitHub 개인 Repository 바로가기](https://github.com/Peinoi/redmineProject1)
+---
 
+## 프로젝트 관리
+
+<table>
+<tr>
+<td><img src="https://github.com/user-attachments/assets/487f0cd3-5d02-4680-9b2c-5016ee01eec7" width="100%"></td>
+<td><img src="https://github.com/user-attachments/assets/df6a623d-a4d2-447c-aba4-59d9384c25f9" width="100%"></td>
+</tr>
+</table>
+
+- 프로젝트 목록을 확인하고 관리할 수 있습니다.  
+- 신규 프로젝트 등록을 통해 프로젝트명, 진척률, 상태 등 기본 정보를 설정할 수 있습니다.  
+- 프로젝트별 협업 환경 구성을 위한 초기 설정을 진행할 수 있습니다.  
+
+---
+
+## 사용자 관리
+
+<table>
+<tr>
+<td><img src="https://github.com/user-attachments/assets/41f73de4-c31a-4781-b02c-3570688fb42c" width="100%"></td>
+<td><img src="https://github.com/user-attachments/assets/24e0cd73-92b3-405b-961b-89fff3210065" width="100%"></td>
+</tr>
+</table>
+
+- 시스템에 등록된 사용자 정보를 조회하고 관리할 수 있습니다.  
+- 사용자 등록을 통해 신규 사용자를 시스템에 추가할 수 있습니다.  
+- 계정 상태 관리 및 기본 사용자 정보를 설정할 수 있습니다.  
+
+---
+
+## 역할 관리
+
+<table>
+<tr>
+<td><img src="https://github.com/user-attachments/assets/2a335793-4f10-4df0-a97f-7063fcfaf8e2" width="100%"></td>
+<td><img src="https://github.com/user-attachments/assets/49543620-081e-4645-b7a1-f639bced618a" width="100%"></td>
+</tr>
+</table>
+
+- 역할 목록을 조회하고 역할별 권한을 관리할 수 있습니다.  
+- 역할 등록을 통해 시스템 내 권한 체계를 정의할 수 있습니다.  
+- 역할 기반 접근 제어(RBAC)를 통해 기능 접근 권한을 관리합니다.  
+
+---
+
+## 그룹 관리
+
+<table>
+<tr>
+<td><img src="https://github.com/user-attachments/assets/27f09c95-0342-4510-a0a0-5decc95416b1" width="100%"></td>
+<td><img src="https://github.com/user-attachments/assets/56282bdf-59fe-43fb-b924-6171764a7c95" width="100%"></td>
+</tr>
+</table>
+
+- 사용자 그룹을 생성하고 관리할 수 있습니다.  
+- 그룹 등록을 통해 조직 단위의 사용자 관리가 가능합니다.  
+- 그룹별 사용자 분류를 통해 권한 및 프로젝트 접근을 효율적으로 관리합니다.  
+
+---
+
+## 일감 유형 관리
+
+<table>
+<tr>
+<td><img src="https://github.com/user-attachments/assets/c3f38673-75ce-455e-9452-3d5f94b314b7" width="100%"></td>
+<td><img src="https://github.com/user-attachments/assets/efe28ba5-6140-4684-b76c-fb2050fd69a6" width="100%"></td>
+</tr>
+</table>
+
+- 프로젝트에서 사용할 일감 유형을 관리할 수 있습니다.  
+- 신규 일감 유형을 등록하여 작업 분류 체계를 설정할 수 있습니다.  
+- 계층 구조를 통해 상위/하위 일감 유형을 구성할 수 있습니다.  
 ---
 
 # 프로젝트 소감
